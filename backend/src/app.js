@@ -1,5 +1,6 @@
 import cors from 'cors'
 import express from 'express'
+import { env } from './config/env.js'
 import authRoutes from './routes/auth.routes.js'
 import careerPathRoutes from './routes/careerPaths.routes.js'
 import platformRoutes from './routes/platform.routes.js'
@@ -7,7 +8,22 @@ import roomRoutes from './routes/rooms.routes.js'
 
 const app = express()
 
-app.use(cors())
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || env.corsOrigins.includes(origin)) {
+      callback(null, true)
+      return
+    }
+
+    callback(new Error(`Origin ${origin} is not allowed by CORS`))
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}
+
+app.use(cors(corsOptions))
+app.options('*', cors(corsOptions))
 app.use(express.json({ limit: '2mb' }))
 
 app.get('/api/health', (_req, res) => {
