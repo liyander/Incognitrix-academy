@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>INCOGNITRIX | MISSION_CONTROL</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              'on-tertiary-container': '#f5feff',
+              'inverse-surface': '#2d3133',
+              surface: '#f8f9fb',
+              'surface-dim': '#d8dadc',
+              'tertiary-fixed-dim': '#00dbe9',
+              'on-error-container': '#93000a',
+              'secondary-fixed-dim': '#7ad3e7',
+              'surface-tint': '#ba1a20',
+              'primary-fixed': '#ffdad6',
+              error: '#ba1a1a',
+              'on-primary-fixed': '#410003',
+              'on-background': '#191c1e',
+              'secondary-fixed': '#a5eeff',
+              'inverse-on-surface': '#eff1f3',
+              'on-secondary-fixed-variant': '#004e5a',
+              'tertiary-container': '#00818a',
+              'tertiary-fixed': '#7df4ff',
+              'primary-fixed-dim': '#ffb3ac',
+              'inverse-primary': '#ffb3ac',
+              'on-secondary': '#ffffff',
+              'primary-container': '#da3433',
+              'on-secondary-container': '#006b7b',
+              'surface-bright': '#f8f9fb',
+              outline: '#8e706f',
+              'on-primary-container': '#fffbff',
+              'on-surface': '#191c1e',
+              'on-tertiary-fixed': '#002022',
+              secondary: '#006878',
+              'error-container': '#ffdad6',
+              primary: '#b6171e',
+              'surface-container-high': '#e6e8ea',
+              background: '#f8f9fb',
+              'surface-container': '#eceef0',
+              'surface-container-low': '#f2f4f6',
+              'surface-container-lowest': '#ffffff',
+              'on-tertiary': '#ffffff',
+              'secondary-container': '#91eafe',
+              'surface-container-highest': '#e0e3e5',
+              'on-surface-variant': '#5a4040',
+              tertiary: '#00666d',
+              'surface-variant': '#e0e3e5',
+              'on-primary': '#ffffff',
+              'on-error': '#ffffff',
+              'outline-variant': '#e3bebd',
+              'on-primary-fixed-variant': '#930010',
+              'on-secondary-fixed': '#001f25',
+              'on-tertiary-fixed-variant': '#004f54',
+            },
+            borderRadius: {
+              DEFAULT: '0rem',
+              lg: '0rem',
+              xl: '0rem',
+              full: '9999px',
+            },
+            fontFamily: {
+              headline: ['Space Grotesk'],
+              body: ['Inter'],
+              label: ['Space Grotesk'],
+            },
+          },
+        },
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

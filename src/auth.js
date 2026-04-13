@@ -1,0 +1,68 @@
+import { apiFetch } from './services/api'
+
+const AUTH_KEY = 'incognitrix_auth_session'
+
+export const TEMP_USERS = [
+  {
+    username: 'operator01',
+    password: 'RedTeam@123',
+    role: 'operator',
+  },
+  {
+    username: 'admin01',
+    password: 'AdminControl@123',
+    role: 'admin',
+  },
+]
+
+export async function loginUser(username, password) {
+  const response = await apiFetch('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  })
+
+  const session = {
+    username: response.user.username,
+    role: response.user.role,
+    token: response.token,
+    loggedInAt: Date.now(),
+  }
+
+  try {
+    localStorage.setItem(AUTH_KEY, JSON.stringify(session))
+  } catch {
+    return null
+  }
+
+  return session
+}
+
+export function logoutUser() {
+  try {
+    localStorage.removeItem(AUTH_KEY)
+  } catch {
+    // no-op for environments where storage is unavailable
+  }
+}
+
+export function isAuthenticatedUser() {
+  return Boolean(getAuthSession())
+}
+
+export function getAuthSession() {
+  try {
+    const raw = localStorage.getItem(AUTH_KEY)
+    if (!raw) {
+      return null
+    }
+
+    const parsed = JSON.parse(raw)
+    if (!parsed?.username || !parsed?.role) {
+      return null
+    }
+
+    return parsed
+  } catch {
+    return null
+  }
+}
