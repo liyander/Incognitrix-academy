@@ -1,12 +1,16 @@
 import app from './app.js'
 import { env } from './config/env.js'
-import { testConnection } from './db/pool.js'
+import { testConnection, initializeDatabaseIfNeeded } from './db/pool.js'
 
 async function start() {
   try {
+    await initializeDatabaseIfNeeded()
     await testConnection()
     const server = app.listen(env.port, () => {
-      console.log(`Incognitrix backend listening on http://localhost:${env.port}`)
+      console.log(`✓ Incognitrix backend listening on http://localhost:${env.port}`)
+      console.log(`  Default credentials:`)
+      console.log(`    operator01 / RedTeam@123`)
+      console.log(`    admin01 / AdminControl@123`)
     })
 
     server.on('error', (error) => {
