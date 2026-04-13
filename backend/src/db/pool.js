@@ -35,6 +35,7 @@ export async function initializeDatabaseIfNeeded() {
     port: env.db.port,
     user: env.db.user,
     password: env.db.password,
+    multipleStatements: true,
   })
 
   try {
@@ -261,3 +262,4 @@ export async function initializeDatabaseIfNeeded() {
     await conn.end()
   }
 }
+
