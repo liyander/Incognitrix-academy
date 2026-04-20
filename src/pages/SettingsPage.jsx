@@ -367,72 +367,6 @@ function SettingsPage() {
           </section>
 
           <section className="bg-surface-container-lowest p-8 space-y-5">
-            <h2 className="font-headline text-xl font-bold uppercase tracking-tight">CTF Profiles</h2>
-            <div className="space-y-4">
-              <label className="block">
-                <ProfileLabelWithLogo logo={profileLogos.htb} text="Hack The Box Profile" />
-                <input
-                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
-                  onChange={(e) => updateField('hackthebox_profile', e.target.value)}
-                  placeholder="https://app.hackthebox.com/profile/..."
-                  type="url"
-                  value={form.hackthebox_profile}
-                />
-              </label>
-              <label className="block">
-                <ProfileLabelWithLogo logo={profileLogos.thm} text="TryHackMe Profile" />
-                <input
-                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
-                  onChange={(e) => updateField('tryhackme_profile', e.target.value)}
-                  placeholder="https://tryhackme.com/p/..."
-                  type="url"
-                  value={form.tryhackme_profile}
-                />
-              </label>
-              <label className="block">
-                <ProfileLabelWithLogo logo={profileLogos.pico} text="picoCTF Profile" />
-                <input
-                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
-                  onChange={(e) => updateField('picoctf_profile', e.target.value)}
-                  placeholder="https://play.picoctf.org/users/..."
-                  type="url"
-                  value={form.picoctf_profile}
-                />
-              </label>
-              <label className="block">
-                <ProfileLabelWithLogo logo={profileLogos.resume} text="Resume URL" />
-                <input
-                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
-                  onChange={(e) => updateField('resume_url', e.target.value)}
-                  placeholder="https://drive.google.com/..."
-                  type="url"
-                  value={form.resume_url}
-                />
-              </label>
-              <label className="block">
-                <ProfileLabelWithLogo logo={profileLogos.github} text="GitHub Profile" />
-                <input
-                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
-                  onChange={(e) => updateField('github_profile', e.target.value)}
-                  placeholder="https://github.com/username"
-                  type="url"
-                  value={form.github_profile}
-                />
-              </label>
-              <label className="block">
-                <ProfileLabelWithLogo logo={profileLogos.linkedin} text="LinkedIn Profile" />
-                <input
-                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
-                  onChange={(e) => updateField('linkedin_profile', e.target.value)}
-                  placeholder="https://linkedin.com/in/username"
-                  type="url"
-                  value={form.linkedin_profile}
-                />
-              </label>
-            </div>
-          </section>
-
-          <section className="bg-surface-container-lowest p-8 space-y-5">
             <h2 className="font-headline text-xl font-bold uppercase tracking-tight">About & Portfolio</h2>
             <label className="block">
               <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Description About You</span>
@@ -551,6 +485,71 @@ function SettingsPage() {
                   />
                 </div>
               ))}
+            </div>
+          </section>
+          <section className="bg-surface-container-lowest p-8 space-y-5">
+            <h2 className="font-headline text-xl font-bold uppercase tracking-tight">CTF Profiles</h2>
+            <div className="space-y-4">
+              <label className="block">
+                <ProfileLabelWithLogo logo={profileLogos.htb} text="Hack The Box Profile" />
+                <input
+                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                  onChange={(e) => updateField('hackthebox_profile', e.target.value)}
+                  placeholder="https://app.hackthebox.com/profile/..."
+                  type="url"
+                  value={form.hackthebox_profile}
+                />
+              </label>
+              <label className="block">
+                <ProfileLabelWithLogo logo={profileLogos.thm} text="TryHackMe Profile" />
+                <input
+                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                  onChange={(e) => updateField('tryhackme_profile', e.target.value)}
+                  placeholder="https://tryhackme.com/p/..."
+                  type="url"
+                  value={form.tryhackme_profile}
+                />
+              </label>
+              <label className="block">
+                <ProfileLabelWithLogo logo={profileLogos.pico} text="picoCTF Profile" />
+                <input
+                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                  onChange={(e) => updateField('picoctf_profile', e.target.value)}
+                  placeholder="https://play.picoctf.org/users/..."
+                  type="url"
+                  value={form.picoctf_profile}
+                />
+              </label>
+              <label className="block">
+                <ProfileLabelWithLogo logo={profileLogos.resume} text="Resume URL" />
+                <input
+                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                  onChange={(e) => updateField('resume_url', e.target.value)}
+                  placeholder="https://drive.google.com/..."
+                  type="url"
+                  value={form.resume_url}
+                />
+              </label>
+              <label className="block">
+                <ProfileLabelWithLogo logo={profileLogos.github} text="GitHub Profile" />
+                <input
+                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                  onChange={(e) => updateField('github_profile', e.target.value)}
+                  placeholder="https://github.com/username"
+                  type="url"
+                  value={form.github_profile}
+                />
+              </label>
+              <label className="block">
+                <ProfileLabelWithLogo logo={profileLogos.linkedin} text="LinkedIn Profile" />
+                <input
+                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                  onChange={(e) => updateField('linkedin_profile', e.target.value)}
+                  placeholder="https://linkedin.com/in/username"
+                  type="url"
+                  value={form.linkedin_profile}
+                />
+              </label>
             </div>
           </section>
 
