@@ -25,6 +25,16 @@ export function mapRoomRow(roomRow, tags = [], keywords = []) {
         impact: roomRow.vulnerability_impact || '',
       },
       technicalDeepDive: roomRow.technical_deep_dive || '',
+      youtubeVideoUrl: roomRow.youtube_video_url || '',
+      questionsEnabled: Boolean(roomRow.questions_enabled),
+      questions: (() => {
+        try {
+          const parsed = JSON.parse(roomRow.questions_json || '[]')
+          return Array.isArray(parsed) ? parsed : []
+        } catch {
+          return []
+        }
+      })(),
     },
   }
 }

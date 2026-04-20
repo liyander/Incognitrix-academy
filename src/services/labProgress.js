@@ -1,3 +1,5 @@
+import { apiFetch } from './api'
+
 const AUTH_STORAGE_KEY = 'incognitrix_auth_session'
 const LAB_PROGRESS_KEY = 'incognitrix_lab_progress_v1'
 const LAB_PROGRESS_UPDATED_EVENT = 'incognitrix:lab-progress-updated'
@@ -30,6 +32,44 @@ function writeAllProgress(next) {
   const now = String(Date.now())
   localStorage.setItem(LAB_PROGRESS_UPDATED_STORAGE_KEY, now)
   window.dispatchEvent(new Event(LAB_PROGRESS_UPDATED_EVENT))
+}
+
+function applyUserProgressMap(userProgress) {
+  const allProgress = readAllProgress()
+  const userKey = getCurrentUserKey()
+  allProgress[userKey] = userProgress && typeof userProgress === 'object' ? userProgress : {}
+  writeAllProgress(allProgress)
+}
+
+async function persistStatusToBackend(roomId, status) {
+  try {
+    await apiFetch(`/rooms/${encodeURIComponent(roomId)}/progress`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    })
+    return true
+  } catch (error) {
+    if (/invalid or expired token|unauthorized/i.test(error?.message || '')) {
+      return false
+    }
+    console.error('Failed to persist room progress:', error)
+    return false
+  }
+}
+
+export async function syncLabProgressFromBackend() {
+  try {
+    const response = await apiFetch('/rooms/progress')
+    const remoteMap = response && typeof response === 'object' ? response : {}
+    applyUserProgressMap(remoteMap)
+    return remoteMap
+  } catch (error) {
+    if (/invalid or expired token|unauthorized/i.test(error?.message || '')) {
+      return getLabProgressMap()
+    }
+    console.error('Failed to sync room progress from backend:', error)
+    return getLabProgressMap()
+  }
 }
 
 export function getLabProgressEvents() {
@@ -71,10 +111,17 @@ export function markLabStarted(roomId) {
 
   allProgress[userKey] = userProgress
   writeAllProgress(allProgress)
+  void persistStatusToBackend(roomId, 'in-progress')
 }
 
-export function markLabCompleted(roomId) {
-  if (!roomId) return
+export async function markLabCompleted(roomId) {
+  if (!roomId) return false
+
+  const persisted = await persistStatusToBackend(roomId, 'completed')
+  if (!persisted) {
+    return false
+  }
+
   const allProgress = readAllProgress()
   const userKey = getCurrentUserKey()
   const userProgress = allProgress[userKey] && typeof allProgress[userKey] === 'object' ? allProgress[userKey] : {}
@@ -88,6 +135,7 @@ export function markLabCompleted(roomId) {
 
   allProgress[userKey] = userProgress
   writeAllProgress(allProgress)
+  return true
 }
 
 export function markLabIncomplete(roomId) {
@@ -106,6 +154,7 @@ export function markLabIncomplete(roomId) {
 
   allProgress[userKey] = userProgress
   writeAllProgress(allProgress)
+  void persistStatusToBackend(roomId, 'in-progress')
 }
 
 export function getLabProgressSummary(rooms) {

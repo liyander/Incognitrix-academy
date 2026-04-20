@@ -21,7 +21,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
     `transition-colors duration-200 ${
       isActive
         ? 'text-red-600 border-b-2 border-red-600 pb-1'
-        : 'text-neutral-500 hover:text-neutral-900'
+        : 'text-on-surface-variant hover:text-on-surface'
     }`
 
   // Fetch notifications on mount and set up polling
@@ -170,7 +170,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
     >
       <div className="flex items-center gap-8">
         <button
-          className="inline-flex items-center justify-center h-10 w-10 border border-neutral-200 bg-white/70 text-neutral-700 hover:text-neutral-900"
+          className="inline-flex items-center justify-center h-10 w-10 border border-outline-variant bg-surface-container-low text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
           onClick={onToggleSidebar}
           type="button"
           aria-label="Toggle sidebar"
@@ -195,11 +195,11 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
           ) : null}
           {config.routes.practiceLabs ? (
             <NavLink className={navItemClass} to="/learn">
-              Practice Labs
+              Knowledge hub
             </NavLink>
           ) : null}
           <a
-            className="text-neutral-500 hover:text-neutral-900 transition-colors duration-200"
+            className="text-on-surface-variant hover:text-on-surface transition-colors duration-200"
             href="http://110.172.151.108:8000"
           >
             CTF Arena
@@ -288,13 +288,13 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
             14 Day Streak
           </span>
         </div>
-        <div className="flex items-center gap-4 text-neutral-500">
+        <div className="flex items-center gap-4 text-on-surface-variant">
           {config.features.navbarNotifications ? (
             <div ref={notificationsRef} className="relative">
               <button
                 type="button"
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="relative hover:text-neutral-900 transition-colors"
+                className="relative hover:text-on-surface transition-colors"
               >
                 <span className="material-symbols-outlined">notifications</span>
                 {notifications.length > 0 && (
@@ -359,7 +359,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
           ) : null}
           {config.features.navbarSettings ? (
             <button
-              className="inline-flex items-center justify-center hover:text-neutral-900 transition-colors"
+              className="inline-flex items-center justify-center hover:text-on-surface transition-colors"
               onClick={() => navigate('/settings')}
               title="Open settings"
               type="button"
@@ -369,7 +369,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
           ) : null}
         </div>
         <button
-          className="px-4 py-2 border border-neutral-300 text-neutral-700 font-headline text-[10px] font-bold uppercase tracking-widest hover:bg-neutral-100 transition-colors"
+          className="px-4 py-2 border border-outline text-on-surface-variant font-headline text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container-high hover:text-on-surface transition-colors"
           onClick={onLogout}
           type="button"
         >

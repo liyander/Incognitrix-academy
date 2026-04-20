@@ -4,8 +4,8 @@
 
 body {
   font-family: 'Inter', sans-serif;
-  background-color: #f8f9fb;
-  color: #191c1e;
+  background-color: var(--color-background);
+  color: var(--color-on-background);
 }
 
 .font-headline {
@@ -19,4 +19,8 @@ body {
 .glass-nav {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(24px);
+}
+
+html.dark .glass-nav {
+  background: rgba(20, 24, 28, 0.72);
 }

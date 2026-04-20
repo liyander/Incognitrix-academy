@@ -7,6 +7,7 @@ import {
 } from '../data/careerPathsData'
 import { getRoomsData } from '../data/roomsData'
 import { apiFetch } from '../services/api'
+import { getLabProgressEvents, getLabProgressMap } from '../services/labProgress'
 
 function RedTeamOperatorPage({ pathId: propPathId }) {
   const navigate = useNavigate()
@@ -14,6 +15,7 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
   const pathId = propPathId || paramPathId || 'red-team-operator'
   const [careerPaths, setCareerPaths] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [labProgressTick, setLabProgressTick] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -45,8 +47,59 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
     }
   }, [])
 
+  useEffect(() => {
+    const { updatedEvent, updatedStorageKey } = getLabProgressEvents()
+    const syncProgress = () => {
+      setLabProgressTick((value) => value + 1)
+    }
+
+    const handleStorage = (event) => {
+      if (event.key === updatedStorageKey) {
+        syncProgress()
+      }
+    }
+
+    window.addEventListener(updatedEvent, syncProgress)
+    window.addEventListener('storage', handleStorage)
+
+    return () => {
+      window.removeEventListener(updatedEvent, syncProgress)
+      window.removeEventListener('storage', handleStorage)
+    }
+  }, [])
+
   const path = careerPaths.find((item) => item.id === pathId || item.slug === pathId)
   const allRooms = getRoomsData()
+  const labProgressMap = getLabProgressMap()
+  void labProgressTick
+
+  const modules = path?.modules || []
+  const moduleProgress = modules.map((module) => {
+    const roomIds = Array.isArray(module.rooms) ? module.rooms : []
+    const completedRooms = roomIds.filter((roomId) => Boolean(labProgressMap[roomId]?.completedAt)).length
+    const totalRooms = roomIds.length
+    const completionPercentage = totalRooms > 0 ? Math.round((completedRooms / totalRooms) * 100) : 0
+
+    return {
+      module,
+      totalRooms,
+      completedRooms,
+      isComplete: totalRooms > 0 ? completedRooms === totalRooms : true,
+      completionPercentage,
+    }
+  })
+
+  const totalRooms = moduleProgress.reduce((sum, item) => sum + item.totalRooms, 0)
+  const completedRooms = moduleProgress.reduce((sum, item) => sum + item.completedRooms, 0)
+  const completionPercentage = totalRooms > 0 ? Math.round((completedRooms / totalRooms) * 100) : 0
+  const nextResumeModule = moduleProgress.find((item) => !item.isComplete)?.module || modules[0] || null
+
+  const handleResumeOperation = () => {
+    if (!nextResumeModule?.id || !path?.id) {
+      return
+    }
+    navigate(`/learn/path/${path.id}/module/${nextResumeModule.id}`)
+  }
 
   // Show loading while fetching paths
   if (isLoading) {
@@ -66,8 +119,8 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
     return <Navigate to="/learn/paths" replace />
   }
 
-  const getModuleCount = () => path.modules?.length || 0
-  const getTotalRooms = () => path.modules?.reduce((sum, m) => sum + (m.rooms?.length || 0), 0) || 0
+  const getModuleCount = () => modules.length
+  const getTotalRooms = () => totalRooms
 
   return (
     <>
@@ -128,12 +181,15 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
                   <span className="text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface">
                     Path Progress
                   </span>
-                  <span className="text-2xl font-headline font-black text-primary">{path.mastery}%</span>
+                  <span className="text-2xl font-headline font-black text-primary">{completionPercentage}%</span>
                 </div>
                 <div className="h-1 bg-surface-variant w-full mb-6">
-                  <div className="h-full bg-primary transition-all duration-500" style={{ width: `${path.mastery}%` }}></div>
+                  <div className="h-full bg-primary transition-all duration-500" style={{ width: `${completionPercentage}%` }}></div>
                 </div>
-                <button className="w-full bg-primary text-on-primary py-4 font-headline font-bold tracking-widest uppercase hover:bg-primary-container transition-all active:scale-95" type="button">
+                <p className="text-[10px] font-headline text-on-surface-variant uppercase tracking-widest mb-3">
+                  {completedRooms}/{totalRooms} Rooms Completed
+                </p>
+                <button className="w-full bg-primary text-on-primary py-4 font-headline font-bold tracking-widest uppercase hover:bg-primary-container transition-all active:scale-95" onClick={handleResumeOperation} type="button">
                   RESUME OPERATION
                 </button>
               </div>
@@ -270,10 +326,6 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
           </aside>
         </div>
       </main>
-
-      <button className="fixed bottom-8 right-8 w-16 h-16 bg-primary text-on-primary flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all z-50" type="button">
-        <span className="material-symbols-outlined text-3xl">bolt</span>
-      </button>
     </>
   )
 }

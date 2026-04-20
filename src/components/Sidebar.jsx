@@ -33,8 +33,8 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
   const navLinkClass = ({ isActive }) =>
     `flex items-center gap-4 px-8 py-4 font-headline text-xs font-bold tracking-widest uppercase transition-all duration-150 ease-in-out border-l-4 ${
       isActive
-        ? 'bg-white text-red-700 border-red-700'
-        : 'text-neutral-500 border-transparent hover:bg-neutral-100 hover:text-neutral-900'
+        ? 'bg-surface-container text-primary border-primary'
+        : 'text-on-surface-variant border-transparent hover:bg-surface-container-high hover:text-on-surface'
     }`
 
   return (
@@ -45,10 +45,10 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
       ></div>
 
       <aside
-        className={`h-screen w-64 fixed left-0 top-0 bg-neutral-50 flex flex-col py-8 z-40 transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`h-screen w-64 fixed left-0 top-0 bg-surface-container-low flex flex-col py-8 z-40 transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <button
-          className="md:hidden absolute top-4 right-4 text-neutral-500"
+          className="md:hidden absolute top-4 right-4 text-on-surface-variant hover:text-on-surface transition-colors"
           onClick={onClose}
           type="button"
           aria-label="Close sidebar"
@@ -62,7 +62,7 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
               I
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="font-headline text-[10px] font-bold tracking-[0.2em] text-neutral-400 uppercase">
+              <span className="font-headline text-[10px] font-bold tracking-[0.2em] text-on-surface-variant uppercase">
                 OPERATOR_ID
               </span>
               <span
@@ -100,7 +100,7 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
             </NavLink>
           ) : null}
           <a
-            className="flex items-center gap-4 px-8 py-4 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 font-headline text-xs font-bold tracking-widest uppercase transition-all duration-150 ease-in-out"
+            className="flex items-center gap-4 px-8 py-4 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface font-headline text-xs font-bold tracking-widest uppercase transition-all duration-150 ease-in-out"
             href="#"
           >
             <span className="material-symbols-outlined">science</span>
@@ -117,16 +117,16 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
             </button>
           </div>
         ) : null}
-        <footer className="mt-auto flex flex-col gap-1 border-t border-neutral-200 pt-4">
+        <footer className="mt-auto flex flex-col gap-1 border-t border-outline-variant pt-4">
           <a
-            className="flex items-center gap-4 px-8 py-3 text-neutral-500 hover:text-neutral-900 font-headline text-xs font-bold tracking-widest uppercase"
+            className="flex items-center gap-4 px-8 py-3 text-on-surface-variant hover:text-on-surface font-headline text-xs font-bold tracking-widest uppercase"
             href="#"
           >
             <span className="material-symbols-outlined">help</span>
             Support
           </a>
           <a
-            className="flex items-center gap-4 px-8 py-3 text-neutral-500 hover:text-neutral-900 font-headline text-xs font-bold tracking-widest uppercase"
+            className="flex items-center gap-4 px-8 py-3 text-on-surface-variant hover:text-on-surface font-headline text-xs font-bold tracking-widest uppercase"
             href="#"
           >
             <span className="material-symbols-outlined">terminal</span>
@@ -135,11 +135,11 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
         </footer>
       </aside>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 glass-nav border-t border-neutral-200/50 flex justify-around items-center py-4 z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 glass-nav border-t border-outline-variant/60 flex justify-around items-center py-4 z-50">
         {config.routes.dashboard ? (
           <NavLink
             className={({ isActive }) =>
-              `flex flex-col items-center gap-1 ${isActive ? 'text-red-600' : 'text-neutral-400'}`
+              `flex flex-col items-center gap-1 ${isActive ? 'text-primary' : 'text-on-surface-variant'}`
             }
             onClick={onClose}
             to="/"
@@ -154,7 +154,7 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
         {config.routes.practiceLabs ? (
           <NavLink
             className={({ isActive }) =>
-              `flex flex-col items-center gap-1 ${isActive ? 'text-red-600' : 'text-neutral-400'}`
+              `flex flex-col items-center gap-1 ${isActive ? 'text-primary' : 'text-on-surface-variant'}`
             }
             onClick={onClose}
             to="/learn"
@@ -168,7 +168,7 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
         {config.routes.upcomingCtf ? (
           <NavLink
             className={({ isActive }) =>
-              `flex flex-col items-center gap-1 ${isActive ? 'text-red-600' : 'text-neutral-400'}`
+              `flex flex-col items-center gap-1 ${isActive ? 'text-primary' : 'text-on-surface-variant'}`
             }
             onClick={onClose}
             to="/upcoming-ctf"
@@ -182,7 +182,7 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
         {config.routes.profile ? (
           <NavLink
             className={({ isActive }) =>
-              `flex flex-col items-center gap-1 ${isActive ? 'text-red-600' : 'text-neutral-400'}`
+              `flex flex-col items-center gap-1 ${isActive ? 'text-primary' : 'text-on-surface-variant'}`
             }
             onClick={onClose}
             to="/profile"
@@ -193,7 +193,7 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
             </span>
           </NavLink>
         ) : null}
-        <a className="flex flex-col items-center gap-1 text-neutral-400" href="#">
+        <a className="flex flex-col items-center gap-1 text-on-surface-variant" href="#">
           <span className="material-symbols-outlined">science</span>
           <span className="font-headline text-[8px] font-bold uppercase tracking-widest">
             Labs

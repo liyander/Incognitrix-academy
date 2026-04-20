@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import { getRoomsData } from '../data/roomsData'
+import { apiFetch } from '../services/api'
 import {
   getLabStatus,
   markLabCompleted,
@@ -14,6 +15,51 @@ function renderRichContent(content, htmlOverride = '') {
     return String(htmlOverride)
   }
   return parseMarkdownToHtml(content)
+}
+
+function toYouTubeEmbedUrl(input) {
+  const raw = String(input || '').trim()
+  if (!raw) return ''
+
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`
+
+  try {
+    const url = new URL(withProtocol)
+    const host = url.hostname.toLowerCase()
+
+    if (host.includes('youtu.be')) {
+      const videoId = url.pathname.replace('/', '')
+      return videoId ? `https://www.youtube-nocookie.com/embed/${videoId}?rel=0` : ''
+    }
+
+    if (host.includes('youtube.com') || host.includes('youtube-nocookie.com')) {
+      const videoId = url.searchParams.get('v')
+      if (videoId) {
+        return `https://www.youtube-nocookie.com/embed/${videoId}?rel=0`
+      }
+
+      const pathParts = url.pathname.split('/').filter(Boolean)
+      const embedIndex = pathParts.findIndex((part) => part === 'embed')
+      if (embedIndex !== -1 && pathParts[embedIndex + 1]) {
+        return `https://www.youtube-nocookie.com/embed/${pathParts[embedIndex + 1]}?rel=0`
+      }
+
+      const shortsIndex = pathParts.findIndex((part) => part === 'shorts')
+      if (shortsIndex !== -1 && pathParts[shortsIndex + 1]) {
+        return `https://www.youtube-nocookie.com/embed/${pathParts[shortsIndex + 1]}?rel=0`
+      }
+    }
+  } catch {
+    // Ignore invalid URLs.
+  }
+
+  // Fallback for raw IDs or unstructured strings containing a YouTube ID.
+  const idMatch = raw.match(/([a-zA-Z0-9_-]{11})/)
+  if (idMatch?.[1]) {
+    return `https://www.youtube-nocookie.com/embed/${idMatch[1]}?rel=0`
+  }
+
+  return ''
 }
 
 function LabRoomPage() {
@@ -46,21 +92,125 @@ function LabRoomPage() {
   const technicalDeepDiveMarkup = renderRichContent(technicalDeepDive)
   const vulnerabilityDefinitionMarkup = renderRichContent(vulnerabilityDefinition)
   const vulnerabilityImpactMarkup = renderRichContent(vulnerabilityImpact)
+  const youtubeEmbedUrl = toYouTubeEmbedUrl(room.content?.youtubeVideoUrl)
+  const questionsEnabled = Boolean(room.content?.questionsEnabled)
   const [labStatus, setLabStatus] = useState(() => getLabStatus(room.id))
+  const [questionStatus, setQuestionStatus] = useState({
+    enabled: false,
+    total: 0,
+    correct: 0,
+    allCorrect: true,
+    questions: [],
+  })
+  const [questionAnswers, setQuestionAnswers] = useState({})
+  const [isSubmittingQuestions, setIsSubmittingQuestions] = useState(false)
+  const [questionFeedback, setQuestionFeedback] = useState('')
+  const [completionError, setCompletionError] = useState('')
 
   useEffect(() => {
     markLabStarted(room.id)
     setLabStatus(getLabStatus(room.id))
   }, [room.id])
 
-  const handleMarkComplete = () => {
-    markLabCompleted(room.id)
+  useEffect(() => {
+    let cancelled = false
+
+    const loadQuestionStatus = async () => {
+      if (!questionsEnabled) {
+        if (!cancelled) {
+          setQuestionStatus({
+            enabled: false,
+            total: 0,
+            correct: 0,
+            allCorrect: true,
+            questions: [],
+          })
+        }
+        return
+      }
+
+      try {
+        const response = await apiFetch(`/rooms/${encodeURIComponent(room.id)}/questions/status`)
+        if (!cancelled) {
+          setQuestionStatus({
+            enabled: Boolean(response?.enabled),
+            total: Number(response?.total || 0),
+            correct: Number(response?.correct || 0),
+            allCorrect: Boolean(response?.allCorrect),
+            questions: Array.isArray(response?.questions) ? response.questions : [],
+          })
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setQuestionFeedback(error?.message || 'Failed to load question status.')
+        }
+      }
+    }
+
+    void loadQuestionStatus()
+
+    return () => {
+      cancelled = true
+    }
+  }, [room.id, questionsEnabled])
+
+  const handleMarkComplete = async () => {
+    setCompletionError('')
+
+    if (questionStatus.enabled && !questionStatus.allCorrect) {
+      setCompletionError('Answer all room questions correctly before marking complete.')
+      return
+    }
+
+    const success = await markLabCompleted(room.id)
+    if (!success) {
+      setCompletionError('Unable to mark complete yet. Verify question requirements and try again.')
+      return
+    }
+
     setLabStatus('completed')
   }
 
   const handleMarkIncomplete = () => {
     markLabIncomplete(room.id)
     setLabStatus('in-progress')
+    setCompletionError('')
+  }
+
+  const handleQuestionAnswerChange = (questionId, value) => {
+    setQuestionAnswers((prev) => ({
+      ...prev,
+      [questionId]: value,
+    }))
+  }
+
+  const handleSubmitQuestions = async () => {
+    setQuestionFeedback('')
+    setIsSubmittingQuestions(true)
+
+    try {
+      const result = await apiFetch(`/rooms/${encodeURIComponent(room.id)}/questions/submit`, {
+        method: 'POST',
+        body: JSON.stringify({ answers: questionAnswers }),
+      })
+
+      setQuestionStatus((prev) => ({
+        ...prev,
+        correct: Number(result?.correct || 0),
+        total: Number(result?.total || prev.total || 0),
+        allCorrect: Boolean(result?.allCorrect),
+      }))
+
+      if (result?.allCorrect) {
+        setQuestionFeedback('All answers are correct. You can now complete this room.')
+      } else {
+        setQuestionFeedback('Some answers are incorrect. Review and try again.')
+      }
+    } catch (error) {
+      setQuestionFeedback(error?.message || 'Unable to submit answers right now.')
+    } finally {
+      setIsSubmittingQuestions(false)
+    }
   }
 
   return (
@@ -135,23 +285,36 @@ function LabRoomPage() {
                   className="font-body leading-relaxed [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-bold [&_h3]:text-lg [&_h3]:font-bold [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-6 [&_li]:mb-1 [&_pre]:bg-surface-container-high [&_pre]:p-4 [&_pre]:overflow-x-auto [&_code]:font-mono [&_a]:text-primary [&_a]:underline"
                   dangerouslySetInnerHTML={{ __html: technicalDeepDiveMarkup }}
                 ></div>
-                <div className="bg-surface-container-high aspect-video w-full flex items-center justify-center relative">
-                  <img
-                    alt="Technical Logic Diagram"
-                    className="absolute inset-0 w-full h-full object-cover opacity-20 grayscale"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvAt-0JW07N76LyAzfo2fdJ5rClw4KqFDM3mwsBWdDTmv-2_e8-lwHPSpO1fMUKIPqvqaiE5UU8MJ5g57pCHOwIXd2a3Jqj1ZQ7y7SD3fAOMpWfNsBZCnJUuhu2bTK2qOEveqZmBe2HclDQj5B1X16u5FjdKT9f15K5LaeyHgREIXf-UBum34rsfFp_T_tYzqry6b0EpxoPZh_GE-51Dm_XL_NpcSZ_8Z_s_-OZlc0b4HgAPUmCoLPJM7hR4GaFqzV5q5Af_aY27o"
-                  />
-                  <div className="z-10 text-center p-8 bg-surface/90 backdrop-blur-md border border-primary/20">
-                    <span className="material-symbols-outlined text-4xl text-primary mb-2">
-                      schema
-                    </span>
-                    <p className="font-headline font-bold text-xs tracking-widest uppercase">
-                      Logic Alteration Visualization
-                    </p>
-                    <p className="text-[10px] text-on-surface-variant mt-1">
-                      Payload: Admin'--
-                    </p>
-                  </div>
+                <div className="bg-surface-container-high aspect-video w-full flex items-center justify-center relative overflow-hidden">
+                  {youtubeEmbedUrl ? (
+                    <iframe
+                      allow="fullscreen"
+                      allowFullScreen
+                      className="absolute inset-0 h-full w-full"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      src={youtubeEmbedUrl}
+                      title="Room walkthrough video"
+                    ></iframe>
+                  ) : (
+                    <>
+                      <img
+                        alt="Technical Logic Diagram"
+                        className="absolute inset-0 w-full h-full object-cover opacity-20 grayscale"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvAt-0JW07N76LyAzfo2fdJ5rClw4KqFDM3mwsBWdDTmv-2_e8-lwHPSpO1fMUKIPqvqaiE5UU8MJ5g57pCHOwIXd2a3Jqj1ZQ7y7SD3fAOMpWfNsBZCnJUuhu2bTK2qOEveqZmBe2HclDQj5B1X16u5FjdKT9f15K5LaeyHgREIXf-UBum34rsfFp_T_tYzqry6b0EpxoPZh_GE-51Dm_XL_NpcSZ_8Z_s_-OZlc0b4HgAPUmCoLPJM7hR4GaFqzV5q5Af_aY27o"
+                      />
+                      <div className="z-10 text-center p-8 bg-surface/90 backdrop-blur-md border border-primary/20">
+                        <span className="material-symbols-outlined text-4xl text-primary mb-2">
+                          schema
+                        </span>
+                        <p className="font-headline font-bold text-xs tracking-widest uppercase">
+                          Logic Alteration Visualization
+                        </p>
+                        <p className="text-[10px] text-on-surface-variant mt-1">
+                          Payload: Admin'--
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </section>
@@ -238,6 +401,52 @@ function LabRoomPage() {
                 active.
               </p>
 
+              {questionStatus.enabled ? (
+                <div className="bg-surface-container-low p-4 border-l-2 border-l-secondary space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                      Question Challenge
+                    </span>
+                    <span className="text-[10px] font-headline font-bold uppercase tracking-widest px-2 py-1 bg-secondary/15 text-secondary">
+                      {questionStatus.correct}/{questionStatus.total} Correct
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {questionStatus.questions.map((question, index) => (
+                      <div key={question.id || `question-${index}`} className="bg-surface-container-high p-3">
+                        <p className="text-[11px] font-headline font-bold text-on-surface uppercase tracking-wide mb-2">
+                          Q{index + 1}. {question.prompt}
+                        </p>
+                        {question.hint ? (
+                          <p className="text-[10px] text-on-surface-variant mb-2">Hint: {question.hint}</p>
+                        ) : null}
+                        <input
+                          className="w-full bg-surface-container-lowest border border-outline-variant/40 text-sm py-2 px-3 outline-none"
+                          onChange={(e) => handleQuestionAnswerChange(question.id, e.target.value)}
+                          placeholder="Enter your answer"
+                          type="text"
+                          value={questionAnswers[question.id] || ''}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    className="w-full py-3 bg-secondary text-on-secondary font-headline text-[10px] font-bold tracking-widest uppercase hover:opacity-90 transition-opacity disabled:opacity-60"
+                    disabled={isSubmittingQuestions}
+                    onClick={handleSubmitQuestions}
+                    type="button"
+                  >
+                    {isSubmittingQuestions ? 'Checking Answers...' : 'Submit Answers'}
+                  </button>
+
+                  {questionFeedback ? (
+                    <p className="text-xs text-on-surface-variant">{questionFeedback}</p>
+                  ) : null}
+                </div>
+              ) : null}
+
               <div className="bg-surface-container-low p-4 border-l-2 border-l-primary">
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
@@ -251,7 +460,8 @@ function LabRoomPage() {
                 <div className="mt-3 flex gap-2">
                   {labStatus !== 'completed' ? (
                     <button
-                      className="w-full py-3 bg-secondary text-on-secondary font-headline text-[10px] font-bold tracking-widest uppercase hover:opacity-90 transition-opacity"
+                      className="w-full py-3 bg-secondary text-on-secondary font-headline text-[10px] font-bold tracking-widest uppercase hover:opacity-90 transition-opacity disabled:opacity-60"
+                      disabled={questionStatus.enabled && !questionStatus.allCorrect}
                       onClick={handleMarkComplete}
                       type="button"
                     >
@@ -267,6 +477,9 @@ function LabRoomPage() {
                     </button>
                   )}
                 </div>
+                {completionError ? (
+                  <p className="mt-2 text-xs text-error">{completionError}</p>
+                ) : null}
               </div>
             </div>
 

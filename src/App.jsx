@@ -27,6 +27,7 @@ import SettingsPage from './pages/SettingsPage'
 import RegistrationPage from './pages/RegistrationPage'
 import RedTeamOperatorPage from './pages/RedTeamOperatorPage'
 import UpcomingCtfPage from './pages/UpcomingCtfPage'
+import { getSavedTheme, toggleTheme as toggleThemeSetting } from './services/theme'
 
 function firstEnabledRoute(config) {
   if (config.routes.dashboard) return '/'
@@ -43,6 +44,26 @@ function App() {
   const [platformConfig, setPlatformConfig] = useState(loadPlatformConfig)
   const [isBootstrapping, setIsBootstrapping] = useState(true)
   const [syncTick, setSyncTick] = useState(0)
+  const [theme, setTheme] = useState(getSavedTheme)
+
+  const toggleTheme = () => {
+    setTheme((current) => toggleThemeSetting(current))
+  }
+
+  const themeToggleButton = (
+    <button
+      className="fixed bottom-5 right-5 z-[80] inline-flex items-center gap-2 px-4 py-3 bg-surface-container-lowest border border-outline-variant text-on-surface font-headline text-[10px] font-bold uppercase tracking-widest shadow-lg hover:border-primary transition-colors"
+      onClick={toggleTheme}
+      type="button"
+      aria-label="Toggle theme"
+      title="Toggle light/dark mode"
+    >
+      <span className="material-symbols-outlined text-base">
+        {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+      </span>
+      {theme === 'dark' ? 'Light' : 'Dark'}
+    </button>
+  )
 
   const handleSessionExpired = () => {
     logoutUser()
@@ -183,38 +204,42 @@ function App() {
 
   if (authSession.role === 'admin') {
     return (
-      <Routes>
-        <Route
-          path="/admin"
-          element={
-            <AdminPanelPage
-              config={platformConfig}
-              onConfigChange={updatePlatformConfig}
-              onLogout={() => {
-                logoutUser()
-                setAuthSession(null)
-              }}
-              username={authSession.username}
-            />
-          }
-        />
-        <Route path="/admin/rooms" element={<AdminRoomsManagementPage />} />
-        <Route path="/admin/rooms/new" element={<AdminRoomEditorPage />} />
-        <Route path="/admin/rooms/:roomId" element={<AdminRoomEditorPage />} />
-        <Route path="/admin/career-paths" element={<AdminCareerPathsManagementPage />} />
-        <Route path="/admin/career-paths/new" element={<AdminCareerPathEditorPage />} />
-        <Route path="/admin/career-paths/:pathId" element={<AdminCareerPathEditorPage />} />
-        <Route path="/admin/notifications" element={<AdminNotificationsManagementPage />} />
-        <Route path="/admin/registrations" element={<AdminRegistrationsManagementPage />} />
-        <Route path="/admin/registrations/:userId" element={<AdminRegistrationDetailPage />} />
-        <Route path="/admin/upcoming-ctf" element={<AdminUpcomingCtfManagementPage />} />
-        <Route path="*" element={<Navigate to="/admin" replace />} />
-      </Routes>
+      <>
+        {themeToggleButton}
+        <Routes>
+          <Route
+            path="/admin"
+            element={
+              <AdminPanelPage
+                config={platformConfig}
+                onConfigChange={updatePlatformConfig}
+                onLogout={() => {
+                  logoutUser()
+                  setAuthSession(null)
+                }}
+                username={authSession.username}
+              />
+            }
+          />
+          <Route path="/admin/rooms" element={<AdminRoomsManagementPage />} />
+          <Route path="/admin/rooms/new" element={<AdminRoomEditorPage />} />
+          <Route path="/admin/rooms/:roomId" element={<AdminRoomEditorPage />} />
+          <Route path="/admin/career-paths" element={<AdminCareerPathsManagementPage />} />
+          <Route path="/admin/career-paths/new" element={<AdminCareerPathEditorPage />} />
+          <Route path="/admin/career-paths/:pathId" element={<AdminCareerPathEditorPage />} />
+          <Route path="/admin/notifications" element={<AdminNotificationsManagementPage />} />
+          <Route path="/admin/registrations" element={<AdminRegistrationsManagementPage />} />
+          <Route path="/admin/registrations/:userId" element={<AdminRegistrationDetailPage />} />
+          <Route path="/admin/upcoming-ctf" element={<AdminUpcomingCtfManagementPage />} />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
+        </Routes>
+      </>
     )
   }
 
   return (
     <>
+      {themeToggleButton}
       <Sidebar
         config={platformConfig}
         isSidebarOpen={isSidebarOpen}

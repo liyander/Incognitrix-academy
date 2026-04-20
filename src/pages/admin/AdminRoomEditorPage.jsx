@@ -18,6 +18,15 @@ function splitCommaList(value) {
     .filter(Boolean)
 }
 
+function createEmptyQuestion(index) {
+  return {
+    id: `q-${index + 1}`,
+    prompt: '',
+    answer: '',
+    hint: '',
+  }
+}
+
 function AdminRoomEditorPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -48,6 +57,9 @@ function AdminRoomEditorPage() {
           impact: '',
         },
         technicalDeepDive: '',
+        youtubeVideoUrl: '',
+        questionsEnabled: false,
+        questions: [],
       },
     }
   )
@@ -137,6 +149,55 @@ function AdminRoomEditorPage() {
     }))
   }
 
+  const updateQuestionAt = (index, field, value) => {
+    setFormData((prev) => {
+      const currentQuestions = Array.isArray(prev.content?.questions) ? [...prev.content.questions] : []
+      currentQuestions[index] = {
+        ...(currentQuestions[index] || createEmptyQuestion(index)),
+        [field]: value,
+      }
+
+      return {
+        ...prev,
+        content: {
+          ...prev.content,
+          questions: currentQuestions,
+        },
+      }
+    })
+  }
+
+  const handleAddQuestion = () => {
+    setFormData((prev) => {
+      const currentQuestions = Array.isArray(prev.content?.questions) ? [...prev.content.questions] : []
+      currentQuestions.push(createEmptyQuestion(currentQuestions.length))
+
+      return {
+        ...prev,
+        content: {
+          ...prev.content,
+          questions: currentQuestions,
+        },
+      }
+    })
+  }
+
+  const handleRemoveQuestion = (index) => {
+    setFormData((prev) => {
+      const currentQuestions = Array.isArray(prev.content?.questions)
+        ? prev.content.questions.filter((_, i) => i !== index)
+        : []
+
+      return {
+        ...prev,
+        content: {
+          ...prev.content,
+          questions: currentQuestions,
+        },
+      }
+    })
+  }
+
   return (
     <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
       <section className="max-w-6xl mx-auto">
@@ -192,7 +253,7 @@ function AdminRoomEditorPage() {
 
         {/* Tab Navigation */}
         <div className="flex gap-0 mb-8 border-b border-outline-variant/30">
-          {['basic', 'content'].map((tab) => (
+          {['basic', 'content', 'questions'].map((tab) => (
             <button
               className={`px-6 py-3 font-headline text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
                 activeTab === tab
@@ -203,7 +264,7 @@ function AdminRoomEditorPage() {
               onClick={() => setActiveTab(tab)}
               type="button"
             >
-              {tab === 'basic' ? 'Basic Info' : 'Content'}
+              {tab === 'basic' ? 'Basic Info' : tab === 'content' ? 'Content' : 'Question Config'}
             </button>
           ))}
         </div>
@@ -482,6 +543,22 @@ function AdminRoomEditorPage() {
 
             <section className="bg-surface-container-lowest p-8">
               <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-6">
+                Video Player Configuration
+              </h2>
+              <p className="text-xs text-on-surface-variant uppercase tracking-widest mb-4">
+                Add a YouTube URL to display in the player area using an iframe.
+              </p>
+              <input
+                className="w-full bg-surface-container-highest border-l-2 border-l-primary focus:ring-0 font-body text-sm py-4 px-4 outline-none"
+                onChange={(e) => handleContentChange('youtubeVideoUrl', e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
+                type="url"
+                value={formData.content?.youtubeVideoUrl || ''}
+              />
+            </section>
+
+            <section className="bg-surface-container-lowest p-8">
+              <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-6">
                 Markdown Content
               </h2>
               <p className="text-xs text-on-surface-variant uppercase tracking-widest mb-4">
@@ -508,6 +585,97 @@ function AdminRoomEditorPage() {
                 rows="15"
                 value={formData.content?.html || ''}
               ></textarea>
+            </section>
+          </div>
+        )}
+
+        {activeTab === 'questions' && (
+          <div className="space-y-8">
+            <section className="bg-surface-container-lowest p-8">
+              <div className="flex items-center justify-between gap-4 mb-6">
+                <h2 className="font-headline text-xl font-bold uppercase tracking-tight">
+                  Question Configuration
+                </h2>
+                <button
+                  className="px-4 py-2 bg-secondary text-on-secondary font-headline text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
+                  onClick={handleAddQuestion}
+                  type="button"
+                >
+                  Add Question
+                </button>
+              </div>
+
+              <label className="inline-flex items-center gap-3 mb-6 cursor-pointer">
+                <input
+                  checked={Boolean(formData.content?.questionsEnabled)}
+                  className="h-4 w-4"
+                  onChange={(e) => handleContentChange('questionsEnabled', e.target.checked)}
+                  type="checkbox"
+                />
+                <span className="font-headline text-xs font-bold uppercase tracking-widest text-on-surface">
+                  Enable Question Requirement For Room Completion
+                </span>
+              </label>
+
+              <p className="text-xs text-on-surface-variant mb-6">
+                When enabled, this room can be marked complete only after all configured questions are answered correctly by the player.
+              </p>
+
+              {Array.isArray(formData.content?.questions) && formData.content.questions.length > 0 ? (
+                <div className="space-y-4">
+                  {formData.content.questions.map((question, index) => (
+                    <div key={`${question.id || 'q'}-${index}`} className="bg-surface-container-high p-5 border-l-2 border-l-secondary">
+                      <div className="flex items-center justify-between gap-3 mb-4">
+                        <p className="font-headline text-xs font-bold uppercase tracking-widest text-secondary">
+                          Question {index + 1}
+                        </p>
+                        <button
+                          className="text-on-surface-variant hover:text-error transition-colors"
+                          onClick={() => handleRemoveQuestion(index)}
+                          type="button"
+                        >
+                          <span className="material-symbols-outlined">delete</span>
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        <input
+                          className="w-full bg-surface-container-lowest border border-outline-variant/40 font-body text-sm py-2.5 px-3 outline-none"
+                          onChange={(e) => updateQuestionAt(index, 'id', e.target.value)}
+                          placeholder="Question ID (e.g. q1)"
+                          type="text"
+                          value={question.id || ''}
+                        />
+                        <textarea
+                          className="w-full bg-surface-container-lowest border border-outline-variant/40 font-body text-sm py-2.5 px-3 outline-none"
+                          onChange={(e) => updateQuestionAt(index, 'prompt', e.target.value)}
+                          placeholder="Question prompt"
+                          rows="3"
+                          value={question.prompt || ''}
+                        ></textarea>
+                        <input
+                          className="w-full bg-surface-container-lowest border border-outline-variant/40 font-body text-sm py-2.5 px-3 outline-none"
+                          onChange={(e) => updateQuestionAt(index, 'answer', e.target.value)}
+                          placeholder="Expected answer"
+                          type="text"
+                          value={question.answer || ''}
+                        />
+                        <input
+                          className="w-full bg-surface-container-lowest border border-outline-variant/40 font-body text-sm py-2.5 px-3 outline-none"
+                          onChange={(e) => updateQuestionAt(index, 'hint', e.target.value)}
+                          placeholder="Optional hint"
+                          type="text"
+                          value={question.hint || ''}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-surface-container-high p-6 text-center">
+                  <p className="text-sm text-on-surface-variant">No questions configured yet.</p>
+                </div>
+              )}
             </section>
           </div>
         )}

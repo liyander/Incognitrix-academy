@@ -82,6 +82,9 @@ async function ensureDatabase() {
       vulnerability_definition LONGTEXT,
       vulnerability_impact LONGTEXT,
       technical_deep_dive LONGTEXT,
+      youtube_video_url TEXT,
+      questions_enabled BOOLEAN DEFAULT false,
+      questions_json LONGTEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     );
@@ -97,6 +100,33 @@ async function ensureDatabase() {
       id INT AUTO_INCREMENT PRIMARY KEY,
       room_id VARCHAR(191) NOT NULL,
       keyword VARCHAR(120) NOT NULL,
+      FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS user_room_progress (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      room_id VARCHAR(191) NOT NULL,
+      started_at DATETIME NULL,
+      completed_at DATETIME NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_user_room_progress (user_id, room_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS user_room_question_progress (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      room_id VARCHAR(191) NOT NULL,
+      question_id VARCHAR(191) NOT NULL,
+      answered_correctly BOOLEAN DEFAULT false,
+      answered_at DATETIME NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_user_room_question (user_id, room_id, question_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
     );
 
@@ -212,6 +242,9 @@ async function ensureDatabase() {
   )
   await addColumnIfMissing('career_path_modules', 'module_image_data', 'LONGTEXT NULL')
   await addColumnIfMissing('notifications', 'target_user_id', 'INT NULL')
+  await addColumnIfMissing('rooms', 'youtube_video_url', 'TEXT NULL')
+  await addColumnIfMissing('rooms', 'questions_enabled', 'BOOLEAN DEFAULT false')
+  await addColumnIfMissing('rooms', 'questions_json', 'LONGTEXT NULL')
 
   const [usersCountRows] = await connection.query('SELECT COUNT(*) AS count FROM users')
   if (!usersCountRows[0].count) {

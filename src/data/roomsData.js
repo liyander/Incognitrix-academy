@@ -32,6 +32,9 @@ function normalizeRoom(room) {
         impact: room.content?.vulnerabilityBriefing?.impact || '',
       },
       technicalDeepDive: room.content?.technicalDeepDive || '',
+      youtubeVideoUrl: room.content?.youtubeVideoUrl || '',
+      questionsEnabled: Boolean(room.content?.questionsEnabled),
+      questions: Array.isArray(room.content?.questions) ? room.content.questions : [],
     },
   }
 }
