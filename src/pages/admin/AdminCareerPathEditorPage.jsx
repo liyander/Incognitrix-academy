@@ -9,6 +9,7 @@ import {
   updateModuleInPath,
   deleteModuleFromPath,
   addResourceToPath,
+  updateResourceInPath,
   deleteResourceFromPath,
 } from '../../data/careerPathsData'
 
@@ -39,10 +40,13 @@ function AdminCareerPathEditorPage() {
   const [activeTab, setActiveTab] = useState('basic')
   const [saved, setSaved] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [modulesSavedId, setModulesSavedId] = useState('')
+  const [resourcesSavedId, setResourcesSavedId] = useState('')
   const [newModuleForm, setNewModuleForm] = useState({
     phase: '',
     title: '',
     description: '',
+    imageData: '',
   })
   const [newResourceForm, setNewResourceForm] = useState({
     title: '',
@@ -141,8 +145,61 @@ function AdminCareerPathEditorPage() {
         })
         setFormData(getCareerPathById(pathId))
       }
-      setNewModuleForm({ phase: '', title: '', description: '' })
+      setNewModuleForm({ phase: '', title: '', description: '', imageData: '' })
     }
+  }
+
+  const handleModuleDraftChange = (moduleId, field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      modules: (prev.modules || []).map((module) =>
+        module.id === moduleId ? { ...module, [field]: value } : module,
+      ),
+    }))
+  }
+
+  const handleModuleImageEditUpload = (moduleId, e) => {
+    const file = e.target.files?.[0]
+    if (!file) {
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      handleModuleDraftChange(moduleId, 'imageData', reader.result)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleSaveModule = (moduleId) => {
+    const module = formData.modules.find((item) => item.id === moduleId)
+    if (!module) {
+      return
+    }
+
+    if (!module.phase?.trim() || !module.title?.trim()) {
+      setErrorMessage('Module phase and title are required.')
+      return
+    }
+
+    setErrorMessage('')
+
+    if (isNewPath) {
+      setModulesSavedId(moduleId)
+      window.setTimeout(() => setModulesSavedId(''), 1200)
+      return
+    }
+
+    updateModuleInPath(pathId, moduleId, {
+      phase: module.phase,
+      title: module.title,
+      description: module.description || '',
+      imageData: module.imageData || '',
+      rooms: module.rooms || [],
+    })
+    setFormData(getCareerPathById(pathId))
+    setModulesSavedId(moduleId)
+    window.setTimeout(() => setModulesSavedId(''), 1200)
   }
 
   const handleDeleteModule = (moduleId) => {
@@ -154,6 +211,20 @@ function AdminCareerPathEditorPage() {
     } else {
       deleteModuleFromPath(pathId, moduleId)
       setFormData(getCareerPathById(pathId))
+    }
+  }
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setNewModuleForm((prev) => ({
+          ...prev,
+          imageData: reader.result,
+        }))
+      }
+      reader.readAsDataURL(file)
     }
   }
 
@@ -224,6 +295,44 @@ function AdminCareerPathEditorPage() {
       deleteResourceFromPath(pathId, resourceId)
       setFormData(getCareerPathById(pathId))
     }
+  }
+
+  const handleResourceDraftChange = (resourceId, field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      resources: (prev.resources || []).map((resource) =>
+        resource.id === resourceId ? { ...resource, [field]: value } : resource,
+      ),
+    }))
+  }
+
+  const handleSaveResource = (resourceId) => {
+    const resource = formData.resources.find((item) => item.id === resourceId)
+    if (!resource) {
+      return
+    }
+
+    if (!resource.title?.trim() || !resource.url?.trim()) {
+      setErrorMessage('Resource title and URL are required.')
+      return
+    }
+
+    setErrorMessage('')
+
+    if (isNewPath) {
+      setResourcesSavedId(resourceId)
+      window.setTimeout(() => setResourcesSavedId(''), 1200)
+      return
+    }
+
+    updateResourceInPath(pathId, resourceId, {
+      title: resource.title,
+      url: resource.url,
+      type: resource.type,
+    })
+    setFormData(getCareerPathById(pathId))
+    setResourcesSavedId(resourceId)
+    window.setTimeout(() => setResourcesSavedId(''), 1200)
   }
 
   return (
@@ -504,6 +613,25 @@ function AdminCareerPathEditorPage() {
                   type="text"
                   value={newModuleForm.description}
                 />
+                <div className="bg-surface-container-highest border-l-2 border-l-secondary p-4">
+                  <label className="block font-headline text-xs uppercase tracking-widest font-bold mb-2">
+                    Module Image
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="flex-1 text-sm font-body file:bg-secondary file:text-on-secondary file:px-4 file:py-2 file:rounded file:border-0 file:font-bold file:cursor-pointer hover:file:bg-secondary-container"
+                    />
+                    {newModuleForm.imageData && (
+                      <div className="w-24 h-24 rounded overflow-hidden border border-secondary/30">
+                        <img src={newModuleForm.imageData} alt="Module preview" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-on-surface-variant mt-2">Leave empty to use default image</p>
+                </div>
               </div>
             </section>
 
@@ -517,23 +645,77 @@ function AdminCareerPathEditorPage() {
                   {formData.modules.map((module) => (
                     <div key={module.id} className="bg-surface-container-high p-6 border-l-4 border-secondary/50">
                       <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <p className="text-xs text-secondary font-bold uppercase tracking-widest">
-                            {module.phase}
-                          </p>
-                          <h3 className="text-lg font-bold font-headline">{module.title}</h3>
-                          {module.description && (
-                            <p className="text-sm text-on-surface-variant mt-1">{module.description}</p>
-                          )}
+                        <div className="flex-1">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                            <input
+                              className="w-full bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
+                              onChange={(e) => handleModuleDraftChange(module.id, 'phase', e.target.value)}
+                              placeholder="Phase"
+                              type="text"
+                              value={module.phase || ''}
+                            />
+                            <input
+                              className="w-full bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
+                              onChange={(e) => handleModuleDraftChange(module.id, 'title', e.target.value)}
+                              placeholder="Module Title"
+                              type="text"
+                              value={module.title || ''}
+                            />
+                          </div>
+                          <textarea
+                            className="w-full bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
+                            onChange={(e) => handleModuleDraftChange(module.id, 'description', e.target.value)}
+                            placeholder="Module Description"
+                            rows="2"
+                            value={module.description || ''}
+                          ></textarea>
                         </div>
-                        <button
-                          className="text-on-surface-variant hover:text-red-500 transition-colors"
-                          onClick={() => handleDeleteModule(module.id)}
-                          type="button"
-                        >
-                          <span className="material-symbols-outlined">delete</span>
-                        </button>
+                        <div className="flex flex-col gap-2 ml-4">
+                          <button
+                            className="px-3 py-2 bg-secondary text-on-secondary font-headline text-[10px] font-bold uppercase tracking-widest"
+                            onClick={() => handleSaveModule(module.id)}
+                            type="button"
+                          >
+                            {modulesSavedId === module.id ? 'Saved' : 'Save'}
+                          </button>
+                          <button
+                            className="text-on-surface-variant hover:text-red-500 transition-colors"
+                            onClick={() => handleDeleteModule(module.id)}
+                            type="button"
+                          >
+                            <span className="material-symbols-outlined">delete</span>
+                          </button>
+                        </div>
                       </div>
+
+                      <div className="bg-surface-container-lowest border-l-2 border-l-secondary p-4 mb-4">
+                        <label className="block font-headline text-xs uppercase tracking-widest font-bold mb-2">
+                          Module Image
+                        </label>
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleModuleImageEditUpload(module.id, e)}
+                            className="flex-1 text-sm font-body file:bg-secondary file:text-on-secondary file:px-4 file:py-2 file:rounded file:border-0 file:font-bold file:cursor-pointer hover:file:bg-secondary-container"
+                          />
+                          {module.imageData ? (
+                            <button
+                              className="px-3 py-2 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold uppercase tracking-widest"
+                              onClick={() => handleModuleDraftChange(module.id, 'imageData', '')}
+                              type="button"
+                            >
+                              Clear
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      {module.imageData && (
+                        <div className="my-4 rounded overflow-hidden">
+                          <img src={module.imageData} alt={module.title} className="w-full h-48 object-cover" />
+                        </div>
+                      )}
 
                       {/* Room Assignment */}
                       <div className="mt-6 pt-6 border-t border-outline-variant/20">
@@ -650,33 +832,65 @@ function AdminCareerPathEditorPage() {
                   {formData.resources.map((resource) => (
                     <div
                       key={resource.id}
-                      className="flex justify-between items-center bg-surface-container-high p-4 border-l-2 border-secondary/50"
+                      className="bg-surface-container-high p-4 border-l-2 border-secondary/50"
                     >
-                      <div className="flex-1">
-                        <p className="text-sm font-bold">{resource.title}</p>
-                        <div className="flex gap-3 mt-1 text-xs">
-                          <span className="bg-secondary/20 text-secondary px-2 py-1 uppercase font-bold">
-                            {resource.type}
-                          </span>
-                          {resource.url && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <input
+                          className="bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
+                          onChange={(e) => handleResourceDraftChange(resource.id, 'title', e.target.value)}
+                          placeholder="Resource Title"
+                          type="text"
+                          value={resource.title || ''}
+                        />
+                        <input
+                          className="bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
+                          onChange={(e) => handleResourceDraftChange(resource.id, 'url', e.target.value)}
+                          placeholder="Resource URL"
+                          type="text"
+                          value={resource.url || ''}
+                        />
+                        <select
+                          className="bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
+                          onChange={(e) => handleResourceDraftChange(resource.id, 'type', e.target.value)}
+                          value={resource.type || 'Reference'}
+                        >
+                          <option value="Reference">Reference</option>
+                          <option value="Guide">Guide</option>
+                          <option value="Tutorial">Tutorial</option>
+                          <option value="Tool">Tool</option>
+                        </select>
+                      </div>
+
+                      <div className="flex justify-between items-center mt-3">
+                        <div className="text-xs">
+                          {resource.url ? (
                             <a
                               className="text-primary hover:underline"
                               href={resource.url}
                               rel="noopener noreferrer"
                               target="_blank"
                             >
-                              {resource.url}
+                              Open Link
                             </a>
-                          )}
+                          ) : null}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="px-3 py-2 bg-secondary text-on-secondary font-headline text-[10px] font-bold uppercase tracking-widest"
+                            onClick={() => handleSaveResource(resource.id)}
+                            type="button"
+                          >
+                            {resourcesSavedId === resource.id ? 'Saved' : 'Save'}
+                          </button>
+                          <button
+                            className="text-on-surface-variant hover:text-red-500 transition-colors"
+                            onClick={() => handleDeleteResource(resource.id)}
+                            type="button"
+                          >
+                            <span className="material-symbols-outlined">delete</span>
+                          </button>
                         </div>
                       </div>
-                      <button
-                        className="text-on-surface-variant hover:text-red-500 transition-colors ml-4"
-                        onClick={() => handleDeleteResource(resource.id)}
-                        type="button"
-                      >
-                        <span className="material-symbols-outlined">delete</span>
-                      </button>
                     </div>
                   ))}
                 </div>

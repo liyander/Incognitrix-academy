@@ -1,5 +1,20 @@
+import { useEffect, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import { getRoomsData } from '../data/roomsData'
+import {
+  getLabStatus,
+  markLabCompleted,
+  markLabIncomplete,
+  markLabStarted,
+} from '../services/labProgress'
+import { parseMarkdownToHtml } from '../utils/markdown'
+
+function renderRichContent(content, htmlOverride = '') {
+  if (htmlOverride && String(htmlOverride).trim()) {
+    return String(htmlOverride)
+  }
+  return parseMarkdownToHtml(content)
+}
 
 function LabRoomPage() {
   const { labId } = useParams()
@@ -26,6 +41,27 @@ function LabRoomPage() {
 
   const roomTags = room.tags?.length ? room.tags : [room.categoryTag || room.category].filter(Boolean)
   const keywordTags = room.requiredKeywords?.length ? room.requiredKeywords : []
+  const missionOverviewMarkup = renderRichContent(missionOverview, room.content?.html)
+  const remediationProtocolsMarkup = renderRichContent(remediationProtocols)
+  const technicalDeepDiveMarkup = renderRichContent(technicalDeepDive)
+  const vulnerabilityDefinitionMarkup = renderRichContent(vulnerabilityDefinition)
+  const vulnerabilityImpactMarkup = renderRichContent(vulnerabilityImpact)
+  const [labStatus, setLabStatus] = useState(() => getLabStatus(room.id))
+
+  useEffect(() => {
+    markLabStarted(room.id)
+    setLabStatus(getLabStatus(room.id))
+  }, [room.id])
+
+  const handleMarkComplete = () => {
+    markLabCompleted(room.id)
+    setLabStatus('completed')
+  }
+
+  const handleMarkIncomplete = () => {
+    markLabIncomplete(room.id)
+    setLabStatus('in-progress')
+  }
 
   return (
     <main className="pt-16 md:pt-20 min-h-screen">
@@ -56,8 +92,10 @@ function LabRoomPage() {
               <h2 className="font-headline text-2xl font-bold mb-6 flex items-center gap-3">
                 <span className="text-primary">01</span> MISSION_OVERVIEW
               </h2>
-              <div className="space-y-4 text-on-surface font-body leading-relaxed">
-                <p>{missionOverview}</p>
+              <div
+                className="space-y-4 text-on-surface font-body leading-relaxed [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-bold [&_h3]:text-lg [&_h3]:font-bold [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-6 [&_li]:mb-1 [&_pre]:bg-surface-container-high [&_pre]:p-4 [&_pre]:overflow-x-auto [&_code]:font-mono [&_a]:text-primary [&_a]:underline"
+                dangerouslySetInnerHTML={{ __html: missionOverviewMarkup }}
+              >
               </div>
             </section>
 
@@ -71,13 +109,19 @@ function LabRoomPage() {
                   <h3 className="font-headline text-xs font-bold tracking-widest uppercase text-primary mb-3">
                     Definition
                   </h3>
-                  <p className="text-sm leading-relaxed">{vulnerabilityDefinition}</p>
+                  <div
+                    className="text-sm leading-relaxed [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1 [&_code]:font-mono"
+                    dangerouslySetInnerHTML={{ __html: vulnerabilityDefinitionMarkup }}
+                  ></div>
                 </div>
                 <div className="bg-surface-container-low p-6">
                   <h3 className="font-headline text-xs font-bold tracking-widest uppercase text-primary mb-3">
                     Impact
                   </h3>
-                  <p className="text-sm leading-relaxed">{vulnerabilityImpact}</p>
+                  <div
+                    className="text-sm leading-relaxed [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1 [&_code]:font-mono"
+                    dangerouslySetInnerHTML={{ __html: vulnerabilityImpactMarkup }}
+                  ></div>
                 </div>
               </div>
             </section>
@@ -87,7 +131,10 @@ function LabRoomPage() {
                 <span className="text-primary">03</span> TECHNICAL_DEEP_DIVE
               </h2>
               <div className="space-y-6">
-                <p className="font-body leading-relaxed whitespace-pre-wrap">{technicalDeepDive}</p>
+                <div
+                  className="font-body leading-relaxed [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-bold [&_h3]:text-lg [&_h3]:font-bold [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-6 [&_li]:mb-1 [&_pre]:bg-surface-container-high [&_pre]:p-4 [&_pre]:overflow-x-auto [&_code]:font-mono [&_a]:text-primary [&_a]:underline"
+                  dangerouslySetInnerHTML={{ __html: technicalDeepDiveMarkup }}
+                ></div>
                 <div className="bg-surface-container-high aspect-video w-full flex items-center justify-center relative">
                   <img
                     alt="Technical Logic Diagram"
@@ -116,7 +163,10 @@ function LabRoomPage() {
                 <span className="material-symbols-outlined">shield_with_heart</span>{' '}
                 Remediation_Protocols
               </h2>
-              <p className="font-body text-sm leading-relaxed whitespace-pre-wrap">{remediationProtocols}</p>
+              <div
+                className="font-body text-sm leading-relaxed [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1 [&_pre]:bg-black/20 [&_pre]:p-3 [&_pre]:overflow-x-auto [&_code]:font-mono"
+                dangerouslySetInnerHTML={{ __html: remediationProtocolsMarkup }}
+              ></div>
             </div>
 
             <div className="bg-surface-container-low p-8 border-t-2 border-primary">
@@ -187,6 +237,37 @@ function LabRoomPage() {
                 Ready for deployment? Ensure secure connection protocols are
                 active.
               </p>
+
+              <div className="bg-surface-container-low p-4 border-l-2 border-l-primary">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                    Lab Status
+                  </span>
+                  <span className={`text-[10px] font-headline font-bold uppercase tracking-widest px-2 py-1 ${labStatus === 'completed' ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'}`}>
+                    {labStatus === 'completed' ? 'Completed' : 'In Progress'}
+                  </span>
+                </div>
+
+                <div className="mt-3 flex gap-2">
+                  {labStatus !== 'completed' ? (
+                    <button
+                      className="w-full py-3 bg-secondary text-on-secondary font-headline text-[10px] font-bold tracking-widest uppercase hover:opacity-90 transition-opacity"
+                      onClick={handleMarkComplete}
+                      type="button"
+                    >
+                      Mark Complete
+                    </button>
+                  ) : (
+                    <button
+                      className="w-full py-3 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold tracking-widest uppercase"
+                      onClick={handleMarkIncomplete}
+                      type="button"
+                    >
+                      Mark Incomplete
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-4 gap-1 opacity-20">

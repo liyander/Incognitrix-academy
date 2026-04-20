@@ -1,4 +1,111 @@
+import { useEffect, useMemo, useState } from 'react'
+import { getCareerPathsData, hydrateCareerPathsData } from '../data/careerPathsData'
+import { getRoomsData } from '../data/roomsData'
+import { apiFetch } from '../services/api'
+import { getLabProgressEvents, getLabProgressMap } from '../services/labProgress'
+
 function ProfilePage() {
+  const [careerPaths, setCareerPaths] = useState([])
+  const [isLoadingPaths, setIsLoadingPaths] = useState(true)
+  const [labProgressTick, setLabProgressTick] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadPaths = async () => {
+      try {
+        const response = await apiFetch('/career-paths')
+        if (!cancelled) {
+          const paths = Array.isArray(response) ? response : []
+          hydrateCareerPathsData(paths)
+          setCareerPaths(paths)
+        }
+      } catch (error) {
+        console.error('Failed to load paths for profile:', error)
+        if (!cancelled) {
+          setCareerPaths(getCareerPathsData())
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingPaths(false)
+        }
+      }
+    }
+
+    void loadPaths()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    const { updatedEvent, updatedStorageKey } = getLabProgressEvents()
+
+    const syncProgress = () => {
+      setLabProgressTick((value) => value + 1)
+    }
+
+    const onStorage = (event) => {
+      if (event.key === updatedStorageKey) {
+        syncProgress()
+      }
+    }
+
+    window.addEventListener(updatedEvent, syncProgress)
+    window.addEventListener('storage', onStorage)
+    return () => {
+      window.removeEventListener(updatedEvent, syncProgress)
+      window.removeEventListener('storage', onStorage)
+    }
+  }, [])
+
+  const moduleProgressItems = useMemo(() => {
+    const roomsById = new Map(getRoomsData().map((room) => [room.id, room]))
+    const progressMap = getLabProgressMap()
+
+    const modules = careerPaths.flatMap((path) =>
+      (path.modules || []).map((module) => {
+        const roomIds = module.rooms || []
+        const totalRooms = roomIds.length
+        const completedRooms = roomIds.filter((roomId) => Boolean(progressMap[roomId]?.completedAt)).length
+        const percentage = totalRooms > 0 ? Math.round((completedRooms / totalRooms) * 100) : 0
+
+        return {
+          id: `${path.id}-${module.id}`,
+          title: module.title || 'Untitled Module',
+          subtitle: `${module.phase || 'Module'} • ${path.title || 'Path'}`,
+          percentage,
+          completedRooms,
+          totalRooms,
+          tone: path.color === 'secondary' ? 'secondary' : 'primary',
+          roomPreview: roomIds
+            .map((roomId) => roomsById.get(roomId)?.title)
+            .filter(Boolean)
+            .slice(0, 2)
+            .join(', '),
+        }
+      }),
+    )
+
+    return modules
+      .sort(
+        (a, b) =>
+          b.percentage - a.percentage ||
+          b.completedRooms - a.completedRooms ||
+          b.totalRooms - a.totalRooms ||
+          a.title.localeCompare(b.title),
+      )
+      .slice(0, 4)
+      .map((item, index) => ({
+        ...item,
+        rank: index + 1,
+      }))
+  }, [careerPaths, labProgressTick])
+
+  const firstColumnItems = moduleProgressItems.filter((_, index) => index % 2 === 0)
+  const secondColumnItems = moduleProgressItems.filter((_, index) => index % 2 !== 0)
+
   return (
     <>
       <main className="pt-24 min-h-screen">
@@ -21,58 +128,67 @@ function ProfilePage() {
           </div>
 
           <div className="grid grid-cols-12 gap-8">
-            <div className="col-span-12 lg:col-span-8 bg-surface-container-lowest p-8">
-              <div className="flex justify-between items-center mb-12">
-                <h2 className="font-headline font-bold text-xl uppercase tracking-tight">Skill Matrix Output</h2>
+            <div className="col-span-12 lg:col-span-8 bg-surface-container-lowest p-8 border-l-4 border-primary/70">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="font-headline font-bold text-xl uppercase tracking-tight">Skill Matrix Output</h2>
+                  <p className="text-[10px] font-label tracking-widest uppercase text-on-surface-variant mt-1">
+                    Top 4 modules by completion output
+                  </p>
+                </div>
                 <span className="material-symbols-outlined text-neutral-300">analytics</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <div className="flex justify-between font-label text-[10px] tracking-widest uppercase">
-                      <span>Penetration Testing</span>
-                      <span className="text-primary font-bold">94%</span>
-                    </div>
-                    <div className="h-1 bg-surface-container"><div className="h-full bg-primary w-[94%]"></div></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {[firstColumnItems, secondColumnItems].map((columnItems, columnIndex) => (
+                  <div className="space-y-4" key={`skill-col-${columnIndex + 1}`}>
+                    {columnItems.map((item) => (
+                      <div className="bg-surface border border-surface-container p-4 space-y-3" key={item.id}>
+                        <div className="flex justify-between gap-4">
+                          <div className="min-w-0">
+                            <span className="inline-flex items-center px-2 py-1 bg-surface-container-high text-[9px] font-bold font-label tracking-widest uppercase mb-2">
+                              Rank #{item.rank}
+                            </span>
+                            <h3 className="font-headline font-bold text-sm uppercase tracking-wide truncate">{item.title}</h3>
+                            <p className="text-[10px] text-on-surface-variant mt-1 uppercase tracking-widest truncate">
+                              {item.subtitle}
+                            </p>
+                          </div>
+                          <span
+                            className={`${item.tone === 'secondary' ? 'text-secondary' : 'text-primary'} font-headline font-bold text-xl shrink-0`}
+                          >
+                            {item.percentage}%
+                          </span>
+                        </div>
+
+                        <div className="h-2 bg-surface-container rounded-sm overflow-hidden">
+                          <div
+                            className={`h-full ${item.tone === 'secondary' ? 'bg-secondary' : 'bg-primary'}`}
+                            style={{ width: `${item.percentage}%` }}
+                          ></div>
+                        </div>
+
+                        <div className="flex justify-between text-[10px] font-label uppercase tracking-widest text-on-surface-variant">
+                          <span>
+                            {item.completedRooms}/{item.totalRooms} labs complete
+                          </span>
+                          <span>{item.percentage === 100 ? 'Mastered' : 'In Progress'}</span>
+                        </div>
+
+                        {item.roomPreview ? (
+                          <p className="text-[10px] text-on-surface-variant truncate">Focus: {item.roomPreview}</p>
+                        ) : null}
+                      </div>
+                    ))}
+
+                    {isLoadingPaths && !columnItems.length ? (
+                      <p className="text-xs text-on-surface-variant">Loading module progress...</p>
+                    ) : null}
+
+                    {!isLoadingPaths && !columnItems.length ? (
+                      <p className="text-xs text-on-surface-variant">No module progress available yet.</p>
+                    ) : null}
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between font-label text-[10px] tracking-widest uppercase">
-                      <span>Cryptography</span>
-                      <span className="text-primary font-bold">82%</span>
-                    </div>
-                    <div className="h-1 bg-surface-container"><div className="h-full bg-primary w-[82%]"></div></div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between font-label text-[10px] tracking-widest uppercase">
-                      <span>Network Forensics</span>
-                      <span className="text-primary font-bold">98%</span>
-                    </div>
-                    <div className="h-1 bg-surface-container"><div className="h-full bg-primary w-[98%]"></div></div>
-                  </div>
-                </div>
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <div className="flex justify-between font-label text-[10px] tracking-widest uppercase">
-                      <span>Malware Analysis</span>
-                      <span className="text-secondary font-bold">76%</span>
-                    </div>
-                    <div className="h-1 bg-surface-container"><div className="h-full bg-secondary w-[76%]"></div></div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between font-label text-[10px] tracking-widest uppercase">
-                      <span>Cloud Security</span>
-                      <span className="text-secondary font-bold">65%</span>
-                    </div>
-                    <div className="h-1 bg-surface-container"><div className="h-full bg-secondary w-[65%]"></div></div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between font-label text-[10px] tracking-widest uppercase">
-                      <span>Social Engineering</span>
-                      <span className="text-secondary font-bold">89%</span>
-                    </div>
-                    <div className="h-1 bg-surface-container"><div className="h-full bg-secondary w-[89%]"></div></div>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
@@ -84,8 +200,8 @@ function ProfilePage() {
               </div>
               <div className="space-y-6 font-headline text-xs relative z-10">
                 <div className="flex gap-4 items-start border-l border-white/10 pl-4"><span className="text-primary-fixed-dim shrink-0">14:02:44</span><span className="text-surface/80">User neutralized simulated DDoS attack on Lab_Node_09</span></div>
-                <div className="flex gap-4 items-start border-l border-white/10 pl-4"><span className="text-primary-fixed-dim shrink-0">12:15:20</span><span className="text-surface/80">Completed "Advanced Buffer Overflow" module with 100% accuracy</span></div>
-                <div className="flex gap-4 items-start border-l border-white/10 pl-4"><span className="text-primary-fixed-dim shrink-0">11:04:12</span><span className="text-surface/80">New achievement unlocked: "Deep Packet Explorer"</span></div>
+                <div className="flex gap-4 items-start border-l border-white/10 pl-4"><span className="text-primary-fixed-dim shrink-0">12:15:20</span><span className="text-surface/80">Completed \"Advanced Buffer Overflow\" module with 100% accuracy</span></div>
+                <div className="flex gap-4 items-start border-l border-white/10 pl-4"><span className="text-primary-fixed-dim shrink-0">11:04:12</span><span className="text-surface/80">New achievement unlocked: \"Deep Packet Explorer\"</span></div>
                 <div className="flex gap-4 items-start border-l border-white/10 pl-4"><span className="text-primary-fixed-dim shrink-0">09:30:55</span><span className="text-surface/80">Operator credentials authenticated via biometric proxy</span></div>
                 <div className="flex gap-4 items-start border-l border-white/10 pl-4"><span className="text-primary-fixed-dim shrink-0">08:00:01</span><span className="text-surface/80">Daily training sequence initiated...</span></div>
               </div>

@@ -1,6 +1,18 @@
 export const defaultUsers = [
-  { username: 'operator01', password: 'RedTeam@123', role: 'operator' },
-  { username: 'admin01', password: 'AdminControl@123', role: 'admin' },
+  {
+    username: 'operator01',
+    password: 'RedTeam@123',
+    role: 'operator',
+    email: 'operator01@incognitrix.local',
+    registrationNumber: 'INC-OP-0001',
+  },
+  {
+    username: 'admin01',
+    password: 'AdminControl@123',
+    role: 'admin',
+    email: 'admin01@incognitrix.local',
+    registrationNumber: 'INC-ADM-0001',
+  },
 ]
 
 export const defaultPlatformConfig = {
@@ -17,6 +29,7 @@ export const defaultPlatformConfig = {
     navbarSearch: true,
     navbarNotifications: true,
     navbarSettings: true,
+    publicRegistration: true,
   },
 }
 

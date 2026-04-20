@@ -20,7 +20,7 @@ function parseJsonField(value, fallback = {}) {
   return value
 }
 
-router.get('/', authenticate, async (_req, res) => {
+router.get('/', async (_req, res) => {
   const [rows] = await pool.query('SELECT routes_json, features_json FROM platform_config WHERE id = 1')
   if (!rows.length) {
     return res.json({ routes: {}, features: {} })

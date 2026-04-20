@@ -32,7 +32,7 @@ function buildRoomId(input) {
   return base || `room-${Date.now()}`
 }
 
-router.get('/', authenticate, async (_req, res) => {
+router.get('/', async (_req, res) => {
   const [rows] = await pool.query('SELECT * FROM rooms ORDER BY created_at DESC')
   const rooms = []
 
@@ -53,7 +53,7 @@ router.get('/', authenticate, async (_req, res) => {
   return res.json(rooms)
 })
 
-router.get('/:id', authenticate, async (req, res) => {
+router.get('/:id', async (req, res) => {
   const room = await fetchRoomById(req.params.id)
   if (!room) {
     return res.status(404).json({ message: 'Room not found' })

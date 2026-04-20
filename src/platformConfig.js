@@ -5,6 +5,7 @@ export const DEFAULT_PLATFORM_CONFIG = {
     dashboard: true,
     learningPaths: true,
     practiceLabs: true,
+    upcomingCtf: true,
     profile: true,
   },
   features: {
@@ -14,6 +15,7 @@ export const DEFAULT_PLATFORM_CONFIG = {
     navbarSearch: true,
     navbarNotifications: true,
     navbarSettings: true,
+    publicRegistration: true,
   },
 }
 

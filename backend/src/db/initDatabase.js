@@ -20,13 +20,38 @@ async function ensureDatabase() {
   await connection.query(`CREATE DATABASE IF NOT EXISTS \`${env.db.database}\``)
   await connection.query(`USE \`${env.db.database}\``)
 
+  const addColumnIfMissing = async (tableName, columnName, definitionSql) => {
+    const [rows] = await connection.query(
+      `SELECT 1 FROM information_schema.columns
+       WHERE table_schema = ? AND table_name = ? AND column_name = ? LIMIT 1`,
+      [env.db.database, tableName, columnName],
+    )
+
+    if (!rows.length) {
+      await connection.query(`ALTER TABLE \`${tableName}\` ADD COLUMN \`${columnName}\` ${definitionSql}`)
+    }
+  }
+
   await connection.query(`
     CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
       username VARCHAR(64) NOT NULL UNIQUE,
+      registration_number VARCHAR(64) UNIQUE,
+      email VARCHAR(255) UNIQUE,
       password_hash VARCHAR(255) NOT NULL,
       role ENUM('operator', 'admin') NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      hackthebox_profile TEXT,
+      tryhackme_profile TEXT,
+      picoctf_profile TEXT,
+      github_profile TEXT,
+      linkedin_profile TEXT,
+      resume_url TEXT,
+      about_me TEXT,
+      projects LONGTEXT,
+      achievements LONGTEXT,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS platform_config (
@@ -97,6 +122,7 @@ async function ensureDatabase() {
       phase VARCHAR(100),
       title VARCHAR(255) NOT NULL,
       description TEXT,
+      module_image_data LONGTEXT,
       sort_order INT DEFAULT 0,
       FOREIGN KEY (career_path_id) REFERENCES career_paths(id) ON DELETE CASCADE
     );
@@ -119,15 +145,81 @@ async function ensureDatabase() {
       sort_order INT DEFAULT 0,
       FOREIGN KEY (career_path_id) REFERENCES career_paths(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      message TEXT NOT NULL,
+      type VARCHAR(50) DEFAULT 'info',
+      is_active BOOLEAN DEFAULT true,
+      target_user_id INT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS ctf_events (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      registration_deadline DATETIME NOT NULL,
+      live_time DATETIME NOT NULL,
+      registration_link TEXT NOT NULL,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS ctf_event_registrations (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      ctf_event_id INT NOT NULL,
+      user_id INT NOT NULL,
+      registered BOOLEAN DEFAULT false,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_ctf_user (ctf_event_id, user_id),
+      FOREIGN KEY (ctf_event_id) REFERENCES ctf_events(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS ctf_notification_logs (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      ctf_event_id INT NOT NULL,
+      user_id INT NOT NULL,
+      notification_kind VARCHAR(50) NOT NULL,
+      notification_date DATE NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_ctf_notification_day (ctf_event_id, user_id, notification_kind, notification_date),
+      FOREIGN KEY (ctf_event_id) REFERENCES ctf_events(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
   `)
+
+  await addColumnIfMissing('users', 'registration_number', 'VARCHAR(64) NULL UNIQUE')
+  await addColumnIfMissing('users', 'email', 'VARCHAR(255) NULL UNIQUE')
+  await addColumnIfMissing('users', 'hackthebox_profile', 'TEXT NULL')
+  await addColumnIfMissing('users', 'tryhackme_profile', 'TEXT NULL')
+  await addColumnIfMissing('users', 'picoctf_profile', 'TEXT NULL')
+  await addColumnIfMissing('users', 'github_profile', 'TEXT NULL')
+  await addColumnIfMissing('users', 'linkedin_profile', 'TEXT NULL')
+  await addColumnIfMissing('users', 'resume_url', 'TEXT NULL')
+  await addColumnIfMissing('users', 'about_me', 'TEXT NULL')
+  await addColumnIfMissing('users', 'projects', 'LONGTEXT NULL')
+  await addColumnIfMissing('users', 'achievements', 'LONGTEXT NULL')
+  await addColumnIfMissing('users', 'is_active', 'BOOLEAN DEFAULT true')
+  await addColumnIfMissing(
+    'users',
+    'updated_at',
+    'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+  )
+  await addColumnIfMissing('career_path_modules', 'module_image_data', 'LONGTEXT NULL')
+  await addColumnIfMissing('notifications', 'target_user_id', 'INT NULL')
 
   const [usersCountRows] = await connection.query('SELECT COUNT(*) AS count FROM users')
   if (!usersCountRows[0].count) {
     for (const user of defaultUsers) {
       const hash = await bcrypt.hash(user.password, 10)
       await connection.query(
-        'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
-        [user.username, hash, user.role],
+        'INSERT INTO users (username, registration_number, email, password_hash, role) VALUES (?, ?, ?, ?, ?)',
+        [user.username, user.registrationNumber || null, user.email || null, hash, user.role],
       )
     }
   }

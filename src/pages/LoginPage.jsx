@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { TEMP_USERS, loginUser } from '../auth'
 
 function LoginPage({ onLoginSuccess }) {
@@ -39,12 +40,12 @@ function LoginPage({ onLoginSuccess }) {
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
           <label className="block">
             <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
-              Username
+              Username / Email / Registration Number
             </span>
             <input
               className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="ENTER_USERNAME"
+              placeholder="ENTER_IDENTIFIER"
               type="text"
               value={username}
             />
@@ -73,6 +74,13 @@ function LoginPage({ onLoginSuccess }) {
           >
             Authenticate
           </button>
+
+          <Link
+            className="block text-center text-xs font-label tracking-widest uppercase text-primary hover:underline"
+            to="/register"
+          >
+            Create New Account
+          </Link>
         </form>
 
         <div className="mt-7 border-t border-outline-variant/30 pt-4">

@@ -16,13 +16,40 @@ export const TEMP_USERS = [
 ]
 
 export async function loginUser(username, password) {
+  const identifier = (username || '').trim()
   const response = await apiFetch('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ identifier, password }),
   })
 
   const session = {
     username: response.user.username,
+    email: response.user.email || '',
+    registrationNumber: response.user.registrationNumber || '',
+    role: response.user.role,
+    token: response.token,
+    loggedInAt: Date.now(),
+  }
+
+  try {
+    localStorage.setItem(AUTH_KEY, JSON.stringify(session))
+  } catch {
+    return null
+  }
+
+  return session
+}
+
+export async function registerUser({ registrationNumber, email, password }) {
+  const response = await apiFetch('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ registrationNumber, email, password }),
+  })
+
+  const session = {
+    username: response.user.username,
+    email: response.user.email || '',
+    registrationNumber: response.user.registrationNumber || '',
     role: response.user.role,
     token: response.token,
     loggedInAt: Date.now(),

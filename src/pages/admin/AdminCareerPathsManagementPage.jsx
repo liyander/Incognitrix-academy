@@ -1,11 +1,44 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getCareerPathsData } from '../../data/careerPathsData'
+import {
+  getCareerPathsData,
+  hydrateCareerPathsData,
+  subscribeCareerPathsData,
+} from '../../data/careerPathsData'
+import { apiFetch } from '../../services/api'
 
 function AdminCareerPathsManagementPage() {
   const navigate = useNavigate()
-  const [paths] = useState(getCareerPathsData())
+  const [paths, setPaths] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadPaths = async () => {
+      try {
+        console.log('🌐 Admin: Fetching career paths...')
+        const response = await apiFetch('/career-paths')
+        if (!cancelled) {
+          const pathsData = Array.isArray(response) ? response : []
+          hydrateCareerPathsData(pathsData)
+          setPaths(pathsData)
+          console.log('✅ Admin paths loaded:', pathsData.length)
+        }
+      } catch (error) {
+        console.error('Failed to load admin career paths:', error)
+        if (!cancelled) {
+          setPaths(getCareerPathsData())
+        }
+      }
+    }
+
+    void loadPaths()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const filteredPaths = paths.filter((path) =>
     (path.title || '').toLowerCase().includes(searchTerm.toLowerCase())

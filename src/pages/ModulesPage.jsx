@@ -1,5 +1,11 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { getRoomsData } from '../data/roomsData'
+import {
+  getLabProgressEvents,
+  getLabProgressMap,
+  getLabStatus,
+} from '../services/labProgress'
 
 // Export function for backward compatibility with LabRoomPage
 export function rooms() {
@@ -9,6 +15,80 @@ export function rooms() {
 function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
   const allRooms = getRoomsData()
   const activeRoom = allRooms.find((room) => room.slug === selectedLabId) ?? null
+
+  const [complexity, setComplexity] = useState('Any Difficulty')
+  const [specialization, setSpecialization] = useState('All Categories')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [viewFilter, setViewFilter] = useState('all')
+  const [progressMap, setProgressMap] = useState(() => getLabProgressMap())
+  const [filteredRooms, setFilteredRooms] = useState(allRooms)
+
+  useEffect(() => {
+    const { updatedEvent, updatedStorageKey } = getLabProgressEvents()
+
+    const syncProgress = () => {
+      setProgressMap(getLabProgressMap())
+    }
+
+    const onStorage = (event) => {
+      if (event.key === updatedStorageKey) {
+        syncProgress()
+      }
+    }
+
+    window.addEventListener(updatedEvent, syncProgress)
+    window.addEventListener('storage', onStorage)
+    return () => {
+      window.removeEventListener(updatedEvent, syncProgress)
+      window.removeEventListener('storage', onStorage)
+    }
+  }, [])
+
+  // Auto-apply filters whenever any filter changes
+  useEffect(() => {
+    let results = allRooms
+
+    // Filter by complexity
+    if (complexity !== 'Any Difficulty') {
+      results = results.filter((room) => room.level === complexity)
+    }
+
+    // Filter by specialization
+    if (specialization !== 'All Categories') {
+      results = results.filter((room) => room.category === specialization)
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      results = results.filter(
+        (room) =>
+          room.title.toLowerCase().includes(query) ||
+          room.description.toLowerCase().includes(query) ||
+          room.slug.toLowerCase().includes(query)
+      )
+    }
+
+    if (viewFilter === 'in-progress') {
+      results = results.filter((room) => {
+        const progress = progressMap[room.id]
+        return Boolean(progress?.startedAt && !progress?.completedAt)
+      })
+    }
+
+    if (viewFilter === 'completed') {
+      results = results.filter((room) => Boolean(progressMap[room.id]?.completedAt))
+    }
+
+    setFilteredRooms(results)
+  }, [complexity, specialization, searchQuery, viewFilter, progressMap])
+
+  const handleReset = () => {
+    setComplexity('Any Difficulty')
+    setSpecialization('All Categories')
+    setSearchQuery('')
+    setViewFilter('all')
+  }
 
   return (
     <div className="bg-surface p-8 lg:p-12 overflow-x-hidden mt-16 md:mt-20 relative">
@@ -24,9 +104,27 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
           </div>
           <div className="flex flex-wrap gap-4">
             <div className="bg-surface-container-low p-1 flex">
-              <button className="px-4 py-2 bg-surface-container-lowest text-xs font-bold font-label uppercase tracking-wider text-primary" type="button">All Rooms</button>
-              <button className="px-4 py-2 text-xs font-bold font-label uppercase tracking-wider text-on-surface-variant hover:text-primary transition-colors" type="button">In Progress</button>
-              <button className="px-4 py-2 text-xs font-bold font-label uppercase tracking-wider text-on-surface-variant hover:text-primary transition-colors" type="button">Completed</button>
+              <button
+                className={`px-4 py-2 text-xs font-bold font-label uppercase tracking-wider transition-colors ${viewFilter === 'all' ? 'bg-surface-container-lowest text-primary' : 'text-on-surface-variant hover:text-primary'}`}
+                onClick={() => setViewFilter('all')}
+                type="button"
+              >
+                All Rooms
+              </button>
+              <button
+                className={`px-4 py-2 text-xs font-bold font-label uppercase tracking-wider transition-colors ${viewFilter === 'in-progress' ? 'bg-surface-container-lowest text-primary' : 'text-on-surface-variant hover:text-primary'}`}
+                onClick={() => setViewFilter('in-progress')}
+                type="button"
+              >
+                In Progress
+              </button>
+              <button
+                className={`px-4 py-2 text-xs font-bold font-label uppercase tracking-wider transition-colors ${viewFilter === 'completed' ? 'bg-surface-container-lowest text-primary' : 'text-on-surface-variant hover:text-primary'}`}
+                onClick={() => setViewFilter('completed')}
+                type="button"
+              >
+                Completed
+              </button>
             </div>
           </div>
         </div>
@@ -34,16 +132,24 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <div className="flex flex-col gap-2">
             <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold ml-1">Complexity Tier</label>
-            <select className="bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none">
+            <select 
+              className="bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none cursor-pointer"
+              value={complexity}
+              onChange={(e) => setComplexity(e.target.value)}
+            >
               <option>Any Difficulty</option>
-              <option>Level: Easy</option>
-              <option>Level: Medium</option>
-              <option>Level: Hard</option>
+              <option>Easy</option>
+              <option>Medium</option>
+              <option>Hard</option>
             </select>
           </div>
           <div className="flex flex-col gap-2">
             <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold ml-1">Specialization</label>
-            <select className="bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none">
+            <select 
+              className="bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none cursor-pointer"
+              value={specialization}
+              onChange={(e) => setSpecialization(e.target.value)}
+            >
               <option>All Categories</option>
               <option>Web Exploitation</option>
               <option>Cryptography</option>
@@ -54,13 +160,26 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
           <div className="flex flex-col gap-2">
             <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold ml-1">Search Identifier</label>
             <div className="relative">
-              <input className="w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none" placeholder="ENTER ROOM NAME..." type="text" />
+              <input 
+                className="w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                placeholder="ENTER ROOM NAME..." 
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
           </div>
           <div className="flex items-end">
-            <button className="w-full bg-inverse-surface text-inverse-on-surface font-label uppercase text-xs tracking-widest py-3.5 px-6 hover:bg-on-background transition-colors font-bold" type="button">
-              EXECUTE FILTER
-            </button>
+            {(complexity !== 'Any Difficulty' || specialization !== 'All Categories' || searchQuery) && (
+              <button 
+                className="w-full px-4 py-3.5 bg-surface-container-high text-on-surface font-label uppercase text-xs tracking-widest hover:bg-surface-container-highest transition-colors font-bold"
+                onClick={handleReset}
+                title="Reset filters"
+                type="button"
+              >
+                RESET FILTERS
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -68,48 +187,72 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
       <div className="flex flex-col xl:flex-row gap-12">
         <div className="flex-1">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {allRooms.map((room) => (
-              <div
-                className={`bg-surface-container-lowest group relative transition-all duration-300 ${room.slug === selectedLabId ? 'ring-1 ring-primary' : ''}`}
-                key={room.slug || room.title}
-              >
-                <div className="h-1 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500"></div>
-                <div className="p-8">
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="bg-secondary/10 px-3 py-1">
-                      <span className="font-label text-[10px] font-bold text-secondary tracking-widest uppercase">{room.category}</span>
+            {filteredRooms.length > 0 ? (
+              filteredRooms.map((room) => {
+                const status = getLabStatus(room.id)
+                return (
+                <div
+                  className={`bg-surface-container-lowest group relative transition-all duration-300 ${room.slug === selectedLabId ? 'ring-1 ring-primary' : ''}`}
+                  key={room.slug || room.title}
+                >
+                  <div className="h-1 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500"></div>
+                  <div className="p-8">
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="bg-secondary/10 px-3 py-1">
+                        <span className="font-label text-[10px] font-bold text-secondary tracking-widest uppercase">{room.category}</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                        <div className={`w-2 h-2 rounded-full ${room.dotTone}`}></div>
+                        <span className={`font-label text-[10px] font-bold tracking-widest uppercase ${room.levelTone}`}>{room.level}</span>
+                        <span className={`font-label text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 ${status === 'completed' ? 'bg-secondary/15 text-secondary' : status === 'in-progress' ? 'bg-primary/15 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                          {status === 'completed' ? 'Completed' : status === 'in-progress' ? 'In Progress' : 'Not Started'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${room.dotTone}`}></div>
-                      <span className={`font-label text-[10px] font-bold tracking-widest uppercase ${room.levelTone}`}>{room.level}</span>
+                    <h3 className="text-2xl font-bold tracking-tight text-on-background mb-3 font-headline">{room.title}</h3>
+                    <p className="text-sm text-on-surface-variant font-body leading-relaxed mb-8">{room.description}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="font-label text-[10px] uppercase tracking-tighter text-on-surface-variant font-bold">Reward Pool</span>
+                        <span className="text-lg font-space font-bold text-primary">{room.xp}</span>
+                      </div>
+                      {allowLabRooms ? (
+                        <Link
+                          className="inline-block bg-primary text-on-primary font-label uppercase text-xs tracking-widest py-3 px-8 group-hover:bg-primary-container transition-colors font-bold"
+                          to={`/learn/lab/${room.slug}`}
+                        >
+                          {status === 'completed' ? 'REVISIT ROOM' : room.slug === selectedLabId ? 'IN ROOM' : 'ENTER ROOM'}
+                        </Link>
+                      ) : (
+                        <button
+                          className="inline-block bg-surface-container-highest text-on-surface-variant font-label uppercase text-xs tracking-widest py-3 px-8 font-bold cursor-not-allowed"
+                          type="button"
+                        >
+                          DISABLED
+                        </button>
+                      )}
                     </div>
-                  </div>
-                  <h3 className="text-2xl font-bold tracking-tight text-on-background mb-3 font-headline">{room.title}</h3>
-                  <p className="text-sm text-on-surface-variant font-body leading-relaxed mb-8">{room.description}</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className="font-label text-[10px] uppercase tracking-tighter text-on-surface-variant font-bold">Reward Pool</span>
-                      <span className="text-lg font-space font-bold text-primary">{room.xp}</span>
-                    </div>
-                    {allowLabRooms ? (
-                      <Link
-                        className="inline-block bg-primary text-on-primary font-label uppercase text-xs tracking-widest py-3 px-8 group-hover:bg-primary-container transition-colors font-bold"
-                        to={`/learn/lab/${room.slug}`}
-                      >
-                        {room.slug === selectedLabId ? 'IN ROOM' : 'ENTER ROOM'}
-                      </Link>
-                    ) : (
-                      <button
-                        className="inline-block bg-surface-container-highest text-on-surface-variant font-label uppercase text-xs tracking-widest py-3 px-8 font-bold cursor-not-allowed"
-                        type="button"
-                      >
-                        DISABLED
-                      </button>
-                    )}
                   </div>
                 </div>
+              )})
+            ) : (
+              <div className="col-span-full py-12 text-center">
+                <div className="flex flex-col items-center gap-4">
+                  <span className="material-symbols-outlined text-6xl text-neutral-300">search_off</span>
+                  <div>
+                    <h3 className="text-xl font-bold font-headline text-on-background mb-2">No Rooms Found</h3>
+                    <p className="text-on-surface-variant">Try adjusting your filters to find more rooms</p>
+                  </div>
+                  <button
+                    className="mt-4 px-6 py-3 bg-primary text-on-primary font-label uppercase text-xs tracking-widest font-bold hover:bg-primary-container transition-colors"
+                    onClick={handleReset}
+                    type="button"
+                  >
+                    RESET FILTERS
+                  </button>
+                </div>
               </div>
-            ))}
+            )}
           </div>
         </div>
 

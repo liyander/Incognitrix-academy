@@ -12,18 +12,27 @@ import AdminRoomsManagementPage from './pages/admin/AdminRoomsManagementPage'
 import AdminRoomEditorPage from './pages/admin/AdminRoomEditorPage'
 import AdminCareerPathsManagementPage from './pages/admin/AdminCareerPathsManagementPage'
 import AdminCareerPathEditorPage from './pages/admin/AdminCareerPathEditorPage'
+import AdminNotificationsManagementPage from './pages/admin/AdminNotificationsManagementPage'
+import AdminRegistrationsManagementPage from './pages/admin/AdminRegistrationsManagementPage'
+import AdminRegistrationDetailPage from './pages/admin/AdminRegistrationDetailPage'
+import AdminUpcomingCtfManagementPage from './pages/admin/AdminUpcomingCtfManagementPage'
 import DashboardPage from './pages/DashboardPage'
 import LabRoomPage from './pages/LabRoomPage'
 import LearningPathsPage from './pages/LearningPathsPage'
 import LoginPage from './pages/LoginPage'
 import ModulesPage from './pages/ModulesPage'
+import ModuleDetailPage from './pages/ModuleDetailPage'
 import ProfilePage from './pages/ProfilePage'
+import SettingsPage from './pages/SettingsPage'
+import RegistrationPage from './pages/RegistrationPage'
 import RedTeamOperatorPage from './pages/RedTeamOperatorPage'
+import UpcomingCtfPage from './pages/UpcomingCtfPage'
 
 function firstEnabledRoute(config) {
   if (config.routes.dashboard) return '/'
   if (config.routes.learningPaths) return '/learn/paths'
   if (config.routes.practiceLabs) return '/learn'
+  if (config.routes.upcomingCtf) return '/upcoming-ctf'
   if (config.routes.profile) return '/profile'
   return '/'
 }
@@ -34,6 +43,25 @@ function App() {
   const [platformConfig, setPlatformConfig] = useState(loadPlatformConfig)
   const [isBootstrapping, setIsBootstrapping] = useState(true)
   const [syncTick, setSyncTick] = useState(0)
+
+  const handleSessionExpired = () => {
+    logoutUser()
+    setAuthSession(null)
+  }
+
+  const isAuthError = (error) =>
+    /invalid or expired token|unauthorized/i.test(error?.message || '')
+
+  useEffect(() => {
+    const onAuthExpired = () => {
+      handleSessionExpired()
+    }
+
+    window.addEventListener('incognitrix:auth-expired', onAuthExpired)
+    return () => {
+      window.removeEventListener('incognitrix:auth-expired', onAuthExpired)
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -53,6 +81,10 @@ function App() {
           setSyncTick((value) => value + 1)
         }
       } catch (error) {
+        if (isAuthError(error)) {
+          handleSessionExpired()
+          return
+        }
         console.error('Failed to sync backend state:', error)
       } finally {
         if (!cancelled) {
@@ -82,6 +114,10 @@ function App() {
           setSyncTick((value) => value + 1)
         }
       } catch (error) {
+        if (isAuthError(error)) {
+          handleSessionExpired()
+          return
+        }
         console.error('Background sync failed:', error)
       }
     }
@@ -100,7 +136,13 @@ function App() {
     void apiFetch('/platform-config', {
       method: 'PUT',
       body: JSON.stringify(merged),
-    }).catch((error) => console.error('Failed to sync platform config:', error))
+    }).catch((error) => {
+      if (isAuthError(error)) {
+        handleSessionExpired()
+        return
+      }
+      console.error('Failed to sync platform config:', error)
+    })
   }
 
   if (authSession && !authSession.token) {
@@ -130,6 +172,10 @@ function App() {
           path="/login"
           element={<LoginPage onLoginSuccess={setAuthSession} />}
         />
+        <Route
+          path="/register"
+          element={<RegistrationPage onRegisterSuccess={setAuthSession} />}
+        />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     )
@@ -158,6 +204,10 @@ function App() {
         <Route path="/admin/career-paths" element={<AdminCareerPathsManagementPage />} />
         <Route path="/admin/career-paths/new" element={<AdminCareerPathEditorPage />} />
         <Route path="/admin/career-paths/:pathId" element={<AdminCareerPathEditorPage />} />
+        <Route path="/admin/notifications" element={<AdminNotificationsManagementPage />} />
+        <Route path="/admin/registrations" element={<AdminRegistrationsManagementPage />} />
+        <Route path="/admin/registrations/:userId" element={<AdminRegistrationDetailPage />} />
+        <Route path="/admin/upcoming-ctf" element={<AdminUpcomingCtfManagementPage />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
     )
@@ -184,6 +234,7 @@ function App() {
         />
         <Routes>
           <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="/register" element={<Navigate to="/" replace />} />
           <Route
             path="/"
             element={
@@ -207,11 +258,33 @@ function App() {
             }
           />
           <Route
+            path="/learn/path"
+            element={
+              platformConfig.routes.learningPaths ? (
+                <LearningPathsPage
+                  allowRedTeamPath={platformConfig.features.redTeamPath}
+                />
+              ) : (
+                <Navigate to={firstEnabledRoute(platformConfig)} replace />
+              )
+            }
+          />
+          <Route
             path="/learn/path/red-team-operator"
             element={
               platformConfig.routes.learningPaths &&
               platformConfig.features.redTeamPath ? (
                 <RedTeamOperatorPage pathId="red-team-operator" />
+              ) : (
+                <Navigate to={firstEnabledRoute(platformConfig)} replace />
+              )
+            }
+          />
+          <Route
+            path="/learn/path/:pathId/module/:moduleId"
+            element={
+              platformConfig.routes.learningPaths ? (
+                <ModuleDetailPage />
               ) : (
                 <Navigate to={firstEnabledRoute(platformConfig)} replace />
               )
@@ -249,10 +322,30 @@ function App() {
             }
           />
           <Route
+            path="/upcoming-ctf"
+            element={
+              platformConfig.routes.upcomingCtf ? (
+                <UpcomingCtfPage />
+              ) : (
+                <Navigate to={firstEnabledRoute(platformConfig)} replace />
+              )
+            }
+          />
+          <Route
             path="/profile"
             element={
               platformConfig.routes.profile ? (
                 <ProfilePage />
+              ) : (
+                <Navigate to={firstEnabledRoute(platformConfig)} replace />
+              )
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              platformConfig.routes.profile ? (
+                <SettingsPage />
               ) : (
                 <Navigate to={firstEnabledRoute(platformConfig)} replace />
               )

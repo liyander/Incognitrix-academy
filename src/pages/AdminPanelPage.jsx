@@ -116,6 +116,87 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                 </p>
               </a>
             </div>
+
+            {/* Notifications */}
+            <div className="bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+              <a className="block" href="/admin/notifications">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-secondary" style={{ fontSize: '32px' }}>
+                      notifications_active
+                    </span>
+                    <div>
+                      <h3 className="font-headline text-lg font-bold uppercase">
+                        Notifications
+                      </h3>
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
+                        Manage System Notifications
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-on-surface-variant">
+                    chevron_right
+                  </span>
+                </div>
+                <p className="text-sm text-on-surface-variant">
+                  Create and manage system-wide notifications that appear in the user panel for all operators.
+                </p>
+              </a>
+            </div>
+
+            {/* Registrations */}
+            <div className="bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+              <a className="block" href="/admin/registrations">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-secondary" style={{ fontSize: '32px' }}>
+                      badge
+                    </span>
+                    <div>
+                      <h3 className="font-headline text-lg font-bold uppercase">
+                        Registrations
+                      </h3>
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
+                        Manage User Accounts
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-on-surface-variant">
+                    chevron_right
+                  </span>
+                </div>
+                <p className="text-sm text-on-surface-variant">
+                  View and edit registration number, email, status, role, and credentials for player accounts.
+                </p>
+              </a>
+            </div>
+
+            {/* Upcoming CTF */}
+            <div className="bg-surface-container-lowest border-l-4 border-primary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+              <a className="block" href="/admin/upcoming-ctf">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-primary" style={{ fontSize: '32px' }}>
+                      event_upcoming
+                    </span>
+                    <div>
+                      <h3 className="font-headline text-lg font-bold uppercase">
+                        Upcoming CTF
+                      </h3>
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
+                        Manage Event Timeline
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-on-surface-variant">
+                    chevron_right
+                  </span>
+                </div>
+                <p className="text-sm text-on-surface-variant">
+                  Configure event name, registration deadline, live time, and registration link for player-facing CTF announcements.
+                </p>
+              </a>
+            </div>
           </div>
         </section>
 
@@ -151,6 +232,12 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                 description="Controls access to labs and module routes (/learn and /learn/lab/:labId)."
                 label="Practice Labs Route"
                 onChange={(v) => setRouteValue('practiceLabs', v)}
+              />
+              <ToggleRow
+                checked={config.routes.upcomingCtf}
+                description="Controls access to player upcoming CTF route (/upcoming-ctf)."
+                label="Upcoming CTF Route"
+                onChange={(v) => setRouteValue('upcomingCtf', v)}
               />
               <ToggleRow
                 checked={config.routes.profile}
@@ -203,6 +290,12 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                 description="Shows or hides navbar settings icon."
                 label="Navbar Settings"
                 onChange={(v) => setFeatureValue('navbarSettings', v)}
+              />
+              <ToggleRow
+                checked={config.features.publicRegistration}
+                description="Enable or disable public /register page for new operator accounts."
+                label="Public Registration"
+                onChange={(v) => setFeatureValue('publicRegistration', v)}
               />
             </div>
           </div>

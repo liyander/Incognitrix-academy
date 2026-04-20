@@ -2,6 +2,18 @@ const DEFAULT_API_BASE_URL = 'http://localhost:4000/api'
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL
 
+function handleAuthExpiry() {
+  try {
+    localStorage.removeItem('incognitrix_auth_session')
+  } catch {
+    // ignore storage errors
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('incognitrix:auth-expired'))
+  }
+}
+
 export function getAuthToken() {
   try {
     const raw = localStorage.getItem('incognitrix_auth_session')
@@ -45,6 +57,11 @@ export async function apiFetch(path, options = {}) {
 
   if (!response.ok) {
     const message = body?.message || response.statusText || 'Request failed'
+
+    if (response.status === 401) {
+      handleAuthExpiry()
+    }
+
     throw new Error(message)
   }
 

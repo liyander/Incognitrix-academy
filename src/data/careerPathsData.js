@@ -1,5 +1,14 @@
 import { apiFetch } from '../services/api'
 
+const CAREER_PATHS_STORAGE_KEY = 'careerPathsData'
+const CAREER_PATHS_UPDATED_EVENT = 'incognitrix:career-paths-updated'
+
+function emitCareerPathsUpdated() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(CAREER_PATHS_UPDATED_EVENT))
+  }
+}
+
 // Career paths data storage
 function normalizeCareerPath(path) {
   return {
@@ -99,7 +108,7 @@ export const defaultCareerPaths = [
 ]
 
 export function getCareerPathsData() {
-  const stored = localStorage.getItem('careerPathsData')
+  const stored = localStorage.getItem(CAREER_PATHS_STORAGE_KEY)
   if (stored) {
     try {
       return JSON.parse(stored).map(normalizeCareerPath)
@@ -112,11 +121,34 @@ export function getCareerPathsData() {
 }
 
 export function setCareerPathsData(paths) {
-  localStorage.setItem('careerPathsData', JSON.stringify(paths))
+  localStorage.setItem(CAREER_PATHS_STORAGE_KEY, JSON.stringify(paths))
+  emitCareerPathsUpdated()
 }
 
 export function hydrateCareerPathsData(paths) {
-  localStorage.setItem('careerPathsData', JSON.stringify(paths.map(normalizeCareerPath)))
+  localStorage.setItem(CAREER_PATHS_STORAGE_KEY, JSON.stringify(paths.map(normalizeCareerPath)))
+  emitCareerPathsUpdated()
+}
+
+export function subscribeCareerPathsData(listener) {
+  if (typeof window === 'undefined') {
+    return () => {}
+  }
+
+  const onDataUpdate = () => listener()
+  const onStorage = (event) => {
+    if (event.key === CAREER_PATHS_STORAGE_KEY) {
+      listener()
+    }
+  }
+
+  window.addEventListener(CAREER_PATHS_UPDATED_EVENT, onDataUpdate)
+  window.addEventListener('storage', onStorage)
+
+  return () => {
+    window.removeEventListener(CAREER_PATHS_UPDATED_EVENT, onDataUpdate)
+    window.removeEventListener('storage', onStorage)
+  }
 }
 
 export function getCareerPathById(id) {
@@ -244,6 +276,27 @@ export function addResourceToPath(pathId, resource) {
       body: JSON.stringify(paths[pathIndex]),
     }).catch((error) => console.error('Failed to sync resource create:', error))
     return newResource
+  }
+  return null
+}
+
+export function updateResourceInPath(pathId, resourceId, updates) {
+  const paths = getCareerPathsData()
+  const pathIndex = paths.findIndex((p) => p.id === pathId)
+  if (pathIndex !== -1) {
+    const resourceIndex = paths[pathIndex].resources.findIndex((r) => r.id === resourceId)
+    if (resourceIndex !== -1) {
+      paths[pathIndex].resources[resourceIndex] = {
+        ...paths[pathIndex].resources[resourceIndex],
+        ...updates,
+      }
+      setCareerPathsData(paths)
+      void apiFetch(`/career-paths/${pathId}`, {
+        method: 'PUT',
+        body: JSON.stringify(paths[pathIndex]),
+      }).catch((error) => console.error('Failed to sync resource update:', error))
+      return paths[pathIndex].resources[resourceIndex]
+    }
   }
   return null
 }

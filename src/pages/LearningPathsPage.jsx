@@ -1,8 +1,60 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getCareerPathsData } from '../data/careerPathsData'
+import {
+  getCareerPathsData,
+  hydrateCareerPathsData,
+  subscribeCareerPathsData,
+} from '../data/careerPathsData'
+import { apiFetch } from '../services/api'
 
 function LearningPathsPage({ allowRedTeamPath = true }) {
-  const careerPaths = getCareerPathsData()
+  const [careerPaths, setCareerPaths] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadPaths = async () => {
+      setIsLoading(true)
+      try {
+        // Always fetch fresh from backend
+        console.log('🌐 Fetching career paths from backend...')
+        const response = await apiFetch('/career-paths')
+        console.log('✅ Backend response:', response)
+        
+        if (!cancelled) {
+          const paths = Array.isArray(response) ? response : []
+          console.log('📊 Setting career paths. Count:', paths.length)
+          
+          // Hydrate localStorage with backend data
+          hydrateCareerPathsData(paths)
+          
+          // Directly set state with fresh data
+          setCareerPaths(paths)
+          console.log('✅ Career paths loaded successfully')
+        }
+      } catch (error) {
+        console.error('❌ Failed to load career paths:', error)
+        if (!cancelled) {
+          // Fallback to localStorage or defaults
+          const fallback = getCareerPathsData()
+          console.log('⚠️ Using fallback data. Count:', fallback.length)
+          setCareerPaths(fallback)
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadPaths()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const redTeamPath = careerPaths.find((p) => p.id === 'red-team-operator')
   const otherPaths = careerPaths.filter((p) => p.id !== 'red-team-operator')
   return (
@@ -115,7 +167,11 @@ function LearningPathsPage({ allowRedTeamPath = true }) {
             ))}
 
             {otherPaths.map((path, index) => (
-              <div key={path.id} className="bg-surface-container-lowest p-8 flex flex-col h-[400px] relative group hover:bg-white transition-all duration-300">
+              <Link
+                key={path.id}
+                className="bg-surface-container-lowest p-8 flex flex-col h-[400px] relative group hover:bg-white transition-all duration-300"
+                to={`/learn/path/${path.slug || path.id}`}
+              >
                 <div className="absolute top-0 right-0 p-4 font-headline text-secondary-container font-black text-4xl opacity-10">
                   {String(index + 2).padStart(2, '0')}
                 </div>
@@ -138,7 +194,7 @@ function LearningPathsPage({ allowRedTeamPath = true }) {
                     <div className="h-full bg-secondary" style={{ width: `${path.mastery}%` }}></div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </section>

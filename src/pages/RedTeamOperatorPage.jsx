@@ -1,13 +1,67 @@
-import { useParams, Navigate } from 'react-router-dom'
-import { getCareerPathById } from '../data/careerPathsData'
+import { useEffect, useState } from 'react'
+import { useParams, Navigate, useNavigate } from 'react-router-dom'
+import {
+  getCareerPathsData,
+  hydrateCareerPathsData,
+  subscribeCareerPathsData,
+} from '../data/careerPathsData'
 import { getRoomsData } from '../data/roomsData'
+import { apiFetch } from '../services/api'
 
 function RedTeamOperatorPage({ pathId: propPathId }) {
+  const navigate = useNavigate()
   const { pathId: paramPathId } = useParams()
   const pathId = propPathId || paramPathId || 'red-team-operator'
-  const path = getCareerPathById(pathId)
+  const [careerPaths, setCareerPaths] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadPaths = async () => {
+      try {
+        console.log('🌐 RedTeamOperatorPage: Fetching paths...')
+        const response = await apiFetch('/career-paths')
+        if (!cancelled) {
+          const paths = Array.isArray(response) ? response : []
+          hydrateCareerPathsData(paths)
+          setCareerPaths(paths)
+          setIsLoading(false)
+          console.log('✅ Paths loaded:', paths.length)
+        }
+      } catch (error) {
+        console.error('Failed to load paths:', error)
+        if (!cancelled) {
+          setCareerPaths(getCareerPathsData())
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadPaths()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const path = careerPaths.find((item) => item.id === pathId || item.slug === pathId)
   const allRooms = getRoomsData()
 
+  // Show loading while fetching paths
+  if (isLoading) {
+    return (
+      <main className="pt-20 px-8 pb-12 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">⚙️</div>
+          <h1 className="font-headline text-3xl font-bold mb-2">Loading Path</h1>
+          <p className="text-on-surface-variant">Initializing learning materials...</p>
+        </div>
+      </main>
+    )
+  }
+
+  // Redirect if path not found after loading
   if (!path) {
     return <Navigate to="/learn/paths" replace />
   }
@@ -102,10 +156,10 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
             {path.modules && path.modules.length > 0 ? (
               <div className="space-y-8 relative before:absolute before:left-6 before:top-0 before:bottom-0 before:w-px before:bg-surface-container-highest">
                 {path.modules.map((module, index) => (
-                  <div key={module.id} className="relative pl-16">
-                    <div className="absolute left-3.5 top-0 w-5 h-5 bg-primary ring-4 ring-surface"></div>
+                  <div key={module.id} className="relative pl-16 group cursor-pointer" onClick={() => navigate(`/learn/path/${pathId}/module/${module.id}`)}>
+                    <div className="absolute left-3.5 top-0 w-5 h-5 bg-primary ring-4 ring-surface group-hover:scale-125 transition-transform"></div>
                     <div className="space-y-6">
-                      <div>
+                      <div className="group-hover:text-primary transition-colors">
                         <span className="text-[10px] font-headline font-bold text-primary tracking-[2px] uppercase">
                           {module.phase}
                         </span>

@@ -1,6 +1,35 @@
+import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import { getAuthSession } from '../auth'
+import { apiFetch } from '../services/api'
 
 function Sidebar({ config, isSidebarOpen, onClose }) {
+  const authSession = getAuthSession()
+  const [username, setUsername] = useState(authSession?.username || 'operator')
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadProfile = async () => {
+      try {
+        const response = await apiFetch('/users/me')
+        if (!cancelled) {
+          setUsername(response?.username || authSession?.username || 'operator')
+        }
+      } catch {
+        if (!cancelled) {
+          setUsername(authSession?.username || 'operator')
+        }
+      }
+    }
+
+    void loadProfile()
+
+    return () => {
+      cancelled = true
+    }
+  }, [authSession?.username])
+
   const navLinkClass = ({ isActive }) =>
     `flex items-center gap-4 px-8 py-4 font-headline text-xs font-bold tracking-widest uppercase transition-all duration-150 ease-in-out border-l-4 ${
       isActive
@@ -28,16 +57,19 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
         </button>
 
         <div className="px-8 mb-12">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 bg-primary flex items-center justify-center text-white font-headline font-bold text-xl">
               I
             </div>
-            <div className="flex flex-col">
+            <div className="flex flex-col min-w-0">
               <span className="font-headline text-[10px] font-bold tracking-[0.2em] text-neutral-400 uppercase">
                 OPERATOR_ID
               </span>
-              <span className="font-headline text-xs font-bold tracking-widest text-on-surface uppercase">
-                OPERATOR_01
+              <span
+                className="font-headline text-[11px] font-bold tracking-wide text-on-surface uppercase max-w-[145px] truncate"
+                title={username}
+              >
+                {username}
               </span>
             </div>
           </div>
@@ -53,6 +85,12 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
             <NavLink className={navLinkClass} onClick={onClose} to="/learn">
               <span className="material-symbols-outlined">school</span>
               Learn
+            </NavLink>
+          ) : null}
+          {config.routes.upcomingCtf ? (
+            <NavLink className={navLinkClass} onClick={onClose} to="/upcoming-ctf">
+              <span className="material-symbols-outlined">event_upcoming</span>
+              Upcoming CTF
             </NavLink>
           ) : null}
           {config.routes.profile ? (
@@ -124,6 +162,20 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
             <span className="material-symbols-outlined">school</span>
             <span className="font-headline text-[8px] font-bold uppercase tracking-widest">
               Learn
+            </span>
+          </NavLink>
+        ) : null}
+        {config.routes.upcomingCtf ? (
+          <NavLink
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-1 ${isActive ? 'text-red-600' : 'text-neutral-400'}`
+            }
+            onClick={onClose}
+            to="/upcoming-ctf"
+          >
+            <span className="material-symbols-outlined">event_upcoming</span>
+            <span className="font-headline text-[8px] font-bold uppercase tracking-widest">
+              CTF
             </span>
           </NavLink>
         ) : null}

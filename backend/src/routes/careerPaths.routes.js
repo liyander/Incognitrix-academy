@@ -42,6 +42,7 @@ async function fetchCareerPathById(id) {
       phase: moduleRow.phase,
       title: moduleRow.title,
       description: moduleRow.description,
+      imageData: moduleRow.module_image_data || null,
       rooms: moduleRoomRows.map((row) => row.room_id),
     })
   }
@@ -56,7 +57,7 @@ async function fetchCareerPathById(id) {
   return mapCareerPath(path, modules, resources)
 }
 
-router.get('/', authenticate, async (_req, res) => {
+router.get('/', async (_req, res) => {
   const [rows] = await pool.query('SELECT * FROM career_paths ORDER BY created_at DESC')
   const result = []
 
@@ -70,7 +71,7 @@ router.get('/', authenticate, async (_req, res) => {
   return res.json(result)
 })
 
-router.get('/:id', authenticate, async (req, res) => {
+router.get('/:id', async (req, res) => {
   const path = await fetchCareerPathById(req.params.id)
   if (!path) {
     return res.status(404).json({ message: 'Career path not found' })
@@ -114,8 +115,16 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
       const module = payload.modules[i]
       const moduleId = module.id || buildId(module.title, 'mod')
       await conn.query(
-        'INSERT INTO career_path_modules (id, career_path_id, phase, title, description, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
-        [moduleId, id, module.phase || null, module.title, module.description || null, i],
+        'INSERT INTO career_path_modules (id, career_path_id, phase, title, description, module_image_data, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [
+          moduleId,
+          id,
+          module.phase || null,
+          module.title,
+          module.description || null,
+          module.imageData || null,
+          i,
+        ],
       )
 
       for (let j = 0; j < (module.rooms || []).length; j += 1) {
@@ -189,8 +198,16 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
       const module = payload.modules[i]
       const moduleId = module.id || buildId(module.title, 'mod')
       await conn.query(
-        'INSERT INTO career_path_modules (id, career_path_id, phase, title, description, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
-        [moduleId, existing.id, module.phase || null, module.title, module.description || null, i],
+        'INSERT INTO career_path_modules (id, career_path_id, phase, title, description, module_image_data, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [
+          moduleId,
+          existing.id,
+          module.phase || null,
+          module.title,
+          module.description || null,
+          module.imageData || null,
+          i,
+        ],
       )
       for (let j = 0; j < (module.rooms || []).length; j += 1) {
         await conn.query(
