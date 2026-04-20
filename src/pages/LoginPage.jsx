@@ -82,19 +82,6 @@ function LoginPage({ onLoginSuccess }) {
             Create New Account
           </Link>
         </form>
-
-        <div className="mt-7 border-t border-outline-variant/30 pt-4">
-          <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant">
-            Temporary Credentials
-          </p>
-          {TEMP_USERS.map((user) => (
-            <div className="mt-2" key={user.username}>
-              <p className="text-xs text-on-surface">role: {user.role}</p>
-              <p className="text-xs text-on-surface">username: {user.username}</p>
-              <p className="text-xs text-on-surface">password: {user.password}</p>
-            </div>
-          ))}
-        </div>
       </section>
     </main>
   )
