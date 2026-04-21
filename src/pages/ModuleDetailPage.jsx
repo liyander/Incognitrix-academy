@@ -6,6 +6,14 @@ import {
 } from '../data/careerPathsData'
 import { getRoomsData } from '../data/roomsData'
 import { apiFetch } from '../services/api'
+import { parseMarkdownToHtml } from '../utils/markdown'
+
+function renderRichContent(content, htmlOverride = '') {
+  if (htmlOverride && String(htmlOverride).trim()) {
+    return String(htmlOverride)
+  }
+  return parseMarkdownToHtml(content)
+}
 
 function ModuleDetailPage() {
   const navigate = useNavigate()
@@ -44,6 +52,9 @@ function ModuleDetailPage() {
   const path = careerPaths.find((item) => item.id === pathId || item.slug === pathId)
   const module = path?.modules?.find((m) => m.id === moduleId)
   const allRooms = getRoomsData()
+  const moduleOverviewSource =
+    module?.content?.markdown || module?.markdown || module?.description || ''
+  const moduleOverviewMarkup = renderRichContent(moduleOverviewSource, module?.content?.html || module?.html)
 
   // Show loading while fetching paths
   if (isLoading) {
@@ -98,11 +109,10 @@ function ModuleDetailPage() {
               <h1 className="text-5xl font-black font-headline tracking-tighter text-on-surface mb-4 uppercase">
                 {module.title}
               </h1>
-              {module.description && (
-                <p className="text-on-surface-variant max-w-2xl text-lg leading-relaxed">
-                  {module.description}
-                </p>
-              )}
+              <div
+                className="text-on-surface-variant max-w-3xl leading-relaxed [&_h1]:text-3xl [&_h1]:font-black [&_h1]:tracking-tight [&_h1]:mt-8 [&_h1]:mb-4 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:tracking-tight [&_h2]:mt-7 [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mt-6 [&_h3]:mb-2 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4 [&_li]:mb-1.5 [&_pre]:bg-surface-container-high [&_pre]:border [&_pre]:border-outline-variant/30 [&_pre]:p-5 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:my-5 [&_code]:font-mono [&_code]:text-[0.9em] [&_code]:bg-surface-container-highest [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_a]:text-primary [&_a]:underline [&_hr]:my-6 [&_hr]:border-outline-variant/40 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:bg-surface-container-low [&_blockquote]:px-4 [&_blockquote]:py-3 [&_blockquote]:my-4 [&_table]:w-full [&_table]:border-collapse [&_table]:my-5 [&_th]:text-left [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-widest [&_th]:font-headline [&_th]:bg-surface-container-high [&_th]:p-3 [&_th]:border [&_th]:border-outline-variant/30 [&_td]:p-3 [&_td]:border [&_td]:border-outline-variant/30"
+                dangerouslySetInnerHTML={{ __html: moduleOverviewMarkup }}
+              ></div>
             </div>
           </div>
         </div>
