@@ -34,8 +34,34 @@ function parseInlineMarkdown(text) {
   return result
 }
 
+function isLikelyHtmlSnippet(lines) {
+  const meaningfulLines = lines
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  if (meaningfulLines.length < 2) {
+    return false
+  }
+
+  const firstLine = meaningfulLines[0]
+  const lastLine = meaningfulLines[meaningfulLines.length - 1]
+
+  if (!/^<[^>]+>$/.test(firstLine) || !/^<\/[^>]+>$/.test(lastLine)) {
+    return false
+  }
+
+  return meaningfulLines.some((line) => /<[^>]+>/.test(line))
+}
+
 function flushParagraph(lines, output) {
   if (!lines.length) return
+
+  if (isLikelyHtmlSnippet(lines)) {
+    output.push(`<pre><code>${escapeHtml(lines.join('\n').replace(/\n+$/, ''))}</code></pre>`)
+    lines.length = 0
+    return
+  }
+
   output.push(`<p>${parseInlineMarkdown(lines.join('\n')).replace(/\n/g, '<br />')}</p>`)
   lines.length = 0
 }
