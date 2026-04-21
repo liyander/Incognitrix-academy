@@ -66,6 +66,20 @@ function LabRoomPage() {
   const { labId } = useParams()
   const [room, setRoom] = useState(() => getRoomsData().find((item) => item.slug === labId) || null)
   const [isLoadingRoom, setIsLoadingRoom] = useState(true)
+  const [labStatus, setLabStatus] = useState('in-progress')
+  const [questionStatus, setQuestionStatus] = useState({
+    enabled: false,
+    total: 0,
+    correct: 0,
+    allCorrect: true,
+    questions: [],
+  })
+  const [questionAnswers, setQuestionAnswers] = useState({})
+  const [isSubmittingQuestions, setIsSubmittingQuestions] = useState(false)
+  const [questionFeedback, setQuestionFeedback] = useState('')
+  const [completionError, setCompletionError] = useState('')
+  const roomId = room?.id || ''
+  const questionsEnabled = Boolean(room?.content?.questionsEnabled)
 
   useEffect(() => {
     let cancelled = false
@@ -94,6 +108,70 @@ function LabRoomPage() {
       cancelled = true
     }
   }, [labId])
+
+  useEffect(() => {
+    if (!roomId) {
+      return
+    }
+
+    markLabStarted(roomId)
+    setLabStatus(getLabStatus(roomId))
+  }, [roomId])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadQuestionStatus = async () => {
+      if (!roomId) {
+        if (!cancelled) {
+          setQuestionStatus({
+            enabled: false,
+            total: 0,
+            correct: 0,
+            allCorrect: true,
+            questions: [],
+          })
+        }
+        return
+      }
+
+      if (!questionsEnabled) {
+        if (!cancelled) {
+          setQuestionStatus({
+            enabled: false,
+            total: 0,
+            correct: 0,
+            allCorrect: true,
+            questions: [],
+          })
+        }
+        return
+      }
+
+      try {
+        const response = await apiFetch(`/rooms/${encodeURIComponent(roomId)}/questions/status`)
+        if (!cancelled) {
+          setQuestionStatus({
+            enabled: Boolean(response?.enabled),
+            total: Number(response?.total || 0),
+            correct: Number(response?.correct || 0),
+            allCorrect: Boolean(response?.allCorrect),
+            questions: Array.isArray(response?.questions) ? response.questions : [],
+          })
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setQuestionFeedback(error?.message || 'Failed to load question status.')
+        }
+      }
+    }
+
+    void loadQuestionStatus()
+
+    return () => {
+      cancelled = true
+    }
+  }, [roomId, questionsEnabled])
 
   if (isLoadingRoom) {
     return (
@@ -131,66 +209,6 @@ function LabRoomPage() {
   const vulnerabilityDefinitionMarkup = renderRichContent(vulnerabilityDefinition)
   const vulnerabilityImpactMarkup = renderRichContent(vulnerabilityImpact)
   const youtubeEmbedUrl = toYouTubeEmbedUrl(room.content?.youtubeVideoUrl)
-  const questionsEnabled = Boolean(room.content?.questionsEnabled)
-  const [labStatus, setLabStatus] = useState(() => getLabStatus(room.id))
-  const [questionStatus, setQuestionStatus] = useState({
-    enabled: false,
-    total: 0,
-    correct: 0,
-    allCorrect: true,
-    questions: [],
-  })
-  const [questionAnswers, setQuestionAnswers] = useState({})
-  const [isSubmittingQuestions, setIsSubmittingQuestions] = useState(false)
-  const [questionFeedback, setQuestionFeedback] = useState('')
-  const [completionError, setCompletionError] = useState('')
-
-  useEffect(() => {
-    markLabStarted(room.id)
-    setLabStatus(getLabStatus(room.id))
-  }, [room.id])
-
-  useEffect(() => {
-    let cancelled = false
-
-    const loadQuestionStatus = async () => {
-      if (!questionsEnabled) {
-        if (!cancelled) {
-          setQuestionStatus({
-            enabled: false,
-            total: 0,
-            correct: 0,
-            allCorrect: true,
-            questions: [],
-          })
-        }
-        return
-      }
-
-      try {
-        const response = await apiFetch(`/rooms/${encodeURIComponent(room.id)}/questions/status`)
-        if (!cancelled) {
-          setQuestionStatus({
-            enabled: Boolean(response?.enabled),
-            total: Number(response?.total || 0),
-            correct: Number(response?.correct || 0),
-            allCorrect: Boolean(response?.allCorrect),
-            questions: Array.isArray(response?.questions) ? response.questions : [],
-          })
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setQuestionFeedback(error?.message || 'Failed to load question status.')
-        }
-      }
-    }
-
-    void loadQuestionStatus()
-
-    return () => {
-      cancelled = true
-    }
-  }, [room.id, questionsEnabled])
 
   const handleMarkComplete = async () => {
     setCompletionError('')
