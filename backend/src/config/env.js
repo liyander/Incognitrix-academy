@@ -14,6 +14,10 @@ function parseCorsOrigins(value) {
     return defaultCorsOrigins
   }
 
+  if (value.trim() === '*') {
+    return ['*']
+  }
+
   return value
     .split(',')
     .map((origin) => origin.trim())
@@ -22,6 +26,7 @@ function parseCorsOrigins(value) {
 
 export const env = {
   port: Number(process.env.PORT || 4000),
+  host: process.env.HOST || '0.0.0.0',
   jwtSecret: process.env.JWT_SECRET || 'incognitrix_dev_secret',
   corsOrigins: parseCorsOrigins(process.env.CORS_ORIGINS),
   db: {

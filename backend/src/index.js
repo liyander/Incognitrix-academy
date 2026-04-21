@@ -6,8 +6,8 @@ async function start() {
   try {
     await initializeDatabaseIfNeeded()
     await testConnection()
-    const server = app.listen(env.port, () => {
-      console.log(`✓ Incognitrix backend listening on http://localhost:${env.port}`)
+    const server = app.listen(env.port, env.host, () => {
+      console.log(`✓ Incognitrix backend listening on http://${env.host}:${env.port}`)
       console.log(`  Default credentials:`)
       console.log(`    operator01 / RedTeam@123`)
       console.log(`    admin01 / AdminControl@123`)
