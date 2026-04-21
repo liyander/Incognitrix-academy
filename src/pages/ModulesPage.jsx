@@ -15,7 +15,6 @@ export function rooms() {
 function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
   const allRooms = getRoomsData()
   const activeRoom = allRooms.find((room) => room.slug === selectedLabId) ?? null
-  const showActiveSessions = false
 
   const [complexity, setComplexity] = useState('Any Difficulty')
   const [specialization, setSpecialization] = useState('All Categories')
@@ -259,42 +258,40 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
 
         <aside className="w-full xl:w-96 shrink-0">
           <div className="sticky top-28 space-y-8">
-            {showActiveSessions ? (
-              <div className="bg-surface-container-low border-l-4 border-l-primary p-8">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="font-label text-sm font-bold tracking-widest uppercase text-on-background">Active Sessions</h2>
-                  <span className="bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-black tracking-widest">1 RUNNING</span>
-                </div>
+            <div className="bg-surface-container-low border-l-4 border-l-primary p-8">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="font-label text-sm font-bold tracking-widest uppercase text-on-background">Active Sessions</h2>
+                <span className="bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-black tracking-widest">1 RUNNING</span>
+              </div>
 
-                <div className="bg-white p-6 space-y-6">
-                  <div>
-                    <div className="font-label text-[10px] font-bold text-primary tracking-widest uppercase mb-1">Current Target</div>
-                    <h4 className="text-lg font-bold font-space text-on-background">
-                      {activeRoom?.title ?? 'XSS: The Social Engineering Path'}
-                    </h4>
+              <div className="bg-white p-6 space-y-6">
+                <div>
+                  <div className="font-label text-[10px] font-bold text-primary tracking-widest uppercase mb-1">Current Target</div>
+                  <h4 className="text-lg font-bold font-space text-on-background">
+                    {activeRoom?.title ?? 'XSS: The Social Engineering Path'}
+                  </h4>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-surface-container-low p-4">
+                    <div className="font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-tighter">Time Elapsed</div>
+                    <div className="font-space font-bold text-lg text-on-background">00:42:18</div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-surface-container-low p-4">
-                      <div className="font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-tighter">Time Elapsed</div>
-                      <div className="font-space font-bold text-lg text-on-background">00:42:18</div>
-                    </div>
-                    <div className="bg-surface-container-low p-4">
-                      <div className="font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-tighter">Instance IP</div>
-                      <div className="font-space font-bold text-lg text-secondary">10.10.12.84</div>
-                    </div>
+                  <div className="bg-surface-container-low p-4">
+                    <div className="font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-tighter">Instance IP</div>
+                    <div className="font-space font-bold text-lg text-secondary">10.10.12.84</div>
                   </div>
-                  <div className="space-y-3">
-                    <button className="w-full bg-secondary text-on-secondary font-label uppercase text-xs tracking-widest py-4 px-6 hover:opacity-90 active:scale-[0.98] transition-all font-bold flex items-center justify-center gap-3" type="button">
-                      <span className="material-symbols-outlined text-sm">terminal</span>
-                      ACCESS TERMINAL
-                    </button>
-                    <button className="w-full bg-surface-container-highest text-on-surface-variant font-label uppercase text-xs tracking-widest py-4 px-6 hover:bg-error/10 hover:text-error transition-all font-bold" type="button">
-                      TERMINATE SESSION
-                    </button>
-                  </div>
+                </div>
+                <div className="space-y-3">
+                  <button className="w-full bg-secondary text-on-secondary font-label uppercase text-xs tracking-widest py-4 px-6 hover:opacity-90 active:scale-[0.98] transition-all font-bold flex items-center justify-center gap-3" type="button">
+                    <span className="material-symbols-outlined text-sm">terminal</span>
+                    ACCESS TERMINAL
+                  </button>
+                  <button className="w-full bg-surface-container-highest text-on-surface-variant font-label uppercase text-xs tracking-widest py-4 px-6 hover:bg-error/10 hover:text-error transition-all font-bold" type="button">
+                    TERMINATE SESSION
+                  </button>
                 </div>
               </div>
-            ) : null}
+            </div>
 
             <div className="p-8 border-t border-outline-variant/30">
               <h2 className="font-label text-sm font-bold tracking-widest uppercase text-on-background mb-6">Your Proficiency</h2>
