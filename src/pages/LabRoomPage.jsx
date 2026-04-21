@@ -64,9 +64,47 @@ function toYouTubeEmbedUrl(input) {
 
 function LabRoomPage() {
   const { labId } = useParams()
-  const rooms = getRoomsData()
+  const [room, setRoom] = useState(() => getRoomsData().find((item) => item.slug === labId) || null)
+  const [isLoadingRoom, setIsLoadingRoom] = useState(true)
 
-  const room = rooms.find((item) => item.slug === labId)
+  useEffect(() => {
+    let cancelled = false
+
+    const loadRoom = async () => {
+      try {
+        const response = await apiFetch(`/rooms/${encodeURIComponent(labId)}`)
+        if (!cancelled && response) {
+          setRoom(response)
+        }
+      } catch {
+        if (!cancelled) {
+          const fallback = getRoomsData().find((item) => item.slug === labId) || null
+          setRoom(fallback)
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingRoom(false)
+        }
+      }
+    }
+
+    void loadRoom()
+
+    return () => {
+      cancelled = true
+    }
+  }, [labId])
+
+  if (isLoadingRoom) {
+    return (
+      <main className="pt-16 md:pt-20 min-h-screen flex items-center justify-center">
+        <p className="text-on-surface-variant font-headline text-xs uppercase tracking-widest">
+          Loading room content...
+        </p>
+      </main>
+    )
+  }
+
   if (!room) {
     return <Navigate to="/learn" replace />
   }
@@ -215,7 +253,7 @@ function LabRoomPage() {
 
   return (
     <main className="pt-16 md:pt-20 min-h-screen">
-      <div className="max-w-7xl mx-auto p-8 lg:p-12">
+      <div className="max-w-[96rem] mx-auto p-8 lg:p-12">
         <header className="mb-12 border-l-4 border-primary pl-8">
           <div className="flex flex-wrap gap-2 mb-4">
             {roomTags.map((tag) => (

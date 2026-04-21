@@ -200,7 +200,7 @@ function AdminRoomEditorPage() {
 
   return (
     <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
-      <section className="max-w-6xl mx-auto">
+      <section className="max-w-7xl mx-auto">
         <header className="bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 mb-8">
           <div className="flex items-center gap-4 mb-4">
             <button
