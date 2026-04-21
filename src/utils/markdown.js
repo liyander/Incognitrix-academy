@@ -56,6 +56,55 @@ function isTableSeparator(line) {
   return /^\|?\s*:?-{3,}:?(\s*\|\s*:?-{3,}:?)+\s*\|?$/.test(line.trim())
 }
 
+function isStandardIndentedCodeLine(line) {
+  return /^( {4,}|\t)/.test(line)
+}
+
+function isContextualIndentedCodeLine(line, lines, index) {
+  if (!/^ {2,}\S/.test(line) || isStandardIndentedCodeLine(line)) {
+    return false
+  }
+
+  if (index < 1 || lines[index - 1].trim()) {
+    return false
+  }
+
+  let previousNonEmptyIndex = index - 2
+  while (previousNonEmptyIndex >= 0 && !lines[previousNonEmptyIndex].trim()) {
+    previousNonEmptyIndex -= 1
+  }
+
+  if (previousNonEmptyIndex < 0) {
+    return false
+  }
+
+  return /[:：]$/.test(lines[previousNonEmptyIndex].trim())
+}
+
+function isIndentedCodeLine(line, lines, index) {
+  return (
+    isStandardIndentedCodeLine(line) ||
+    isContextualIndentedCodeLine(line, lines, index)
+  )
+}
+
+function stripCodeIndent(line) {
+  if (line.startsWith('\t')) {
+    return line.slice(1)
+  }
+
+  const spaces = (line.match(/^ +/) || [''])[0].length
+  if (spaces >= 4) {
+    return line.slice(4)
+  }
+
+  if (spaces >= 2) {
+    return line.slice(2)
+  }
+
+  return line
+}
+
 export function parseMarkdownToHtml(markdown) {
   const source = String(markdown || '').replace(/\r\n/g, '\n')
   if (!source.trim()) {
@@ -100,17 +149,20 @@ export function parseMarkdownToHtml(markdown) {
       continue
     }
 
-    // Support indented code blocks (4 spaces or tab), commonly used under list items.
-    if (/^( {4}|\t)/.test(line)) {
+    // Support standard indented code blocks and contextual 2-space blocks after labels.
+    if (isIndentedCodeLine(line, lines, i)) {
       flushParagraph(paragraphLines, output)
       flushList(listItems, output, listType)
       listType = null
 
-      const indentedLines = [line.replace(/^( {4}|\t)/, '')]
-      while (i + 1 < lines.length && (/^( {4}|\t)/.test(lines[i + 1]) || !lines[i + 1].trim())) {
+      const indentedLines = [stripCodeIndent(line)]
+      while (
+        i + 1 < lines.length &&
+        (isIndentedCodeLine(lines[i + 1], lines, i + 1) || !lines[i + 1].trim())
+      ) {
         i += 1
         const nextLine = lines[i]
-        indentedLines.push(nextLine.trim() ? nextLine.replace(/^( {4}|\t)/, '') : '')
+        indentedLines.push(nextLine.trim() ? stripCodeIndent(nextLine) : '')
       }
 
       const code = escapeHtml(indentedLines.join('\n').replace(/\n+$/, ''))

@@ -9,10 +9,13 @@ import { apiFetch } from '../services/api'
 import { parseMarkdownToHtml } from '../utils/markdown'
 
 function renderRichContent(content, htmlOverride = '') {
+  if (content && String(content).trim()) {
+    return parseMarkdownToHtml(content)
+  }
   if (htmlOverride && String(htmlOverride).trim()) {
     return String(htmlOverride)
   }
-  return parseMarkdownToHtml(content)
+  return '<p></p>'
 }
 
 function ModuleDetailPage() {
