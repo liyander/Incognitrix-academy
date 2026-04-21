@@ -143,180 +143,206 @@ function stripCodeIndent(line) {
 }
 
 export function parseMarkdownToHtml(markdown) {
-  const source = String(markdown || '').replace(/\r\n/g, '\n')
+  let source = String(markdown || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   if (!source.trim()) {
-    return '<p></p>'
+    return "<p></p>";
   }
 
-  const lines = source.split('\n')
-  const output = []
-  const paragraphLines = []
-  const listItems = []
-  let listType = null
-  let inCodeBlock = false
-  let codeBlockLines = []
-  let codeLanguage = ''
+  const blockTokens = [];
+  source = source.replace(/^[ \t]*(`{3,}|~{3,})[ \t]*([a-zA-Z0-9_-]*)[ \t]*\n([\s\S]*?)(?:\n[ \t]*\1[ \t]*$|$)/gm, (match, fence, lang, code) => {
+    const indentMatch = match.match(/^[ \t]*/);
+    const indent = indentMatch ? indentMatch[0] : "";
+    let processedCode = code;
+    if (indent) {
+      const lines = code.split("\n");
+      const allIndented = lines.every(line => !line || line.startsWith(indent));
+      if (allIndented) {
+        processedCode = lines.map(line => line.startsWith(indent) ? line.slice(indent.length) : line).join("\n");
+      }
+    }
+    const token = `__BLOCK_TOKEN_${blockTokens.length}__`;
+    blockTokens.push({ lang: lang.trim(), code: processedCode });
+    return token;
+  });
+
+  const lines = source.split("\n");
+  const output = [];
+  const paragraphLines = [];
+  const listItems = [];
+  let listType = null;
 
   for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i]
-    const trimmed = line.trim()
+    const line = lines[i];
+    const trimmed = line.trim();
 
-    const isFencedMatch = !inCodeBlock ? line.match(/^\s*(?:```|~~~)(.*)$/) : line.match(/^\s*(?:```|~~~)\s*$/)
-
-    if (isFencedMatch) {
-      flushParagraph(paragraphLines, output)
-      flushList(listItems, output, listType)
-      listType = null
-
-      if (!inCodeBlock) {
-        inCodeBlock = true
-        codeBlockLines = []
-        codeLanguage = isFencedMatch[1] ? isFencedMatch[1].trim().toLowerCase() : ''
-      } else {
-        const code = escapeHtml(codeBlockLines.join('\n'))
-        const className = codeLanguage ? ` class="language-${escapeHtml(codeLanguage)}"` : ''
-        output.push(`<pre><code${className}>${code}</code></pre>`)
-        inCodeBlock = false
-        codeBlockLines = []
-        codeLanguage = ''
-      }
-      continue
-    }
-
-    if (inCodeBlock) {
-      codeBlockLines.push(line)
-      continue
-    }
-
-    // Support standard indented code blocks and contextual 2-space blocks after labels.
     if (isIndentedCodeLine(line, lines, i)) {
-      flushParagraph(paragraphLines, output)
-      flushList(listItems, output, listType)
-      listType = null
+      flushParagraph(paragraphLines, output);
+      flushList(listItems, output, listType);
+      listType = null;
 
-      const indentedLines = [stripCodeIndent(line)]
+      const indentedLines = [stripCodeIndent(line)];
       while (
         i + 1 < lines.length &&
         (isIndentedCodeLine(lines[i + 1], lines, i + 1) || !lines[i + 1].trim())
       ) {
-        i += 1
-        const nextLine = lines[i]
-        indentedLines.push(nextLine.trim() ? stripCodeIndent(nextLine) : '')
+        i += 1;
+        if (lines[i].trim()) {
+          indentedLines.push(stripCodeIndent(lines[i]));
+        } else {
+          indentedLines.push("");
+        }
       }
 
-      const code = escapeHtml(indentedLines.join('\n').replace(/\n+$/, ''))
-      output.push(`<pre><code>${code}</code></pre>`)
-      continue
+      while (indentedLines.length > 0 && !indentedLines[indentedLines.length - 1].trim()) {
+        indentedLines.pop();
+      }
+
+      output.push(`<pre><code>${escapeHtml(indentedLines.join("\n"))}</code></pre>`);
+      continue;
     }
 
     if (!trimmed) {
-      flushParagraph(paragraphLines, output)
-      flushList(listItems, output, listType)
-      listType = null
-      continue
+      flushParagraph(paragraphLines, output);
+      flushList(listItems, output, listType);
+      listType = null;
+      continue;
     }
 
-    if (/^([-*_])\1{2,}$/.test(trimmed)) {
-      flushParagraph(paragraphLines, output)
-      flushList(listItems, output, listType)
-      listType = null
-      output.push('<hr />')
-      continue
-    }
+    if (trimmed.startsWith(">")) {
+      flushParagraph(paragraphLines, output);
+      flushList(listItems, output, listType);
+      listType = null;
 
-    if (trimmed.includes('|') && i + 1 < lines.length && isTableSeparator(lines[i + 1])) {
-      flushParagraph(paragraphLines, output)
-      flushList(listItems, output, listType)
-      listType = null
-
-      const headerCells = splitTableRow(trimmed)
-      const bodyRows = []
-      i += 2
-
-      while (i < lines.length && lines[i].trim().includes('|') && lines[i].trim()) {
-        bodyRows.push(splitTableRow(lines[i]))
-        i += 1
+      const blockquoteLines = [];
+      while (i < lines.length && lines[i].trim().startsWith(">")) {
+        blockquoteLines.push(lines[i].trim().replace(/^>\s?/, ""));
+        i += 1;
       }
+      i -= 1;
 
-      i -= 1
-
-      const headerHtml = `<tr>${headerCells
-        .map((cell) => `<th>${parseInlineMarkdown(cell)}</th>`)
-        .join('')}</tr>`
-      const bodyHtml = bodyRows
-        .map(
-          (row) =>
-            `<tr>${row
-              .map((cell) => `<td>${parseInlineMarkdown(cell)}</td>`)
-              .join('')}</tr>`,
-        )
-        .join('')
-
-      output.push(`<table><thead>${headerHtml}</thead><tbody>${bodyHtml}</tbody></table>`)
-      continue
+      output.push(`<blockquote>${parseMarkdownToHtml(blockquoteLines.join("\n"))}</blockquote>`);
+      continue;
     }
 
-    if (trimmed.startsWith('>')) {
-      flushParagraph(paragraphLines, output)
-      flushList(listItems, output, listType)
-      listType = null
+    if (trimmed.startsWith("#")) {
+      flushParagraph(paragraphLines, output);
+      flushList(listItems, output, listType);
+      listType = null;
 
-      const blockquoteLines = []
-      while (i < lines.length && lines[i].trim().startsWith('>')) {
-        blockquoteLines.push(lines[i].trim().replace(/^>\s?/, ''))
-        i += 1
+      let level = 0;
+      while (level < trimmed.length && trimmed[level] === "#") {
+        level += 1;
       }
-      i -= 1
-
-      output.push(`<blockquote>${parseMarkdownToHtml(blockquoteLines.join('\n'))}</blockquote>`)
-      continue
-    }
-
-    const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)$/)
-    if (headingMatch) {
-      flushParagraph(paragraphLines, output)
-      flushList(listItems, output, listType)
-      listType = null
-      const level = headingMatch[1].length
-      output.push(`<h${level}>${parseInlineMarkdown(headingMatch[2])}</h${level}>`)
-      continue
-    }
-
-    const unorderedListMatch = trimmed.match(/^[-*+]\s+(.+)$/)
-    if (unorderedListMatch) {
-      flushParagraph(paragraphLines, output)
-      if (listType && listType !== 'ul') {
-        flushList(listItems, output, listType)
+      if (level > 0 && level <= 6 && trimmed[level] === " ") {
+        const text = parseInlineMarkdown(trimmed.slice(level + 1).trim());
+        output.push(`<h${level}>${text}</h${level}>`);
+        continue;
       }
-      listType = 'ul'
-      listItems.push(unorderedListMatch[1])
-      continue
     }
 
-    const orderedListMatch = trimmed.match(/^\d+\.\s+(.+)$/)
-    if (orderedListMatch) {
-      flushParagraph(paragraphLines, output)
-      if (listType && listType !== 'ol') {
-        flushList(listItems, output, listType)
+    if (trimmed.match(/^---+$/) || trimmed.match(/^\*\*\*+$/)) {
+      flushParagraph(paragraphLines, output);
+      flushList(listItems, output, listType);
+      listType = null;
+      output.push("<hr />");
+      continue;
+    }
+
+    if (isTableSeparator(line)) {
+      flushList(listItems, output, listType);
+      listType = null;
+
+      if (paragraphLines.length) {
+        const headerRow = paragraphLines.pop();
+        flushParagraph(paragraphLines, output);
+
+        const headers = splitTableRow(headerRow);
+        const alignments = splitTableRow(line).map((cell) => {
+          if (cell.startsWith(":") && cell.endsWith(":")) return "center";
+          if (cell.endsWith(":")) return "right";
+          return "left";
+        });
+
+        output.push("<div class=\"overflow-x-auto my-4\"><table class=\"w-full text-sm border-collapse\">");
+        output.push("<thead><tr>");
+        headers.forEach((header, index) => {
+          const align = alignments[index] || "left";
+          output.push(`<th class="text-${align} p-2 border-b border-white/10">${parseInlineMarkdown(header)}</th>`);
+        });
+        output.push("</tr></thead><tbody>");
+
+        while (i + 1 < lines.length) {
+          const nextTrimmed = lines[i + 1].trim();
+          if (!nextTrimmed.startsWith("|") && !nextTrimmed.endsWith("|")) {
+            break;
+          }
+          i += 1;
+          const cells = splitTableRow(nextTrimmed);
+          output.push("<tr>");
+          cells.forEach((cell, index) => {
+            const align = alignments[index] || "left";
+            output.push(`<td class="text-${align} p-2 border-b border-white/5">${parseInlineMarkdown(cell)}</td>`);
+          });
+          output.push("</tr>");
+        }
+        output.push("</tbody></table></div>");
+        continue;
       }
-      listType = 'ol'
-      listItems.push(orderedListMatch[1])
-      continue
     }
 
-    flushList(listItems, output, listType)
-    listType = null
-    paragraphLines.push(trimmed)
+    if (trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.startsWith("+ ")) {
+      flushParagraph(paragraphLines, output);
+      if (listType === "ol") {
+        flushList(listItems, output, listType);
+        listType = "ul";
+      } else {
+        listType = "ul";
+      }
+      listItems.push(trimmed.slice(2).trim());
+      continue;
+    }
+
+    if (trimmed.match(/^\d+\.\s/)) {
+      flushParagraph(paragraphLines, output);
+      if (listType === "ul") {
+        flushList(listItems, output, listType);
+        listType = "ol";
+      } else {
+        listType = "ol";
+      }
+      listItems.push(trimmed.replace(/^\d+\.\s/, "").trim());
+      continue;
+    }
+
+    if (listType && (line.startsWith("  ") || line.startsWith("\t"))) {
+      listItems[listItems.length - 1] += "\n" + trimmed;
+      continue;
+    }
+
+    if (listType && !trimmed.startsWith("  ") && !trimmed.startsWith("\t")) {
+      flushList(listItems, output, listType);
+      listType = null;
+    }
+
+    paragraphLines.push(line);
   }
 
-  if (inCodeBlock) {
-    const code = escapeHtml(codeBlockLines.join('\n'))
-    const className = codeLanguage ? ` class="language-${escapeHtml(codeLanguage)}"` : ''
-    output.push(`<pre><code${className}>${code}</code></pre>`)
-  }
+  flushParagraph(paragraphLines, output);
+  flushList(listItems, output, listType);
 
-  flushParagraph(paragraphLines, output)
-  flushList(listItems, output, listType)
+  let html = output.join("\n");
+  
+  html = html.replace(/<p>\s*__BLOCK_TOKEN_(\d+)__\s*<\/p>|__BLOCK_TOKEN_(\d+)__/g, (match, id1, id2) => {
+    const id = id1 !== undefined ? id1 : id2;
+    if (!id) return match;
+    const tokenData = blockTokens[Number(id)];
+    if (!tokenData) return match;
+    
+    const { lang, code } = tokenData;
+    const codeHtml = escapeHtml(code);
+    const className = lang ? ` class="language-${escapeHtml(lang)}"` : "";
+    return `<pre><code${className}>${codeHtml}</code></pre>`;
+  });
 
-  return output.join('')
+  return html;
 }
