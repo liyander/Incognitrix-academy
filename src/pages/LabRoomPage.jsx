@@ -292,7 +292,7 @@ function LabRoomPage() {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          <div className="lg:col-span-7 space-y-12">
+          <div className="lg:col-span-8 space-y-12">
             <section className="bg-surface-container-lowest p-8 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 -rotate-45 translate-x-16 -translate-y-16"></div>
               <h2 className="font-headline text-2xl font-bold mb-6 flex items-center gap-3">
@@ -376,7 +376,7 @@ function LabRoomPage() {
             </section>
           </div>
 
-          <div className="lg:col-span-5 space-y-8">
+          <div className="lg:col-span-4 space-y-8">
             <div className="bg-secondary text-on-secondary p-8">
               <h2 className="font-headline text-xl font-bold mb-6 flex items-center gap-3 uppercase tracking-tight">
                 <span className="material-symbols-outlined">shield_with_heart</span>{' '}
@@ -539,16 +539,6 @@ function LabRoomPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-1 opacity-20">
-              <div className="aspect-square bg-on-surface"></div>
-              <div className="aspect-square border border-on-surface"></div>
-              <div className="aspect-square bg-on-surface"></div>
-              <div className="aspect-square border border-on-surface"></div>
-              <div className="aspect-square border border-on-surface"></div>
-              <div className="aspect-square bg-primary"></div>
-              <div className="aspect-square border border-on-surface"></div>
-              <div className="aspect-square bg-on-surface"></div>
-            </div>
           </div>
         </div>
       </div>
