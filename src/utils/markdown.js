@@ -12,7 +12,7 @@ function parseInlineMarkdown(text) {
   const codeTokens = []
 
   result = result.replace(/`([^`]+)`/g, (_match, code) => {
-    const token = `@@CODE_TOKEN_${codeTokens.length}@@`
+    const token = `\uE000${codeTokens.length}\uE001`
     codeTokens.push(code)
     return token
   })
@@ -23,9 +23,10 @@ function parseInlineMarkdown(text) {
   result = result.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
   result = result.replace(/__([^_]+)__/g, '<strong>$1</strong>')
   result = result.replace(/\*([^*]+)\*/g, '<em>$1</em>')
-  result = result.replace(/_([^_]+)_/g, '<em>$1</em>')
+  // Avoid turning identifiers_like_this into italic text.
+  result = result.replace(/(^|[^\w])_([^_]+)_([^\w]|$)/g, '$1<em>$2</em>$3')
 
-  result = result.replace(/@@CODE_TOKEN_(\d+)@@/g, (_match, index) => {
+  result = result.replace(/\uE000(\d+)\uE001/g, (_match, index) => {
     const code = codeTokens[Number(index)] || ''
     return `<code>${code}</code>`
   })
@@ -96,6 +97,24 @@ export function parseMarkdownToHtml(markdown) {
 
     if (inCodeBlock) {
       codeBlockLines.push(line)
+      continue
+    }
+
+    // Support indented code blocks (4 spaces or tab), commonly used under list items.
+    if (/^( {4}|\t)/.test(line)) {
+      flushParagraph(paragraphLines, output)
+      flushList(listItems, output, listType)
+      listType = null
+
+      const indentedLines = [line.replace(/^( {4}|\t)/, '')]
+      while (i + 1 < lines.length && (/^( {4}|\t)/.test(lines[i + 1]) || !lines[i + 1].trim())) {
+        i += 1
+        const nextLine = lines[i]
+        indentedLines.push(nextLine.trim() ? nextLine.replace(/^( {4}|\t)/, '') : '')
+      }
+
+      const code = escapeHtml(indentedLines.join('\n').replace(/\n+$/, ''))
+      output.push(`<pre><code>${code}</code></pre>`)
       continue
     }
 
