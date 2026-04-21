@@ -62,6 +62,17 @@ function flushParagraph(lines, output) {
     return
   }
 
+  // Treat a solitary single-backtick line as a block instead of inline code
+  if (lines.length === 1) {
+    const text = lines[0].trim()
+    if (text.startsWith('`') && text.endsWith('`') && !text.startsWith('```')) {
+      const code = text.slice(1, -1)
+      output.push(`<pre><code>${escapeHtml(code)}</code></pre>`)
+      lines.length = 0
+      return
+    }
+  }
+
   output.push(`<p>${parseInlineMarkdown(lines.join('\n')).replace(/\n/g, '<br />')}</p>`)
   lines.length = 0
 }
@@ -150,7 +161,9 @@ export function parseMarkdownToHtml(markdown) {
     const line = lines[i]
     const trimmed = line.trim()
 
-    if (trimmed.startsWith('```')) {
+    const isFencedMatch = !inCodeBlock ? line.match(/^\s*(?:```|~~~)(.*)$/) : line.match(/^\s*(?:```|~~~)\s*$/)
+
+    if (isFencedMatch) {
       flushParagraph(paragraphLines, output)
       flushList(listItems, output, listType)
       listType = null
@@ -158,7 +171,7 @@ export function parseMarkdownToHtml(markdown) {
       if (!inCodeBlock) {
         inCodeBlock = true
         codeBlockLines = []
-        codeLanguage = trimmed.slice(3).trim().toLowerCase()
+        codeLanguage = isFencedMatch[1] ? isFencedMatch[1].trim().toLowerCase() : ''
       } else {
         const code = escapeHtml(codeBlockLines.join('\n'))
         const className = codeLanguage ? ` class="language-${escapeHtml(codeLanguage)}"` : ''
