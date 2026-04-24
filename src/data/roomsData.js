@@ -186,25 +186,42 @@ Examine a captured memory dump to identify malicious processes.`,
   },
 ]
 
+let fallbackMemoryRooms = null;
+
 export function getRoomsData() {
+  if (fallbackMemoryRooms) return fallbackMemoryRooms;
   const stored = localStorage.getItem('roomsData')
   if (stored) {
     try {
-      return JSON.parse(stored).map(normalizeRoom)
+      const parsed = JSON.parse(stored).map(normalizeRoom)
+      fallbackMemoryRooms = parsed;
+      return parsed;
     } catch (e) {
       console.error('Error parsing roomsData:', e)
-      return defaultRooms.map(normalizeRoom)
+      fallbackMemoryRooms = defaultRooms.map(normalizeRoom);
+      return fallbackMemoryRooms;
     }
   }
-  return defaultRooms.map(normalizeRoom)
+  fallbackMemoryRooms = defaultRooms.map(normalizeRoom);
+  return fallbackMemoryRooms;
 }
 
 export function setRoomsData(rooms) {
-  localStorage.setItem('roomsData', JSON.stringify(rooms))
+  fallbackMemoryRooms = rooms;
+  try {
+    localStorage.setItem('roomsData', JSON.stringify(rooms))
+  } catch (error) {
+    console.warn('localStorage quota exceeded for roomsData. Retaining in memory only.', error)
+  }
 }
 
 export function hydrateRoomsData(rooms) {
-  localStorage.setItem('roomsData', JSON.stringify(rooms.map(normalizeRoom)))
+  fallbackMemoryRooms = rooms.map(normalizeRoom);
+  try {
+    localStorage.setItem('roomsData', JSON.stringify(fallbackMemoryRooms))
+  } catch (error) {
+    console.warn('localStorage quota exceeded during room hydration. Retaining in memory only.', error)
+  }
 }
 
 export function getRoomById(id) {

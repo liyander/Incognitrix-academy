@@ -107,26 +107,43 @@ export const defaultCareerPaths = [
   },
 ]
 
+let fallbackMemoryCareerPaths = null;
+
 export function getCareerPathsData() {
+  if (fallbackMemoryCareerPaths) return fallbackMemoryCareerPaths;
   const stored = localStorage.getItem(CAREER_PATHS_STORAGE_KEY)
   if (stored) {
     try {
-      return JSON.parse(stored).map(normalizeCareerPath)
+      const parsed = JSON.parse(stored).map(normalizeCareerPath)
+      fallbackMemoryCareerPaths = parsed;
+      return parsed;
     } catch (e) {
       console.error('Error parsing careerPathsData:', e)
-      return defaultCareerPaths.map(normalizeCareerPath)
+      fallbackMemoryCareerPaths = defaultCareerPaths.map(normalizeCareerPath);
+      return fallbackMemoryCareerPaths;
     }
   }
-  return defaultCareerPaths.map(normalizeCareerPath)
+  fallbackMemoryCareerPaths = defaultCareerPaths.map(normalizeCareerPath);
+  return fallbackMemoryCareerPaths;
 }
 
 export function setCareerPathsData(paths) {
-  localStorage.setItem(CAREER_PATHS_STORAGE_KEY, JSON.stringify(paths))
+  fallbackMemoryCareerPaths = paths;
+  try {
+    localStorage.setItem(CAREER_PATHS_STORAGE_KEY, JSON.stringify(paths))
+  } catch (error) {
+    console.warn('localStorage quota exceeded for careerPathsData. Retaining in memory only.', error)
+  }
   emitCareerPathsUpdated()
 }
 
 export function hydrateCareerPathsData(paths) {
-  localStorage.setItem(CAREER_PATHS_STORAGE_KEY, JSON.stringify(paths.map(normalizeCareerPath)))
+  fallbackMemoryCareerPaths = paths.map(normalizeCareerPath);
+  try {
+    localStorage.setItem(CAREER_PATHS_STORAGE_KEY, JSON.stringify(fallbackMemoryCareerPaths))
+  } catch (error) {
+    console.warn('localStorage quota exceeded during career paths hydration. Retaining in memory only.', error)
+  }
   emitCareerPathsUpdated()
 }
 

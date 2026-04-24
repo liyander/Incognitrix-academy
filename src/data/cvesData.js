@@ -18,17 +18,24 @@ export const defaultCves = [
   }
 ]
 
+let fallbackMemoryCves = null;
+
 export function getCvesData() {
+  if (fallbackMemoryCves) return fallbackMemoryCves;
   const stored = localStorage.getItem(CVES_STORAGE_KEY)
   if (stored) {
     try {
-      return JSON.parse(stored)
+      const parsed = JSON.parse(stored)
+      fallbackMemoryCves = parsed;
+      return parsed;
     } catch (e) {
       console.error('Error parsing cvesData:', e)
-      return defaultCves
+      fallbackMemoryCves = defaultCves;
+      return fallbackMemoryCves;
     }
   }
-  return defaultCves
+  fallbackMemoryCves = defaultCves;
+  return fallbackMemoryCves;
 }
 
 export function emitCvesUpdated() {
@@ -56,7 +63,12 @@ export function subscribeCvesData(listener) {
 }
 
 export function setCvesData(cves) {
-  localStorage.setItem(CVES_STORAGE_KEY, JSON.stringify(cves))
+  fallbackMemoryCves = cves;
+  try {
+    localStorage.setItem(CVES_STORAGE_KEY, JSON.stringify(cves))
+  } catch (error) {
+    console.warn('localStorage quota exceeded for cvesData. Retaining in memory only.', error)
+  }
   emitCvesUpdated()
 }
 
