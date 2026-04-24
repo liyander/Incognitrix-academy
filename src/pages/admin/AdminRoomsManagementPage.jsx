@@ -1,11 +1,19 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getRoomsData } from '../../data/roomsData'
+import { getRoomsData, deleteRoom } from '../../data/roomsData'
 
 function AdminRoomsManagementPage() {
   const navigate = useNavigate()
-  const [rooms] = useState(getRoomsData())
+  const [rooms, setRooms] = useState(getRoomsData())
   const [searchTerm, setSearchTerm] = useState('')
+
+  const handleDeleteRoom = (e, id) => {
+    e.stopPropagation()
+    if (window.confirm('Are you sure you want to delete this room? This action cannot be undone.')) {
+      deleteRoom(id)
+      setRooms(getRoomsData())
+    }
+  }
 
   const filteredRooms = rooms.filter(
     (room) =>
@@ -71,11 +79,10 @@ function AdminRoomsManagementPage() {
 
         <div className="grid grid-cols-1 gap-4">
           {filteredRooms.map((room) => (
-            <button
-              className="bg-surface-container-lowest p-6 hover:bg-surface-container-high transition-colors text-left border-l-4 border-primary/30 hover:border-primary flex items-start justify-between"
+            <div
+              className="bg-surface-container-lowest p-6 hover:bg-surface-container-high transition-colors text-left border-l-4 border-primary/30 hover:border-primary flex items-start justify-between cursor-pointer"
               key={room.id}
               onClick={() => navigate(`/admin/rooms/${room.id}`)}
-              type="button"
             >
               <div className="flex-1">
                 <div className="flex flex-wrap gap-2 mb-3">
@@ -101,10 +108,20 @@ function AdminRoomsManagementPage() {
                   </span>
                 </div>
               </div>
-              <span className="material-symbols-outlined text-on-surface-variant ml-4 mt-1">
-                chevron_right
-              </span>
-            </button>
+              <div className="flex flex-col flex-shrink-0 ml-4 items-end gap-2">
+                <span className="material-symbols-outlined text-on-surface-variant mt-1">
+                  chevron_right
+                </span>
+                <button
+                  className="mt-2 text-error hover:bg-error/10 p-2 rounded-full transition-colors flex items-center justify-center"
+                  onClick={(e) => handleDeleteRoom(e, room.id)}
+                  type="button"
+                  title="Delete Room"
+                >
+                  <span className="material-symbols-outlined">delete</span>
+                </button>
+              </div>
+            </div>
           ))}
 
           {filteredRooms.length === 0 && (

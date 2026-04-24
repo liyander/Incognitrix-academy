@@ -16,7 +16,11 @@ import AdminNotificationsManagementPage from './pages/admin/AdminNotificationsMa
 import AdminRegistrationsManagementPage from './pages/admin/AdminRegistrationsManagementPage'
 import AdminRegistrationDetailPage from './pages/admin/AdminRegistrationDetailPage'
 import AdminUpcomingCtfManagementPage from './pages/admin/AdminUpcomingCtfManagementPage'
+import AdminCvesManagementPage from './pages/admin/AdminCvesManagementPage'
+import AdminCveEditorPage from './pages/admin/AdminCveEditorPage'
 import DashboardPage from './pages/DashboardPage'
+import CvesPage from './pages/CvesPage'
+import CveDetailPage from './pages/CveDetailPage'
 import LabRoomPage from './pages/LabRoomPage'
 import LearningPathsPage from './pages/LearningPathsPage'
 import LoginPage from './pages/LoginPage'
@@ -224,6 +228,9 @@ function App() {
           <Route path="/admin/rooms" element={<AdminRoomsManagementPage />} />
           <Route path="/admin/rooms/new" element={<AdminRoomEditorPage />} />
           <Route path="/admin/rooms/:roomId" element={<AdminRoomEditorPage />} />
+          <Route path="/admin/cves" element={<AdminCvesManagementPage />} />
+          <Route path="/admin/cves/new" element={<AdminCveEditorPage />} />
+          <Route path="/admin/cves/:id" element={<AdminCveEditorPage />} />
           <Route path="/admin/career-paths" element={<AdminCareerPathsManagementPage />} />
           <Route path="/admin/career-paths/new" element={<AdminCareerPathEditorPage />} />
           <Route path="/admin/career-paths/:pathId" element={<AdminCareerPathEditorPage />} />
@@ -355,6 +362,14 @@ function App() {
                 <Navigate to={firstEnabledRoute(platformConfig)} replace />
               )
             }
+          />
+          <Route
+            path="/cves"
+            element={<CvesPage />}
+          />
+          <Route
+            path="/cves/:id"
+            element={<CveDetailPage />}
           />
           <Route
             path="/profile"

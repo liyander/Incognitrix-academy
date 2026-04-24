@@ -90,6 +90,33 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
               </a>
             </div>
 
+            {/* CVE Database Management */}
+            <div className="bg-surface-container-lowest border-l-4 border-error p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+              <a className="block" href="/admin/cves">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-error" style={{ fontSize: '32px' }}>
+                      bug_report
+                    </span>
+                    <div>
+                      <h3 className="font-headline text-lg font-bold uppercase">
+                        CVE Database
+                      </h3>
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
+                        Manage Vulnerabilities
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-on-surface-variant">
+                    chevron_right
+                  </span>
+                </div>
+                <p className="text-sm text-on-surface-variant">
+                  Configure Common Vulnerabilities and Exposures (CVEs), manage vulnerability reports, found date and research references.
+                </p>
+              </a>
+            </div>
+
             {/* Career Paths */}
             <div className="bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
               <a className="block" href="/admin/career-paths">

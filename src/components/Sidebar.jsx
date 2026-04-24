@@ -93,6 +93,10 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
               Upcoming CTF
             </NavLink>
           ) : null}
+          <NavLink className={navLinkClass} onClick={onClose} to="/cves">
+            <span className="material-symbols-outlined">bug_report</span>
+            CVEs
+          </NavLink>
           {config.routes.profile ? (
             <NavLink className={navLinkClass} onClick={onClose} to="/profile">
               <span className="material-symbols-outlined">account_circle</span>

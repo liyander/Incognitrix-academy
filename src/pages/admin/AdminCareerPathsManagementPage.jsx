@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   getCareerPathsData,
   hydrateCareerPathsData,
-  subscribeCareerPathsData,
+  deleteCareerPath,
 } from '../../data/careerPathsData'
 import { apiFetch } from '../../services/api'
 
@@ -11,6 +11,14 @@ function AdminCareerPathsManagementPage() {
   const navigate = useNavigate()
   const [paths, setPaths] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
+
+  const handleDeletePath = (e, id) => {
+    e.stopPropagation()
+    if (window.confirm('Are you sure you want to delete this career path? This action cannot be undone.')) {
+      deleteCareerPath(id)
+      setPaths(paths.filter(p => p.id !== id))
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -107,11 +115,10 @@ function AdminCareerPathsManagementPage() {
 
         <div className="grid grid-cols-1 gap-4">
           {filteredPaths.map((path) => (
-            <button
-              className="bg-surface-container-lowest p-6 hover:bg-surface-container-high transition-colors text-left border-l-4 border-secondary/30 hover:border-secondary flex items-start justify-between"
+            <div
+              className="bg-surface-container-lowest p-6 hover:bg-surface-container-high transition-colors text-left border-l-4 border-secondary/30 hover:border-secondary flex items-start justify-between cursor-pointer"
               key={path.id}
               onClick={() => navigate(`/admin/career-paths/${path.id}`)}
-              type="button"
             >
               <div className="flex-1">
                 <div className="flex flex-wrap gap-2 mb-3">
@@ -144,10 +151,20 @@ function AdminCareerPathsManagementPage() {
                   </span>
                 </div>
               </div>
-              <span className="material-symbols-outlined text-on-surface-variant ml-4 mt-1">
-                chevron_right
-              </span>
-            </button>
+              <div className="flex flex-col flex-shrink-0 ml-4 items-end gap-2">
+                <span className="material-symbols-outlined text-on-surface-variant mt-1">
+                  chevron_right
+                </span>
+                <button
+                  className="mt-2 text-error hover:bg-error/10 p-2 rounded-full transition-colors flex items-center justify-center"
+                  onClick={(e) => handleDeletePath(e, path.id)}
+                  type="button"
+                  title="Delete Career Path"
+                >
+                  <span className="material-symbols-outlined">delete</span>
+                </button>
+              </div>
+            </div>
           ))}
 
           {filteredPaths.length === 0 && (

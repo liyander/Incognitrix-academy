@@ -8,6 +8,7 @@ import roomRoutes from './routes/rooms.routes.js'
 import notificationsRoutes from './routes/notifications.routes.js'
 import ctfEventsRoutes from './routes/ctfEvents.routes.js'
 import usersRoutes from './routes/users.routes.js'
+import cvesRoutes from './routes/cves.routes.js'
 
 const app = express()
 
@@ -40,6 +41,7 @@ app.use('/api/platform-config', platformRoutes)
 app.use('/api/notifications', notificationsRoutes)
 app.use('/api/ctf-events', ctfEventsRoutes)
 app.use('/api/users', usersRoutes)
+app.use('/api/cves', cvesRoutes)
 
 app.use((err, _req, res, _next) => {
   console.error(err)
