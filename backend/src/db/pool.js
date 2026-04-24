@@ -108,6 +108,19 @@ export async function initializeDatabaseIfNeeded() {
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
 
+        CREATE TABLE IF NOT EXISTS cves (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          cve_id VARCHAR(100) NOT NULL UNIQUE,
+          short_description TEXT NOT NULL,
+          found_year INT,
+          credit VARCHAR(255),
+          vulnerability_report LONGTEXT,
+          method_followed LONGTEXT,
+          references_text LONGTEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        );
+
         CREATE TABLE IF NOT EXISTS user_room_progress (
           id INT AUTO_INCREMENT PRIMARY KEY,
           user_id INT NOT NULL,
@@ -191,6 +204,19 @@ export async function initializeDatabaseIfNeeded() {
         id INT PRIMARY KEY,
         routes_json JSON NOT NULL,
         features_json JSON NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS cves (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        cve_id VARCHAR(100) NOT NULL UNIQUE,
+        short_description TEXT NOT NULL,
+        found_year INT,
+        credit VARCHAR(255),
+        vulnerability_report LONGTEXT,
+        method_followed LONGTEXT,
+        references_text LONGTEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       );
 

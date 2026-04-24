@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { getCveById, addCve, updateCve, deleteCve } from '../../data/cvesData'
 
+import { ConfirmModal } from '../../components/ConfirmModal'
+
 function AdminCveEditorPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -40,6 +42,8 @@ function AdminCveEditorPage() {
     }
   }, [id, isNewCve])
 
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
   // Basic validation rules
   const handleSave = () => {
     if (!formData.cve_id?.trim()) {
@@ -70,10 +74,17 @@ function AdminCveEditorPage() {
   }
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this CVE?')) {
-      deleteCve(id)
-      navigate('/admin/cves')
-    }
+    setIsModalOpen(true)
+  }
+
+  const handleConfirmDelete = () => {
+    deleteCve(id)
+    setIsModalOpen(false)
+    navigate('/admin/cves')
+  }
+
+  const handleCancelDelete = () => {
+    setIsModalOpen(false)
   }
 
   const handleInputChange = (e) => {
@@ -272,6 +283,14 @@ function AdminCveEditorPage() {
         </section>
 
       </section>
+
+      <ConfirmModal
+        isOpen={isModalOpen}
+        title="Delete CVE"
+        message="Are you sure you want to delete this Vulnerability Record? This action cannot be reverted."
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
     </main>
   )
 }

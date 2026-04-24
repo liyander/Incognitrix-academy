@@ -197,6 +197,18 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
             </span>
           </NavLink>
         ) : null}
+        <NavLink
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-1 ${isActive ? 'text-primary' : 'text-on-surface-variant'}`
+            }
+            onClick={onClose}
+            to="/cves"
+          >
+            <span className="material-symbols-outlined">bug_report</span>
+            <span className="font-headline text-[8px] font-bold uppercase tracking-widest">
+              CVEs
+            </span>
+          </NavLink>
         <a className="flex flex-col items-center gap-1 text-on-surface-variant" href="#">
           <span className="material-symbols-outlined">science</span>
           <span className="font-headline text-[8px] font-bold uppercase tracking-widest">
