@@ -1,5 +1,8 @@
 import { apiFetch } from '../services/api'
 
+export const CVES_STORAGE_KEY = 'cvesData'
+export const CVES_UPDATED_EVENT = 'cvesDataUpdated'
+
 export const defaultCves = [
   {
     id: 1,
@@ -16,7 +19,7 @@ export const defaultCves = [
 ]
 
 export function getCvesData() {
-  const stored = localStorage.getItem('cvesData')
+  const stored = localStorage.getItem(CVES_STORAGE_KEY)
   if (stored) {
     try {
       return JSON.parse(stored)
@@ -28,8 +31,33 @@ export function getCvesData() {
   return defaultCves
 }
 
+export function emitCvesUpdated() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(CVES_UPDATED_EVENT))
+  }
+}
+
+export function subscribeCvesData(listener) {
+  if (typeof window === 'undefined') {
+    return () => {}
+  }
+  const onDataUpdate = () => listener()
+  const onStorage = (event) => {
+    if (event.key === CVES_STORAGE_KEY) {
+      listener()
+    }
+  }
+  window.addEventListener(CVES_UPDATED_EVENT, onDataUpdate)
+  window.addEventListener('storage', onStorage)
+  return () => {
+    window.removeEventListener(CVES_UPDATED_EVENT, onDataUpdate)
+    window.removeEventListener('storage', onStorage)
+  }
+}
+
 export function setCvesData(cves) {
-  localStorage.setItem('cvesData', JSON.stringify(cves))
+  localStorage.setItem(CVES_STORAGE_KEY, JSON.stringify(cves))
+  emitCvesUpdated()
 }
 
 export function getCveById(id) {

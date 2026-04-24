@@ -6,18 +6,34 @@ import {
   deleteCareerPath,
 } from '../../data/careerPathsData'
 import { apiFetch } from '../../services/api'
+import { ConfirmModal } from '../../components/ConfirmModal'
 
 function AdminCareerPathsManagementPage() {
   const navigate = useNavigate()
   const [paths, setPaths] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
 
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [pathToDelete, setPathToDelete] = useState(null)
+
   const handleDeletePath = (e, id) => {
     e.stopPropagation()
-    if (window.confirm('Are you sure you want to delete this career path? This action cannot be undone.')) {
-      deleteCareerPath(id)
-      setPaths(paths.filter(p => p.id !== id))
+    setPathToDelete(id)
+    setIsModalOpen(true)
+  }
+
+  const handleConfirmDelete = () => {
+    if (pathToDelete) {
+      deleteCareerPath(pathToDelete)
+      setPaths(paths.filter(p => p.id !== pathToDelete))
+      setPathToDelete(null)
     }
+    setIsModalOpen(false)
+  }
+
+  const handleCancelDelete = () => {
+    setPathToDelete(null)
+    setIsModalOpen(false)
   }
 
   useEffect(() => {
@@ -174,6 +190,14 @@ function AdminCareerPathsManagementPage() {
           )}
         </div>
       </section>
+
+      <ConfirmModal
+        isOpen={isModalOpen}
+        title="Delete Career Path"
+        message="Are you sure you want to delete this career path? This destructive move cannot be reverted and will delete all associated modules and progression hooks."
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
     </main>
   )
 }

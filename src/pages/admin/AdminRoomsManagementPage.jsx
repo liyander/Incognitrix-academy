@@ -1,18 +1,34 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getRoomsData, deleteRoom } from '../../data/roomsData'
+import { ConfirmModal } from '../../components/ConfirmModal'
 
 function AdminRoomsManagementPage() {
   const navigate = useNavigate()
   const [rooms, setRooms] = useState(getRoomsData())
   const [searchTerm, setSearchTerm] = useState('')
 
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [roomToDelete, setRoomToDelete] = useState(null)
+
   const handleDeleteRoom = (e, id) => {
     e.stopPropagation()
-    if (window.confirm('Are you sure you want to delete this room? This action cannot be undone.')) {
-      deleteRoom(id)
+    setRoomToDelete(id)
+    setIsModalOpen(true)
+  }
+
+  const handleConfirmDelete = () => {
+    if (roomToDelete) {
+      deleteRoom(roomToDelete)
       setRooms(getRoomsData())
+      setRoomToDelete(null)
     }
+    setIsModalOpen(false)
+  }
+
+  const handleCancelDelete = () => {
+    setRoomToDelete(null)
+    setIsModalOpen(false)
   }
 
   const filteredRooms = rooms.filter(
@@ -131,6 +147,14 @@ function AdminRoomsManagementPage() {
           )}
         </div>
       </section>
+
+      <ConfirmModal
+        isOpen={isModalOpen}
+        title="Delete Experimental Room"
+        message="Are you sure you want to delete this lab room? This destructive move cannot be reverted and will delete associated lab content."
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
     </main>
   )
 }

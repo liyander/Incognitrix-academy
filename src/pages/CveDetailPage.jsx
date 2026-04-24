@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getCveById } from '../data/cvesData'
+import { getCveById, subscribeCvesData } from '../data/cvesData'
 
 function CveDetailPage() {
   const { id } = useParams()
-  const [cve, setCve] = useState(null)
+  const [cve, setCve] = useState(() => getCveById(id))
 
   useEffect(() => {
-    const foundCve = getCveById(id)
-    if (foundCve) {
-      setCve(foundCve)
-    }
+    return subscribeCvesData(() => {
+      const foundCve = getCveById(id)
+      if (foundCve) {
+        setCve(foundCve)
+      }
+    })
   }, [id])
 
   if (!cve) {

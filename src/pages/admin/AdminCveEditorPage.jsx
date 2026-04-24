@@ -25,7 +25,7 @@ function AdminCveEditorPage() {
   useEffect(() => {
     if (!isNewCve) {
       const foundCve = getCveById(id)
-      if (foundCve) {
+      if (foundCve && !cve) {
         setCve(foundCve)
         setFormData({
           cve_id: foundCve.cve_id || '',

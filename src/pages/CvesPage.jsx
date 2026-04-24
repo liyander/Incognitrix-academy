@@ -1,10 +1,16 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { getCvesData } from '../data/cvesData'
+import { getCvesData, subscribeCvesData } from '../data/cvesData'
 
 function CvesPage() {
-  const [cves] = useState(getCvesData())
+  const [cves, setCves] = useState(getCvesData())
   const [searchQuery, setSearchQuery] = useState('')
+
+  useEffect(() => {
+    return subscribeCvesData(() => {
+      setCves(getCvesData())
+    })
+  }, [])
 
   const filteredCves = useMemo(() => {
     if (!searchQuery) return cves
