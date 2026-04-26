@@ -160,7 +160,7 @@ export function parseMarkdownToHtml(markdown) {
         processedCode = lines.map(line => line.startsWith(indent) ? line.slice(indent.length) : line).join("\n");
       }
     }
-    const token = `__BLOCK_TOKEN_${blockTokens.length}__`;
+    const token = `\uE100BLOCK_TOKEN_${blockTokens.length}\uE101`;
     blockTokens.push({ lang: lang.trim(), code: processedCode });
     return token;
   });
@@ -332,7 +332,7 @@ export function parseMarkdownToHtml(markdown) {
 
   let html = output.join("\n");
   
-  html = html.replace(/<p>\s*__BLOCK_TOKEN_(\d+)__\s*<\/p>|__BLOCK_TOKEN_(\d+)__/g, (match, id1, id2) => {
+  html = html.replace(/<p>\s*\uE100BLOCK_TOKEN_(\d+)\uE101\s*<\/p>|\uE100BLOCK_TOKEN_(\d+)\uE101/g, (match, id1, id2) => {
     const id = id1 !== undefined ? id1 : id2;
     if (!id) return match;
     const tokenData = blockTokens[Number(id)];

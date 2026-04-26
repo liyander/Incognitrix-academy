@@ -4,6 +4,7 @@ import './App.css'
 import { getAuthSession, logoutUser } from './auth'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
+import CyberChatbot from './components/CyberChatbot'
 import { loadPlatformConfig, savePlatformConfig } from './platformConfig'
 import { apiFetch } from './services/api'
 import { syncFrontendStateFromBackend } from './services/backendSync'
@@ -192,17 +193,20 @@ function App() {
 
   if (!authSession) {
     return (
-      <Routes>
-        <Route
-          path="/login"
-          element={<LoginPage onLoginSuccess={setAuthSession} />}
-        />
-        <Route
-          path="/register"
-          element={<RegistrationPage onRegisterSuccess={setAuthSession} />}
-        />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+      <>
+        <CyberChatbot />
+        <Routes>
+          <Route
+            path="/login"
+            element={<LoginPage onLoginSuccess={setAuthSession} />}
+          />
+          <Route
+            path="/register"
+            element={<RegistrationPage onRegisterSuccess={setAuthSession} />}
+          />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </>
     )
   }
 
@@ -210,6 +214,7 @@ function App() {
     return (
       <>
         {themeToggleButton}
+        <CyberChatbot />
         <Routes>
           <Route
             path="/admin"
@@ -247,6 +252,7 @@ function App() {
   return (
     <>
       {themeToggleButton}
+      <CyberChatbot />
       <Sidebar
         config={platformConfig}
         isSidebarOpen={isSidebarOpen}

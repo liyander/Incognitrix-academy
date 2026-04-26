@@ -18,6 +18,14 @@ Also set:
 - `DB_PORT`
 - `DB_NAME`
 - `JWT_SECRET`
+- `NVIDIA_API_KEY`
+
+Optional AI overrides:
+- `AI_BASE_URL` (default: `https://integrate.api.nvidia.com/v1`)
+- `AI_MODEL` (default: `moonshotai/kimi-k2-thinking`)
+- `AI_TEMPERATURE` (default: `1`)
+- `AI_TOP_P` (default: `0.9`)
+- `AI_MAX_TOKENS` (default: `16384`)
 
 ## 2. Initialize database and seed defaults
 

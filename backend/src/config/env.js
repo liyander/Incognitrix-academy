@@ -28,6 +28,12 @@ export const env = {
   port: Number(process.env.PORT || 4000),
   host: process.env.HOST || '0.0.0.0',
   jwtSecret: process.env.JWT_SECRET || 'incognitrix_dev_secret',
+  nvidiaApiKey: process.env.NVIDIA_API_KEY || '',
+  aiBaseUrl: process.env.AI_BASE_URL || 'https://integrate.api.nvidia.com/v1',
+  aiModel: process.env.AI_MODEL || 'moonshotai/kimi-k2-thinking',
+  aiTemperature: Number(process.env.AI_TEMPERATURE || 1),
+  aiTopP: Number(process.env.AI_TOP_P || 0.9),
+  aiMaxTokens: Number(process.env.AI_MAX_TOKENS || 16384),
   corsOrigins: parseCorsOrigins(process.env.CORS_ORIGINS),
   db: {
     host: process.env.DB_HOST || 'localhost',
