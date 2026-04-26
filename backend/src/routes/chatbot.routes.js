@@ -535,7 +535,7 @@ function isSiteContextQuestion(message, context) {
     return false
   }
 
-  return /\b(summarize|summary|summarise|explain|describe|overview|what is this page|what is this site|tell me about this page|tell me about this site|what does this page do|what does this site do)\b/i.test(
+  return /\b(summarize|summary|summarise|explain|describe|overview|creator|created by|owner|developer|founder|who built|who made|who created|what is this page|what is this site|tell me about this page|tell me about this site|what does this page do|what does this site do)\b/i.test(
     normalized,
   )
 }
