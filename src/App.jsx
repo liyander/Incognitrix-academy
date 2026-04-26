@@ -193,20 +193,17 @@ function App() {
 
   if (!authSession) {
     return (
-      <>
-        <CyberChatbot />
-        <Routes>
-          <Route
-            path="/login"
-            element={<LoginPage onLoginSuccess={setAuthSession} />}
-          />
-          <Route
-            path="/register"
-            element={<RegistrationPage onRegisterSuccess={setAuthSession} />}
-          />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </>
+      <Routes>
+        <Route
+          path="/login"
+          element={<LoginPage onLoginSuccess={setAuthSession} />}
+        />
+        <Route
+          path="/register"
+          element={<RegistrationPage onRegisterSuccess={setAuthSession} />}
+        />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
     )
   }
 
