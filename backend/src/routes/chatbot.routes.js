@@ -526,18 +526,21 @@ function isCybersecurityQuestion(message) {
 
 function isSiteContextQuestion(message, context) {
   const normalized = normalizeText(message)
-  if (!normalized || !context) {
+  if (!normalized) {
     return false
   }
 
-  const hasContext = Boolean(context.pageSummary || context.siteSummary)
-  if (!hasContext) {
+  const hasContext = Boolean(context?.pageSummary || context?.siteSummary)
+
+  const siteIntentPattern =
+    /\b(summarize|summary|summarise|explain|describe|overview|creator|created by|owner|developer|founder|who built|who made|who created|about this site|about this page|tell about this site|tell about this page|tell me about this page|tell me about this site|what is this page|what is this site|what does this page do|what does this site do)\b/i
+
+  if (!siteIntentPattern.test(normalized)) {
     return false
   }
 
-  return /\b(summarize|summary|summarise|explain|describe|overview|creator|created by|owner|developer|founder|who built|who made|who created|what is this page|what is this site|tell me about this page|tell me about this site|what does this page do|what does this site do)\b/i.test(
-    normalized,
-  )
+  // Prefer having context, but still allow explicit site/page intent so the gate is not a bottleneck.
+  return hasContext || /\b(this site|this page|site|page)\b/i.test(normalized)
 }
 
 function trimHistory(history) {
