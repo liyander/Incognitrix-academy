@@ -19,6 +19,7 @@ import AdminRegistrationDetailPage from './pages/admin/AdminRegistrationDetailPa
 import AdminUpcomingCtfManagementPage from './pages/admin/AdminUpcomingCtfManagementPage'
 import AdminCvesManagementPage from './pages/admin/AdminCvesManagementPage'
 import AdminCveEditorPage from './pages/admin/AdminCveEditorPage'
+import AdminAiControlPage from './pages/admin/AdminAiControlPage'
 import DashboardPage from './pages/DashboardPage'
 import CvesPage from './pages/CvesPage'
 import CveDetailPage from './pages/CveDetailPage'
@@ -240,6 +241,7 @@ function App() {
           <Route path="/admin/registrations" element={<AdminRegistrationsManagementPage />} />
           <Route path="/admin/registrations/:userId" element={<AdminRegistrationDetailPage />} />
           <Route path="/admin/upcoming-ctf" element={<AdminUpcomingCtfManagementPage />} />
+          <Route path="/admin/ai-control" element={<AdminAiControlPage />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </>

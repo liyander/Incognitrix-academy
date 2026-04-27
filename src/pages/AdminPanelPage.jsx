@@ -224,6 +224,33 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                 </p>
               </a>
             </div>
+
+            {/* Admin AI */}
+            <div className="bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+              <a className="block" href="/admin/ai-control">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-secondary" style={{ fontSize: '32px' }}>
+                      smart_toy
+                    </span>
+                    <div>
+                      <h3 className="font-headline text-lg font-bold uppercase">
+                        Admin AI Control
+                      </h3>
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
+                        Monitor and Automate
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-on-surface-variant">
+                    chevron_right
+                  </span>
+                </div>
+                <p className="text-sm text-on-surface-variant">
+                  Chat with an admin-only AI to monitor platform insights and execute content operations such as creating rooms, career paths, and modules.
+                </p>
+              </a>
+            </div>
           </div>
         </section>
 

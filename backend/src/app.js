@@ -10,6 +10,7 @@ import ctfEventsRoutes from './routes/ctfEvents.routes.js'
 import usersRoutes from './routes/users.routes.js'
 import cvesRoutes from './routes/cves.routes.js'
 import chatbotRoutes from './routes/chatbot.routes.js'
+import adminAiRoutes from './routes/adminAi.routes.js'
 
 const app = express()
 
@@ -44,6 +45,7 @@ app.use('/api/ctf-events', ctfEventsRoutes)
 app.use('/api/users', usersRoutes)
 app.use('/api/cves', cvesRoutes)
 app.use('/api/chatbot', chatbotRoutes)
+app.use('/api/admin-ai', adminAiRoutes)
 
 app.use((err, _req, res, _next) => {
   console.error(err)

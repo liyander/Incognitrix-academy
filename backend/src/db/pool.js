@@ -147,6 +147,16 @@ export async function initializeDatabaseIfNeeded() {
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
           FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS admin_ai_chat_history (
+          id BIGINT AUTO_INCREMENT PRIMARY KEY,
+          user_id INT NOT NULL,
+          role ENUM('user', 'assistant') NOT NULL,
+          message LONGTEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_admin_ai_chat_user_created (user_id, created_at),
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
       `)
 
       await addColumnIfMissing('users', 'registration_number', 'VARCHAR(64) NULL UNIQUE')
@@ -378,6 +388,16 @@ export async function initializeDatabaseIfNeeded() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY uniq_ctf_notification_day (ctf_event_id, user_id, notification_kind, notification_date),
         FOREIGN KEY (ctf_event_id) REFERENCES ctf_events(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS admin_ai_chat_history (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        role ENUM('user', 'assistant') NOT NULL,
+        message LONGTEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_admin_ai_chat_user_created (user_id, created_at),
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
     `)
