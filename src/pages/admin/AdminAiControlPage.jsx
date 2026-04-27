@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchAdminAiInsights, sendAdminAiMessage } from '../../services/adminAi'
+import { parseMarkdownToHtml } from '../../utils/markdown'
 
 const STARTER_PROMPTS = [
   'Give me platform insights and top risks right now.',
@@ -189,7 +190,14 @@ function AdminAiControlPage() {
                       : 'mr-auto bg-surface-container-high text-on-surface'
                   }`}
                 >
-                  <p>{message.content}</p>
+                  {message.role === 'assistant' ? (
+                    <div
+                      className="space-y-2 leading-6 [&_p]:m-0 [&_p+p]:mt-2 [&_ul]:m-0 [&_ol]:m-0 [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:my-1 [&_strong]:font-semibold [&_em]:italic [&_code]:rounded [&_code]:bg-surface-container-lowest [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.92em] [&_pre]:my-3 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-outline-variant/30 [&_pre]:bg-surface-container-lowest [&_pre]:p-4 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-4 [&_blockquote]:italic"
+                      dangerouslySetInnerHTML={{ __html: parseMarkdownToHtml(String(message.content || '')) }}
+                    />
+                  ) : (
+                    <p>{message.content}</p>
+                  )}
                   {message.role === 'assistant' && message.action?.type && message.action.type !== 'none' ? (
                     <p className="mt-2 text-xs text-on-surface-variant">
                       Action: {message.action.type} ({message.action.status})
