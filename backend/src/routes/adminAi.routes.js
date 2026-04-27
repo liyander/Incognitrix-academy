@@ -304,6 +304,10 @@ async function fetchInsights() {
 }
 
 async function createRoom(payload) {
+  const nestedContent = payload?.content && typeof payload.content === 'object' ? payload.content : {}
+  const topicSeed = String(payload?.description || payload?.title || 'Cybersecurity Monitoring').trim()
+  const generatedTopicContent = buildTopicRoomContent(topicSeed, payload?.title)
+
   const id = buildId(payload?.slug || payload?.title, 'room')
   const roomPayload = {
     id,
@@ -311,7 +315,7 @@ async function createRoom(payload) {
     category: payload?.category || 'General',
     level: payload?.level || 'Easy',
     title: payload?.title,
-    description: payload?.description || '',
+    description: payload?.description || generatedTopicContent.missionOverview,
     xp: payload?.xp || '500 XP',
     difficulty: payload?.difficulty || payload?.level || 'Easy',
     estimateTime: payload?.estimateTime || '45 minutes',
@@ -320,20 +324,39 @@ async function createRoom(payload) {
     tags: Array.isArray(payload?.tags) ? payload.tags : [],
     requiredKeywords: Array.isArray(payload?.requiredKeywords) ? payload.requiredKeywords : [],
     content: {
-      markdown: payload?.markdown || `# ${payload?.title || 'New Room'}\n\n${payload?.description || ''}`,
-      html: payload?.html || '',
-      missionOverview: payload?.missionOverview || payload?.description || '',
+      markdown:
+        nestedContent?.markdown ||
+        payload?.markdown ||
+        generatedTopicContent.markdown,
+      html: nestedContent?.html || payload?.html || '',
+      missionOverview:
+        nestedContent?.missionOverview ||
+        payload?.missionOverview ||
+        payload?.description ||
+        generatedTopicContent.missionOverview,
       remediationProtocols:
+        nestedContent?.remediationProtocols ||
         payload?.remediationProtocols ||
-        'Validate inputs, apply least privilege, and enforce secure defaults.',
+        generatedTopicContent.remediationProtocols,
       vulnerabilityBriefing: {
-        definition: payload?.vulnerabilityDefinition || 'Vulnerability definition pending.',
-        impact: payload?.vulnerabilityImpact || 'Potential impact pending.',
+        definition:
+          nestedContent?.vulnerabilityBriefing?.definition ||
+          payload?.vulnerabilityDefinition ||
+          generatedTopicContent.vulnerabilityDefinition,
+        impact:
+          nestedContent?.vulnerabilityBriefing?.impact ||
+          payload?.vulnerabilityImpact ||
+          generatedTopicContent.vulnerabilityImpact,
       },
-      technicalDeepDive: payload?.technicalDeepDive || 'Technical deep dive pending.',
-      youtubeVideoUrl: payload?.youtubeVideoUrl || '',
-      questionsEnabled: false,
-      questions: [],
+      technicalDeepDive:
+        nestedContent?.technicalDeepDive || payload?.technicalDeepDive || generatedTopicContent.technicalDeepDive,
+      youtubeVideoUrl: nestedContent?.youtubeVideoUrl || payload?.youtubeVideoUrl || '',
+      questionsEnabled: Boolean(nestedContent?.questionsEnabled || payload?.questionsEnabled),
+      questions: Array.isArray(nestedContent?.questions)
+        ? nestedContent.questions
+        : Array.isArray(payload?.questions)
+          ? payload.questions
+          : [],
     },
   }
 
@@ -371,8 +394,8 @@ async function createRoom(payload) {
       roomPayload.content.vulnerabilityBriefing.impact,
       roomPayload.content.technicalDeepDive,
       roomPayload.content.youtubeVideoUrl || null,
-      false,
-      '[]',
+      roomPayload.content.questionsEnabled,
+      JSON.stringify(roomPayload.content.questions),
     ],
   )
 
@@ -567,6 +590,121 @@ async function findExistingRoomByTitleOrSlug(titleOrSlug) {
   return rows[0] || null
 }
 
+function buildTopicRoomContent(topic, roomTitle) {
+  const cleanTopic = String(topic || roomTitle || 'Cybersecurity Monitoring').trim()
+  const title = String(roomTitle || cleanTopic || 'Monitoring Room').trim()
+
+  if (/http\s+request\s+smuggling|request\s+smuggling|desync/i.test(`${title} ${cleanTopic}`)) {
+    const markdown = [
+      `# ${title}`,
+      '',
+      'This room focuses on HTTP request smuggling risks in multi-tier web stacks where frontend and backend components parse requests differently.',
+      '',
+      '## Mission Overview',
+      'Identify parser desynchronization conditions, validate impact safely in lab conditions, and implement robust protocol-alignment controls.',
+      '',
+      '## Key Objectives',
+      '- Understand how CL.TE and TE.CL mismatches can desynchronize request boundaries',
+      '- Recognize signs of request queue poisoning and user-impacting response mixups',
+      '- Verify behavior across reverse proxy, WAF, load balancer, and origin server',
+      '- Apply hardening to enforce one canonical parsing strategy end to end',
+      '',
+      '## Practical Examples',
+      '- Example 1: Frontend prioritizes Content-Length while backend prioritizes Transfer-Encoding, creating a desync window.',
+      '- Example 2: A malformed chunked body causes backend request reassembly drift and inconsistent routing outcomes.',
+      '- Example 3: Conflicting headers are normalized differently by proxy and app server, leading to request queue poisoning risk.',
+      '',
+      '## Defensive Validation Checklist',
+      '- Reject requests containing ambiguous framing headers',
+      '- Normalize and re-serialize requests at the edge before forwarding',
+      '- Keep proxy and origin parsing behavior consistent across upgrades',
+      '- Add telemetry for duplicated framing headers and abnormal chunk patterns',
+    ].join('\n')
+
+    return {
+      markdown,
+      missionOverview:
+        'Investigate HTTP parser desynchronization, document realistic impact paths, and ship controls that remove ambiguous request framing.',
+      remediationProtocols:
+        'Block ambiguous framing combinations, enforce strict RFC-compliant parsing at ingress, and maintain parser consistency between proxy and origin.',
+      vulnerabilityDefinition:
+        'HTTP request smuggling occurs when chained systems disagree about request boundaries, allowing attackers to smuggle hidden request data.',
+      vulnerabilityImpact:
+        'Potential impact includes request queue poisoning, cache contamination, authorization bypass side effects, and session exposure between users.',
+      technicalDeepDive:
+        'Compare CL.TE and TE.CL handling paths, inspect intermediary normalization logic, and validate backend queue behavior using safe test payloads.',
+    }
+  }
+
+  const markdown = [
+    `# ${title}`,
+    '',
+    `This room focuses on ${cleanTopic}. You will learn how to identify suspicious activity, triage alerts, and improve detection quality.`,
+    '',
+    '## Mission Overview',
+    `Investigate telemetry related to ${cleanTopic}, separate noise from true positives, and document actionable findings.`,
+    '',
+    '## Key Objectives',
+    `- Understand the attack surface related to ${cleanTopic}`,
+    '- Identify high-signal indicators in logs and events',
+    '- Build an investigation timeline and isolate root cause',
+    '- Recommend tuning and hardening improvements',
+    '',
+    '## Detection Workflow',
+    '- Collect relevant events from endpoint, network, and identity sources',
+    '- Correlate indicators across multiple data sources',
+    '- Validate suspicious behavior against known baseline',
+    '- Escalate confirmed incidents with evidence',
+    '',
+    '## Response and Hardening',
+    '- Contain affected assets quickly',
+    '- Patch and remediate vulnerable entry points',
+    '- Tune alert thresholds to reduce false positives',
+    '- Add continuous monitoring for recurrence',
+    '',
+    '## Practical Examples',
+    `- Example 1: Investigate a suspicious ${cleanTopic} alert and build a timeline from first indicator to containment.`,
+    `- Example 2: Correlate repeated ${cleanTopic} anomalies across endpoint and network logs to validate incident scope.`,
+    `- Example 3: Improve a noisy ${cleanTopic} detection by refining thresholds and required context fields.`,
+  ].join('\n')
+
+  return {
+    markdown,
+    missionOverview: `Investigate and operationalize ${cleanTopic} monitoring with clear triage and remediation steps.`,
+    remediationProtocols:
+      'Use least privilege, improve telemetry quality, enforce secure baselines, and continuously tune detection logic.',
+    vulnerabilityDefinition: `${cleanTopic} gaps can allow attackers to remain undetected for extended periods.`,
+    vulnerabilityImpact:
+      'Insufficient monitoring can lead to delayed incident response, data exposure, and lateral movement risk.',
+    technicalDeepDive:
+      `Deep-dive into ${cleanTopic} data sources, correlation rules, alert fidelity, and SOC triage runbooks.`,
+  }
+}
+
+async function updateRoomTopicContent(roomId, roomTitle, topic) {
+  const content = buildTopicRoomContent(topic, roomTitle)
+  await pool.query(
+    `UPDATE rooms
+     SET content_markdown = ?,
+         mission_overview = ?,
+         remediation_protocols = ?,
+         vulnerability_definition = ?,
+         vulnerability_impact = ?,
+         technical_deep_dive = ?,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [
+      content.markdown,
+      content.missionOverview,
+      content.remediationProtocols,
+      content.vulnerabilityDefinition,
+      content.vulnerabilityImpact,
+      content.technicalDeepDive,
+      roomId,
+    ],
+  )
+}
+
 function parseListValues(text) {
   return String(text || '')
     .split(/,|\band\b/gi)
@@ -619,7 +757,9 @@ async function fillPendingModulePayload(payload, message) {
 }
 
 function extractRoomTitleFromCreatePrompt(text) {
-  const match = String(text || '').match(/(?:add|create)\s+(?:a\s+)?room(?:\s+called|\s+named)?\s+(.+)$/i)
+  const match = String(text || '').match(
+    /(?:add|create)\s+(?:a\s+)?room(?:\s+called|\s+named)?\s+(.+?)(?:\s+(?:and\s+add\s+content|with\s+content|which\b|that\b|for\s+the\s+path\b|in\s+the\s+path\b)|$)/i,
+  )
   if (!match?.[1]) {
     return ''
   }
@@ -666,28 +806,48 @@ function extractModuleTitleFromCompoundPrompt(text) {
 }
 
 function extractRoomContentFromPrompt(text) {
-  const match = String(text || '').match(/(?:content\s+about|about)\s+(.+)$/i)
-  if (!match?.[1]) {
-    return ''
+  const input = String(text || '')
+  const aboutMatch = input.match(/(?:content\s+about|about)\s+(.+)$/i)
+  if (aboutMatch?.[1]) {
+    return aboutMatch[1].trim().replace(/[.?!]+$/, '')
   }
 
-  return match[1].trim().replace(/[.?!]+$/, '')
+  if (/(?:add\s+content|with\s+content|content\s+to\s+it)(?:\s+with\s+examples)?/i.test(input)) {
+    return 'Topic-focused room content with practical examples'
+  }
+
+  return ''
 }
 
 async function createOrGetRoomForModule({ title, description }) {
   const existing = await findExistingRoomByTitleOrSlug(title)
   if (existing) {
+    await updateRoomTopicContent(existing.id, existing.title, description || title)
     return { id: existing.id, title: existing.title, reused: true }
   }
+
+  const roomContent = buildTopicRoomContent(description || title, title)
 
   const created = await createRoom({
     title,
     description: description || title,
-    markdown: `# ${title}\n\n${description || title}`,
-    missionOverview: description || title,
-    technicalDeepDive: description || title,
-    remediationProtocols: 'Review event telemetry, validate alert fidelity, and tune detection logic.',
+    content: {
+      markdown: roomContent.markdown,
+      html: '',
+      missionOverview: roomContent.missionOverview,
+      remediationProtocols: roomContent.remediationProtocols,
+      vulnerabilityBriefing: {
+        definition: roomContent.vulnerabilityDefinition,
+        impact: roomContent.vulnerabilityImpact,
+      },
+      technicalDeepDive: roomContent.technicalDeepDive,
+      youtubeVideoUrl: '',
+      questionsEnabled: false,
+      questions: [],
+    },
   })
+
+  await updateRoomTopicContent(created.id, created.title, description || title)
 
   return { ...created, reused: false }
 }
@@ -833,10 +993,20 @@ async function tryHandleDirectActionIntent({ message, userId }) {
       }
     }
 
-    const created = await createRoom({ title })
+    const contentHintRaw = extractRoomContentFromPrompt(text)
+    const topicHint =
+      contentHintRaw && contentHintRaw !== 'Topic-focused room content with practical examples'
+        ? contentHintRaw
+        : title
+
+    const created = await createOrGetRoomForModule({
+      title,
+      description: topicHint,
+    })
+
     return {
       role: 'assistant',
-      content: `Room '${created.title}' has been created successfully.`,
+      content: `Room '${created.title}' ${created.reused ? 'was updated with' : 'has been created with'} detailed topic content and examples.`,
       action: {
         type: 'create_room',
         status: 'completed',
@@ -923,7 +1093,28 @@ async function executeAction(action) {
   }
 
   if (type === 'create_room') {
-    const created = await createRoom(payload)
+    const title = String(payload?.title || '').trim()
+    if (!title) {
+      throw new Error('Room creation requires a title.')
+    }
+
+    const hasExplicitContent = Boolean(
+      payload?.content ||
+        payload?.markdown ||
+        payload?.missionOverview ||
+        payload?.remediationProtocols ||
+        payload?.vulnerabilityDefinition ||
+        payload?.vulnerabilityImpact ||
+        payload?.technicalDeepDive,
+    )
+
+    const created = hasExplicitContent
+      ? await createRoom(payload)
+      : await createOrGetRoomForModule({
+          title,
+          description: String(payload?.description || title).trim(),
+        })
+
     return { type, status: 'completed', message: `Room created: ${created.title} (${created.id})`, created }
   }
 
