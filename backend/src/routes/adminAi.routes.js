@@ -435,7 +435,30 @@ async function createModule(payload) {
   }
 
   const path = pathRows[0]
-  const moduleId = buildId(payload?.moduleId || payload?.title, 'mod')
+  const baseModuleId = buildId(payload?.moduleId || payload?.title, 'mod')
+  let moduleId = baseModuleId
+
+  const [sameTitleRows] = await pool.query(
+    'SELECT id, title FROM career_path_modules WHERE career_path_id = ? AND LOWER(title) = LOWER(?) LIMIT 1',
+    [path.id, payload?.title || 'New Module'],
+  )
+  if (sameTitleRows.length) {
+    return {
+      id: sameTitleRows[0].id,
+      title: sameTitleRows[0].title,
+      careerPathId: path.id,
+      careerPathTitle: path.title,
+      reused: true,
+    }
+  }
+
+  const [existingIdRows] = await pool.query('SELECT id FROM career_path_modules WHERE id = ? LIMIT 1', [
+    moduleId,
+  ])
+  if (existingIdRows.length) {
+    moduleId = `${baseModuleId}-${Date.now()}`
+  }
+
   const [sortRows] = await pool.query(
     'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_sort FROM career_path_modules WHERE career_path_id = ?',
     [path.id],
@@ -482,6 +505,31 @@ async function resolveCareerPathId(pathRef) {
   )
 
   return rows[0] || null
+}
+
+async function resolveOrCreateCareerPath(pathRef) {
+  const normalized = String(pathRef || '').trim()
+  if (!normalized) {
+    return null
+  }
+
+  const existing = await resolveCareerPathId(normalized)
+  if (existing) {
+    return existing
+  }
+
+  const created = await createCareerPath({
+    title: normalized,
+    description: `Auto-created path for ${normalized}`,
+    learningPathLevel: 'Intermediate',
+  })
+
+  return {
+    id: created.id,
+    slug: created.id,
+    title: created.title,
+    createdNow: true,
+  }
 }
 
 async function resolveRoomId(roomRef) {
@@ -546,7 +594,7 @@ async function fillPendingModulePayload(payload, message) {
 
   if (!next.careerPathId) {
     const pathRef = parsePathRefFromText(text) || text
-    const path = await resolveCareerPathId(pathRef)
+    const path = await resolveOrCreateCareerPath(pathRef)
     if (path) {
       next.careerPathId = path.id
     }
@@ -635,6 +683,7 @@ async function createOrGetRoomForModule({ title, description }) {
   const created = await createRoom({
     title,
     description: description || title,
+    markdown: `# ${title}\n\n${description || title}`,
     missionOverview: description || title,
     technicalDeepDive: description || title,
     remediationProtocols: 'Review event telemetry, validate alert fidelity, and tune detection logic.',
@@ -649,6 +698,15 @@ async function tryHandleDirectActionIntent({ message, userId }) {
 
   if (!text) {
     return null
+  }
+
+  const isCreateModuleIntent = /\b(add|create)\b[\s\S]*\bmodule\b/i.test(lower)
+  const isCreateRoomIntent = /\b(add|create)\b[\s\S]*\broom\b/i.test(lower)
+  const looksLikeFreshCompositeCommand =
+    (isCreateModuleIntent || isCreateRoomIntent) && /\b(in\s+the\s+path|path\b|module\s+called|room\s+called)\b/i.test(lower)
+
+  if (looksLikeFreshCompositeCommand && pendingActionByUser.has(userId)) {
+    pendingActionByUser.delete(userId)
   }
 
   const pending = pendingActionByUser.get(userId)
@@ -688,9 +746,6 @@ async function tryHandleDirectActionIntent({ message, userId }) {
     }
   }
 
-  const isCreateModuleIntent = /\b(add|create)\b[\s\S]*\bmodule\b/i.test(lower)
-  const isCreateRoomIntent = /\b(add|create)\b[\s\S]*\broom\b/i.test(lower)
-
   if (isCreateModuleIntent && isCreateRoomIntent) {
     const moduleTitle = extractModuleTitleFromCompoundPrompt(text) || extractModuleTitleFromCreatePrompt(text)
     const roomTitle = extractRoomTitleFromModulePrompt(text)
@@ -705,7 +760,7 @@ async function tryHandleDirectActionIntent({ message, userId }) {
       }
     }
 
-    const path = pathRef ? await resolveCareerPathId(pathRef) : null
+    const path = pathRef ? await resolveOrCreateCareerPath(pathRef) : null
     if (!path) {
       pendingActionByUser.set(userId, {
         type: 'create_module',
@@ -718,7 +773,7 @@ async function tryHandleDirectActionIntent({ message, userId }) {
 
       return {
         role: 'assistant',
-        content: 'I can create that module and room. Which career path should this module belong to? Provide path id, slug, or exact title.',
+        content: 'Which career path should this module belong to? I can also create a new path if it does not exist.',
         action: { type: 'create_module', status: 'needs_input', message: 'careerPathId is required' },
       }
     }
@@ -748,13 +803,14 @@ async function tryHandleDirectActionIntent({ message, userId }) {
 
     const createdModule = await createModule({
       title: moduleTitle,
+      description: contentHint || `Module coverage for ${moduleTitle}`,
       careerPathId: path.id,
       rooms: [room.id],
     })
 
     return {
       role: 'assistant',
-      content: `Module '${createdModule.title}' created in ${createdModule.careerPathTitle}. Room '${room.title}' ${room.reused ? 'was linked' : 'was created and linked'} with event content context.`,
+      content: `Module '${createdModule.title}' ${createdModule.reused ? 'already existed and was reused' : 'created'} in ${createdModule.careerPathTitle}${path.createdNow ? ' (new path created)' : ''}. Room '${room.title}' ${room.reused ? 'was linked' : 'was created and linked'} with content context.`,
       action: {
         type: 'create_module',
         status: 'completed',
@@ -798,9 +854,9 @@ async function tryHandleDirectActionIntent({ message, userId }) {
       rooms: [],
     }
 
-    const pathRef = parsePathRefFromText(text)
+    const pathRef = extractPathRefFromPrompt(text)
     if (pathRef) {
-      const path = await resolveCareerPathId(pathRef)
+      const path = await resolveOrCreateCareerPath(pathRef)
       if (path) {
         payload.careerPathId = path.id
       }
