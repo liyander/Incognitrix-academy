@@ -1164,23 +1164,192 @@ function normalizeHistoryEntries(entries) {
     .filter((entry) => entry.message)
 }
 
-async function fetchPersistedHistory(userId, limit = 24) {
+function toSafeLimit(value, fallback = 24, max = 100) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) {
+    return fallback
+  }
+
+  return Math.max(1, Math.min(Math.trunc(parsed), max))
+}
+
+function parseSessionId(value) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null
+  }
+
+  return Math.trunc(parsed)
+}
+
+async function ensureSessionBelongsToUser(userId, sessionId) {
+  const parsed = parseSessionId(sessionId)
+  if (!parsed) {
+    return null
+  }
+
+  const [rows] = await pool.query(
+    `SELECT id, title, created_at, updated_at
+     FROM admin_ai_chat_sessions
+     WHERE id = ? AND user_id = ?
+     LIMIT 1`,
+    [parsed, userId],
+  )
+
+  return rows[0] || null
+}
+
+async function createChatSession(userId, title = 'New Session') {
+  const normalizedTitle = String(title || 'New Session').trim() || 'New Session'
+  const [result] = await pool.query(
+    `INSERT INTO admin_ai_chat_sessions (user_id, title)
+     VALUES (?, ?)`,
+    [userId, normalizedTitle.slice(0, 255)],
+  )
+
+  return {
+    id: Number(result.insertId),
+    title: normalizedTitle.slice(0, 255),
+  }
+}
+
+async function migrateLegacyHistoryIfNeeded(userId) {
+  const [[legacyCountRow]] = await pool.query(
+    `SELECT COUNT(*) AS total
+     FROM admin_ai_chat_history
+     WHERE user_id = ? AND session_id IS NULL`,
+    [userId],
+  )
+
+  const legacyCount = Number(legacyCountRow?.total || 0)
+  if (!legacyCount) {
+    return
+  }
+
+  const [legacySessionRows] = await pool.query(
+    `SELECT id
+     FROM admin_ai_chat_sessions
+     WHERE user_id = ? AND title = 'Legacy Session'
+     ORDER BY id ASC
+     LIMIT 1`,
+    [userId],
+  )
+
+  let legacySessionId = legacySessionRows[0]?.id
+  if (!legacySessionId) {
+    const created = await createChatSession(userId, 'Legacy Session')
+    legacySessionId = created.id
+  }
+
+  await pool.query(
+    `UPDATE admin_ai_chat_history
+     SET session_id = ?
+     WHERE user_id = ? AND session_id IS NULL`,
+    [legacySessionId, userId],
+  )
+}
+
+async function fetchLatestSession(userId) {
+  await migrateLegacyHistoryIfNeeded(userId)
+
+  const [rows] = await pool.query(
+    `SELECT id, title, created_at, updated_at
+     FROM admin_ai_chat_sessions
+     WHERE user_id = ?
+     ORDER BY updated_at DESC, id DESC
+     LIMIT 1`,
+    [userId],
+  )
+
+  return rows[0] || null
+}
+
+async function listChatSessions(userId, limit = 30) {
+  await migrateLegacyHistoryIfNeeded(userId)
+
+  const safeLimit = toSafeLimit(limit, 30, 100)
+  const [rows] = await pool.query(
+    `SELECT
+      s.id,
+      s.title,
+      s.created_at,
+      s.updated_at,
+      COUNT(h.id) AS message_count,
+      SUBSTRING_INDEX(
+        GROUP_CONCAT(CASE WHEN h.role = 'user' THEN h.message ELSE NULL END ORDER BY h.id ASC SEPARATOR '\\n'),
+        '\\n',
+        1
+      ) AS first_user_message
+     FROM admin_ai_chat_sessions s
+     LEFT JOIN admin_ai_chat_history h ON h.session_id = s.id
+     WHERE s.user_id = ?
+     GROUP BY s.id, s.title, s.created_at, s.updated_at
+     ORDER BY s.updated_at DESC, s.id DESC
+     LIMIT ${safeLimit}`,
+    [userId],
+  )
+
+  return rows.map((row) => ({
+    id: Number(row.id),
+    title: String(row.title || '').trim() || 'New Session',
+    messageCount: Number(row.message_count || 0),
+    preview: String(row.first_user_message || '').trim(),
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
+  }))
+}
+
+async function deleteChatSession(userId, sessionId) {
+  const session = await ensureSessionBelongsToUser(userId, sessionId)
+  if (!session) {
+    return { deleted: false, fallbackSessionId: null }
+  }
+
+  await pool.query(
+    `DELETE FROM admin_ai_chat_history
+     WHERE user_id = ? AND session_id = ?`,
+    [userId, session.id],
+  )
+
+  await pool.query(
+    `DELETE FROM admin_ai_chat_sessions
+     WHERE user_id = ? AND id = ?`,
+    [userId, session.id],
+  )
+
+  const fallback = await fetchLatestSession(userId)
+  return {
+    deleted: true,
+    fallbackSessionId: fallback?.id || null,
+    deletedSessionId: session.id,
+  }
+}
+
+async function fetchPersistedHistory(userId, limit = 24, sessionId = null) {
   const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.min(Number(limit), 60)) : 24
   try {
+    const session = await ensureSessionBelongsToUser(userId, sessionId)
+    if (!session) {
+      return []
+    }
+
     const [rows] = await pool.query(
-      `SELECT role, message
+      `SELECT id, role, message, session_id, created_at
        FROM admin_ai_chat_history
-       WHERE user_id = ?
+       WHERE user_id = ? AND session_id = ?
        ORDER BY id DESC
        LIMIT ${safeLimit}`,
-      [userId],
+      [userId, session.id],
     )
 
     return rows
       .reverse()
       .map((row) => ({
+        id: row.id,
+        sessionId: row.session_id,
         role: row.role === 'assistant' ? 'assistant' : 'user',
         message: String(row.message || '').trim(),
+        createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
       }))
       .filter((row) => row.message)
   } catch (error) {
@@ -1206,7 +1375,32 @@ function mergeHistory(serverHistory, clientHistory, limit = 24) {
   return compacted.slice(-limit)
 }
 
-async function persistHistory(userId, userMessage, assistantMessage) {
+async function updateSessionMetadata(sessionId, fallbackTitle) {
+  const normalizedTitle = String(fallbackTitle || '').trim()
+  if (!parseSessionId(sessionId)) {
+    return
+  }
+
+  if (normalizedTitle) {
+    await pool.query(
+      `UPDATE admin_ai_chat_sessions
+       SET title = IF(title = 'New Session', ?, title),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [normalizedTitle.slice(0, 255), sessionId],
+    )
+    return
+  }
+
+  await pool.query(
+    `UPDATE admin_ai_chat_sessions
+     SET updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [sessionId],
+  )
+}
+
+async function persistHistory(userId, sessionId, userMessage, assistantMessage) {
   const entries = []
   if (String(userMessage || '').trim()) {
     entries.push({ role: 'user', message: String(userMessage).trim() })
@@ -1220,14 +1414,16 @@ async function persistHistory(userId, userMessage, assistantMessage) {
   }
 
   try {
-    const placeholders = entries.map(() => '(?, ?, ?)').join(', ')
-    const params = entries.flatMap((entry) => [userId, entry.role, entry.message])
+    const placeholders = entries.map(() => '(?, ?, ?, ?)').join(', ')
+    const params = entries.flatMap((entry) => [userId, sessionId, entry.role, entry.message])
 
     await pool.query(
-      `INSERT INTO admin_ai_chat_history (user_id, role, message)
+      `INSERT INTO admin_ai_chat_history (user_id, session_id, role, message)
        VALUES ${placeholders}`,
       params,
     )
+
+    await updateSessionMetadata(sessionId, entries.find((entry) => entry.role === 'user')?.message || '')
 
     await pool.query(
       `DELETE FROM admin_ai_chat_history
@@ -1238,7 +1434,7 @@ async function persistHistory(userId, userMessage, assistantMessage) {
              FROM admin_ai_chat_history
              WHERE user_id = ?
              ORDER BY id DESC
-             LIMIT 60
+             LIMIT 400
            ) AS recent
          )`,
       [userId, userId],
@@ -1247,6 +1443,75 @@ async function persistHistory(userId, userMessage, assistantMessage) {
     console.error('Failed to persist admin AI chat history:', error)
   }
 }
+
+router.get('/sessions', async (req, res, next) => {
+  try {
+    const sessions = await listChatSessions(req.user.id, req.query?.limit)
+    return res.json({ items: sessions })
+  } catch (error) {
+    return next(error)
+  }
+})
+
+router.post('/sessions', async (req, res, next) => {
+  try {
+    const title = String(req.body?.title || '').trim() || 'New Session'
+    const created = await createChatSession(req.user.id, title)
+    return res.status(201).json(created)
+  } catch (error) {
+    return next(error)
+  }
+})
+
+router.delete('/sessions/:id', async (req, res, next) => {
+  try {
+    const sessionId = parseSessionId(req.params.id)
+    if (!sessionId) {
+      return res.status(400).json({ message: 'Valid session id is required.' })
+    }
+
+    const result = await deleteChatSession(req.user.id, sessionId)
+    if (!result.deleted) {
+      return res.status(404).json({ message: 'Session not found.' })
+    }
+
+    return res.json(result)
+  } catch (error) {
+    return next(error)
+  }
+})
+
+router.get('/history', async (req, res, next) => {
+  try {
+    const limit = toSafeLimit(req.query?.limit, 40, 200)
+    const requestedSessionId = parseSessionId(req.query?.sessionId)
+    let targetSession = requestedSessionId
+      ? await ensureSessionBelongsToUser(req.user.id, requestedSessionId)
+      : await fetchLatestSession(req.user.id)
+
+    if (!targetSession) {
+      return res.json({
+        sessionId: null,
+        items: [],
+      })
+    }
+
+    const history = await fetchPersistedHistory(req.user.id, limit, targetSession.id)
+
+    return res.json({
+      sessionId: targetSession.id,
+      items: history.map((entry) => ({
+        id: entry.id,
+        sessionId: entry.sessionId,
+        role: entry.role,
+        content: entry.message,
+        createdAt: entry.createdAt,
+      })),
+    })
+  } catch (error) {
+    return next(error)
+  }
+})
 
 router.get('/insights', async (_req, res, next) => {
   try {
@@ -1264,12 +1529,23 @@ router.post('/chat', async (req, res, next) => {
     }
 
     const message = String(req.body?.message || '').trim()
-    const clientHistory = Array.isArray(req.body?.history) ? req.body.history.slice(-20) : []
-    const serverHistory = await fetchPersistedHistory(req.user.id, 24)
-    const history = mergeHistory(serverHistory, clientHistory, 24)
     if (!message) {
       return res.status(400).json({ message: 'message is required' })
     }
+
+    const clientHistory = Array.isArray(req.body?.history) ? req.body.history.slice(-20) : []
+    const requestedSessionId = parseSessionId(req.body?.sessionId)
+
+    let activeSession = requestedSessionId
+      ? await ensureSessionBelongsToUser(req.user.id, requestedSessionId)
+      : await fetchLatestSession(req.user.id)
+
+    if (!activeSession) {
+      activeSession = await createChatSession(req.user.id, message.slice(0, 80) || 'New Session')
+    }
+
+    const serverHistory = await fetchPersistedHistory(req.user.id, 24, activeSession.id)
+    const history = mergeHistory(serverHistory, clientHistory, 24)
 
     const insights = await fetchInsights()
 
@@ -1278,18 +1554,20 @@ router.post('/chat', async (req, res, next) => {
       userId: req.user.id,
     })
     if (directActionResponse) {
-      await persistHistory(req.user.id, message, directActionResponse.content)
+      await persistHistory(req.user.id, activeSession.id, message, directActionResponse.content)
       return res.json({
         ...directActionResponse,
+        sessionId: activeSession.id,
         insights,
       })
     }
 
     const directResponse = await tryHandleDirectAdminQuery(message, insights)
     if (directResponse) {
-      await persistHistory(req.user.id, message, directResponse.content)
+      await persistHistory(req.user.id, activeSession.id, message, directResponse.content)
       return res.json({
         ...directResponse,
+        sessionId: activeSession.id,
         insights,
       })
     }
@@ -1339,12 +1617,13 @@ router.post('/chat', async (req, res, next) => {
         : ''
 
     const finalContent = `${reply}${resultSuffix}`.trim()
-    await persistHistory(req.user.id, message, finalContent)
+    await persistHistory(req.user.id, activeSession.id, message, finalContent)
 
     return res.json({
       role: 'assistant',
       content: finalContent,
       action: actionResult,
+      sessionId: activeSession.id,
       insights,
     })
   } catch (error) {

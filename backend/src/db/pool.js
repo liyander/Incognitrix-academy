@@ -148,13 +148,26 @@ export async function initializeDatabaseIfNeeded() {
           FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
         );
 
+        CREATE TABLE IF NOT EXISTS admin_ai_chat_sessions (
+          id BIGINT AUTO_INCREMENT PRIMARY KEY,
+          user_id INT NOT NULL,
+          title VARCHAR(255) NOT NULL DEFAULT 'New Session',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_admin_ai_session_user_updated (user_id, updated_at),
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
         CREATE TABLE IF NOT EXISTS admin_ai_chat_history (
           id BIGINT AUTO_INCREMENT PRIMARY KEY,
           user_id INT NOT NULL,
+          session_id BIGINT NULL,
           role ENUM('user', 'assistant') NOT NULL,
           message LONGTEXT NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           INDEX idx_admin_ai_chat_user_created (user_id, created_at),
+          INDEX idx_admin_ai_chat_session_created (session_id, created_at),
+          FOREIGN KEY (session_id) REFERENCES admin_ai_chat_sessions(id) ON DELETE SET NULL,
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
       `)
@@ -181,6 +194,7 @@ export async function initializeDatabaseIfNeeded() {
       await addColumnIfMissing('rooms', 'youtube_video_url', 'TEXT NULL')
       await addColumnIfMissing('rooms', 'questions_enabled', 'BOOLEAN DEFAULT false')
       await addColumnIfMissing('rooms', 'questions_json', 'LONGTEXT NULL')
+      await addColumnIfMissing('admin_ai_chat_history', 'session_id', 'BIGINT NULL')
 
       console.log('✓ Database tables already initialized')
       return
@@ -391,13 +405,26 @@ export async function initializeDatabaseIfNeeded() {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
 
+      CREATE TABLE IF NOT EXISTS admin_ai_chat_sessions (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        title VARCHAR(255) NOT NULL DEFAULT 'New Session',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_admin_ai_session_user_updated (user_id, updated_at),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
       CREATE TABLE IF NOT EXISTS admin_ai_chat_history (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
+        session_id BIGINT NULL,
         role ENUM('user', 'assistant') NOT NULL,
         message LONGTEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_admin_ai_chat_user_created (user_id, created_at),
+        INDEX idx_admin_ai_chat_session_created (session_id, created_at),
+        FOREIGN KEY (session_id) REFERENCES admin_ai_chat_sessions(id) ON DELETE SET NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
     `)
