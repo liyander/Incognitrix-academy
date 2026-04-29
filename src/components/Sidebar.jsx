@@ -103,6 +103,10 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
               Profile
             </NavLink>
           ) : null}
+          <NavLink className={navLinkClass} onClick={onClose} to="/verify-certificate">
+            <span className="material-symbols-outlined">verified</span>
+            Verify Certificate
+          </NavLink>
           <a
             className="flex items-center gap-4 px-8 py-4 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface font-headline text-xs font-bold tracking-widest uppercase transition-all duration-150 ease-in-out"
             href="#"
@@ -197,6 +201,18 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
             </span>
           </NavLink>
         ) : null}
+        <NavLink
+          className={({ isActive }) =>
+            `flex flex-col items-center gap-1 ${isActive ? 'text-primary' : 'text-on-surface-variant'}`
+          }
+          onClick={onClose}
+          to="/verify-certificate"
+        >
+          <span className="material-symbols-outlined">verified</span>
+          <span className="font-headline text-[8px] font-bold uppercase tracking-widest">
+            Verify
+          </span>
+        </NavLink>
         <NavLink
             className={({ isActive }) =>
               `flex flex-col items-center gap-1 ${isActive ? 'text-primary' : 'text-on-surface-variant'}`

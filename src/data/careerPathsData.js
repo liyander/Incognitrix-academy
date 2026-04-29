@@ -17,6 +17,7 @@ function normalizeCareerPath(path) {
     difficulty: path.difficulty || path.learningPathLevel || 'Basic',
     modules: path.modules || [],
     resources: path.resources || [],
+     certificateImageData: path.certificateImageData || null,
   }
 }
 
@@ -34,6 +35,7 @@ export const defaultCareerPaths = [
     enrolledCount: 14209,
     mastery: 12,
     color: 'primary',
+    certificateImageData: null,
     modules: [
       {
         id: 'mod-01',
@@ -78,6 +80,7 @@ export const defaultCareerPaths = [
     enrolledCount: 8950,
     mastery: 45,
     color: 'secondary',
+    certificateImageData: null,
     modules: [
       {
         id: 'mod-03',
@@ -102,6 +105,7 @@ export const defaultCareerPaths = [
     enrolledCount: 6240,
     mastery: 0,
     color: 'tertiary',
+    certificateImageData: null,
     modules: [],
     resources: [],
   },
@@ -205,6 +209,7 @@ export function addCareerPath(path) {
     difficulty: path.difficulty || path.learningPathLevel || 'Basic',
     modules: path.modules || [],
     resources: path.resources || [],
+     certificateImageData: path.certificateImageData || null,
   }
   paths.push(normalizeCareerPath(newPath))
   setCareerPathsData(paths)

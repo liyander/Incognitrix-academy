@@ -33,6 +33,7 @@ function AdminCareerPathEditorPage() {
       estimatedHours: 0,
       enrolledCount: 0,
       mastery: 0,
+      certificateImageData: '',
       modules: [],
       resources: [],
     }
@@ -48,6 +49,7 @@ function AdminCareerPathEditorPage() {
     description: '',
     imageData: '',
   })
+  const [certificateImagePreview, setCertificateImagePreview] = useState(path?.certificateImageData || '')
   const [newResourceForm, setNewResourceForm] = useState({
     title: '',
     url: '',
@@ -122,6 +124,32 @@ function AdminCareerPathEditorPage() {
         ? parseInt(value)
         : value,
     }))
+  }
+
+  const handleCertificateImageUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) {
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const imageData = String(reader.result || '')
+      setFormData((prev) => ({
+        ...prev,
+        certificateImageData: imageData,
+      }))
+      setCertificateImagePreview(imageData)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleClearCertificateImage = () => {
+    setFormData((prev) => ({
+      ...prev,
+      certificateImageData: '',
+    }))
+    setCertificateImagePreview('')
   }
 
   const handleAddModule = () => {
@@ -566,6 +594,51 @@ function AdminCareerPathEditorPage() {
                       style={{ width: `${formData.mastery}%` }}
                     ></div>
                   </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-surface-container-lowest p-8 lg:col-span-2">
+              <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-6">
+                Certificate Artwork
+              </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-6 items-start">
+                <div className="space-y-3">
+                  <label className="block font-headline text-xs uppercase tracking-widest font-bold mb-2">
+                    Select Image For Certificate
+                  </label>
+                  <input
+                    className="w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                    onChange={handleCertificateImageUpload}
+                    type="file"
+                    accept="image/*"
+                  />
+                  <p className="text-xs text-on-surface-variant">
+                    This image is embedded into the downloadable certificate for completed learners.
+                  </p>
+                  {formData.certificateImageData ? (
+                    <button
+                      className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold uppercase tracking-widest"
+                      onClick={handleClearCertificateImage}
+                      type="button"
+                    >
+                      Clear Artwork
+                    </button>
+                  ) : null}
+                </div>
+
+                <div className="bg-surface-container-highest p-3 border border-outline-variant/30 min-h-56 flex items-center justify-center overflow-hidden">
+                  {certificateImagePreview ? (
+                    <img
+                      alt="Certificate artwork preview"
+                      className="w-full h-full object-cover"
+                      src={certificateImagePreview}
+                    />
+                  ) : (
+                    <div className="text-center text-xs text-on-surface-variant uppercase tracking-widest">
+                      No artwork selected yet
+                    </div>
+                  )}
                 </div>
               </div>
             </section>

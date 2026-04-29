@@ -149,6 +149,8 @@ function SettingsPage() {
   const [form, setForm] = useState({
     username: authSession?.username || '',
     registration_number: authSession?.registrationNumber || '',
+    first_name: '',
+    last_name: '',
     email: authSession?.email || '',
     hackthebox_profile: '',
     tryhackme_profile: '',
@@ -171,6 +173,8 @@ function SettingsPage() {
           setForm({
             username: data.username || '',
             registration_number: data.registration_number || '',
+            first_name: data.first_name || '',
+            last_name: data.last_name || '',
             email: data.email || '',
             hackthebox_profile: data.hackthebox_profile || '',
             tryhackme_profile: data.tryhackme_profile || '',
@@ -259,6 +263,8 @@ function SettingsPage() {
 
     try {
       const payload = {
+        first_name: form.first_name,
+        last_name: form.last_name,
         email: form.email,
         hackthebox_profile: form.hackthebox_profile,
         tryhackme_profile: form.tryhackme_profile,
@@ -352,6 +358,26 @@ function SettingsPage() {
                   disabled
                   type="text"
                   value={form.registration_number}
+                />
+              </label>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <label className="block">
+                <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">First Name</span>
+                <input
+                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                  onChange={(e) => updateField('first_name', e.target.value)}
+                  type="text"
+                  value={form.first_name}
+                />
+              </label>
+              <label className="block">
+                <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Last Name</span>
+                <input
+                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                  onChange={(e) => updateField('last_name', e.target.value)}
+                  type="text"
+                  value={form.last_name}
                 />
               </label>
             </div>

@@ -37,6 +37,8 @@ async function ensureDatabase() {
       id INT AUTO_INCREMENT PRIMARY KEY,
       username VARCHAR(64) NOT NULL UNIQUE,
       registration_number VARCHAR(64) UNIQUE,
+      first_name VARCHAR(120),
+      last_name VARCHAR(120),
       email VARCHAR(255) UNIQUE,
       password_hash VARCHAR(255) NOT NULL,
       role ENUM('operator', 'admin') NOT NULL,
@@ -143,6 +145,7 @@ async function ensureDatabase() {
       enrolled_count INT DEFAULT 0,
       mastery INT DEFAULT 0,
       color VARCHAR(50),
+      certificate_image_data LONGTEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     );
@@ -174,6 +177,23 @@ async function ensureDatabase() {
       url TEXT,
       type VARCHAR(80),
       sort_order INT DEFAULT 0,
+      FOREIGN KEY (career_path_id) REFERENCES career_paths(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS certificates (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      certificate_id VARCHAR(80) NOT NULL UNIQUE,
+      user_id INT NOT NULL,
+      career_path_id VARCHAR(191) NOT NULL,
+      full_name VARCHAR(255) NOT NULL,
+      first_name VARCHAR(120),
+      last_name VARCHAR(120),
+      path_title VARCHAR(255) NOT NULL,
+      artwork_data LONGTEXT,
+      issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_certificate_user_path (user_id, career_path_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY (career_path_id) REFERENCES career_paths(id) ON DELETE CASCADE
     );
 
@@ -248,6 +268,8 @@ async function ensureDatabase() {
   `)
 
   await addColumnIfMissing('users', 'registration_number', 'VARCHAR(64) NULL UNIQUE')
+  await addColumnIfMissing('users', 'first_name', 'VARCHAR(120) NULL')
+  await addColumnIfMissing('users', 'last_name', 'VARCHAR(120) NULL')
   await addColumnIfMissing('users', 'email', 'VARCHAR(255) NULL UNIQUE')
   await addColumnIfMissing('users', 'hackthebox_profile', 'TEXT NULL')
   await addColumnIfMissing('users', 'tryhackme_profile', 'TEXT NULL')
@@ -266,6 +288,7 @@ async function ensureDatabase() {
   )
   await addColumnIfMissing('career_path_modules', 'module_image_data', 'LONGTEXT NULL')
   await addColumnIfMissing('notifications', 'target_user_id', 'INT NULL')
+  await addColumnIfMissing('career_paths', 'certificate_image_data', 'LONGTEXT NULL')
   await addColumnIfMissing('rooms', 'youtube_video_url', 'TEXT NULL')
   await addColumnIfMissing('rooms', 'questions_enabled', 'BOOLEAN DEFAULT false')
   await addColumnIfMissing('rooms', 'questions_json', 'LONGTEXT NULL')

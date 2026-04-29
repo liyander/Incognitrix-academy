@@ -6,6 +6,8 @@ import { authenticate, requireAdmin } from '../middleware/auth.js'
 const router = Router()
 
 const editableProfileFields = [
+  'first_name',
+  'last_name',
   'email',
   'hackthebox_profile',
   'tryhackme_profile',
@@ -37,6 +39,8 @@ router.get('/me', authenticate, async (req, res) => {
       id,
       username,
       registration_number,
+      first_name,
+      last_name,
       email,
       role,
       hackthebox_profile,
@@ -94,6 +98,8 @@ router.put('/me', authenticate, async (req, res) => {
       id,
       username,
       registration_number,
+      first_name,
+      last_name,
       email,
       role,
       hackthebox_profile,
@@ -122,6 +128,8 @@ router.get('/admin/registrations', authenticate, requireAdmin, async (_req, res)
       id,
       username,
       registration_number,
+      first_name,
+      last_name,
       email,
       role,
       is_active,
@@ -154,6 +162,8 @@ router.get('/admin/registrations/:id', authenticate, requireAdmin, async (req, r
       id,
       username,
       registration_number,
+      first_name,
+      last_name,
       email,
       role,
       is_active,
@@ -192,6 +202,8 @@ router.put('/admin/registrations/:id', authenticate, requireAdmin, async (req, r
 
   const editableAdminFields = [
     'registration_number',
+    'first_name',
+    'last_name',
     'email',
     'role',
     'is_active',
@@ -248,6 +260,8 @@ router.put('/admin/registrations/:id', authenticate, requireAdmin, async (req, r
       id,
       username,
       registration_number,
+      first_name,
+      last_name,
       email,
       role,
       is_active,

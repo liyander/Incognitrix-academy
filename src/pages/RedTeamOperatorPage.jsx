@@ -7,6 +7,7 @@ import {
 } from '../data/careerPathsData'
 import { getRoomsData } from '../data/roomsData'
 import { apiFetch } from '../services/api'
+import { downloadCertificateAsPDF, issueCertificateForPath } from '../services/certificates'
 import { getLabProgressEvents, getLabProgressMap } from '../services/labProgress'
 
 function RedTeamOperatorPage({ pathId: propPathId }) {
@@ -16,6 +17,8 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
   const [careerPaths, setCareerPaths] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [labProgressTick, setLabProgressTick] = useState(0)
+  const [certificate, setCertificate] = useState(null)
+  const [isCertificateLoading, setIsCertificateLoading] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -99,6 +102,38 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
       return
     }
     navigate(`/learn/path/${path.id}/module/${nextResumeModule.id}`)
+  }
+
+  const handleIssueCertificate = async () => {
+    if (!path?.id || completionPercentage !== 100) {
+      return
+    }
+
+    setIsCertificateLoading(true)
+    try {
+      const result = await issueCertificateForPath(path.id)
+      if (result?.certificate) {
+        setCertificate(result.certificate)
+      }
+    } catch (error) {
+      console.error('Failed to issue certificate:', error)
+    } finally {
+      setIsCertificateLoading(false)
+    }
+  }
+
+  const handleDownloadCertificate = async () => {
+    if (!certificate || !path) {
+      return
+    }
+    setIsCertificateLoading(true)
+    try {
+      await downloadCertificateAsPDF(certificate, path.title, path.certificateImageData)
+    } catch (error) {
+      console.error('Failed to download certificate:', error)
+    } finally {
+      setIsCertificateLoading(false)
+    }
   }
 
   // Show loading while fetching paths
@@ -321,6 +356,63 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
                 <div className="text-center py-6">
                   <p className="text-[10px] text-on-surface-variant">No resources available</p>
                 </div>
+              )}
+            </div>
+
+            <div className={`bg-surface-container-low p-8 border-t-2 border-on-surface transition-opacity ${completionPercentage < 100 ? 'opacity-60' : ''}`}>
+              <h3 className="text-sm font-black font-headline tracking-[2px] uppercase mb-6 flex items-center gap-2">
+                {completionPercentage === 100 ? (
+                  <span className="material-symbols-outlined text-primary text-lg">verified</span>
+                ) : (
+                  <span className="material-symbols-outlined text-outline text-lg">lock</span>
+                )}
+                Path Certificate
+              </h3>
+
+              {completionPercentage < 100 ? (
+                <div className="space-y-4 text-center">
+                  <div className="flex justify-center mb-4">
+                    <span className="material-symbols-outlined text-6xl text-outline/40">lock</span>
+                  </div>
+                  <p className="text-xs text-on-surface-variant font-headline uppercase tracking-widest">
+                    Complete {100 - completionPercentage}% more of this path to unlock your certificate
+                  </p>
+                  <div className="bg-surface-container-highest/50 p-3 rounded border border-outline-variant/30 text-left">
+                    <p className="text-[10px] text-on-surface-variant">
+                      <span className="font-bold">Progress:</span> {completedRooms}/{totalRooms} rooms completed
+                    </p>
+                  </div>
+                </div>
+              ) : certificate ? (
+                <div className="space-y-4">
+                  <div className="bg-surface-container-highest p-4 rounded border border-primary/30">
+                    <p className="text-xs text-on-surface-variant mb-2">Certificate ID</p>
+                    <p className="text-sm font-bold font-headline text-primary font-mono break-all">
+                      {certificate.certificateId}
+                    </p>
+                  </div>
+                  <button
+                    className="w-full bg-primary text-on-primary py-3 font-headline text-xs font-bold tracking-widest uppercase hover:bg-primary-container transition-all active:scale-95 disabled:opacity-50"
+                    onClick={handleDownloadCertificate}
+                    type="button"
+                  >
+                    Download Certificate
+                  </button>
+                  {certificate.verificationUrl && (
+                    <p className="text-xs text-on-surface-variant text-center">
+                      Share the verification link to prove your completion
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <button
+                  className="w-full bg-primary text-on-primary py-3 font-headline text-xs font-bold tracking-widest uppercase hover:bg-primary-container transition-all active:scale-95 disabled:opacity-50"
+                  onClick={handleIssueCertificate}
+                  disabled={isCertificateLoading}
+                  type="button"
+                >
+                  {isCertificateLoading ? 'Issuing...' : 'Issue Certificate'}
+                </button>
               )}
             </div>
           </aside>

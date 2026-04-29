@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import './App.css'
 import { getAuthSession, logoutUser } from './auth'
 import Navbar from './components/Navbar'
@@ -23,6 +23,7 @@ import AdminAiControlPage from './pages/admin/AdminAiControlPage'
 import DashboardPage from './pages/DashboardPage'
 import CvesPage from './pages/CvesPage'
 import CveDetailPage from './pages/CveDetailPage'
+import CertificateVerificationPage from './pages/CertificateVerificationPage'
 import LabRoomPage from './pages/LabRoomPage'
 import LearningPathsPage from './pages/LearningPathsPage'
 import LoginPage from './pages/LoginPage'
@@ -51,6 +52,8 @@ function App() {
   const [isBootstrapping, setIsBootstrapping] = useState(true)
   const [syncTick, setSyncTick] = useState(0)
   const [theme, setTheme] = useState(getSavedTheme)
+  const location = useLocation()
+  const isPublicVerificationRoute = location.pathname.startsWith('/verify-certificate')
 
   const toggleTheme = () => {
     setTheme((current) => toggleThemeSetting(current))
@@ -192,9 +195,21 @@ function App() {
 
   void syncTick
 
+  if (isPublicVerificationRoute) {
+    return (
+      <Routes>
+        <Route path="/verify-certificate" element={<CertificateVerificationPage />} />
+        <Route path="/verify-certificate/:certificateId" element={<CertificateVerificationPage />} />
+        <Route path="*" element={<Navigate to="/verify-certificate" replace />} />
+      </Routes>
+    )
+  }
+
   if (!authSession) {
     return (
       <Routes>
+        <Route path="/verify-certificate" element={<CertificateVerificationPage />} />
+        <Route path="/verify-certificate/:certificateId" element={<CertificateVerificationPage />} />
         <Route
           path="/login"
           element={<LoginPage onLoginSuccess={setAuthSession} />}
@@ -270,6 +285,8 @@ function App() {
           onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
         />
         <Routes>
+          <Route path="/verify-certificate" element={<CertificateVerificationPage />} />
+          <Route path="/verify-certificate/:certificateId" element={<CertificateVerificationPage />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/register" element={<Navigate to="/" replace />} />
           <Route

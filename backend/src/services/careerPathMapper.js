@@ -11,6 +11,7 @@ export function mapCareerPath(pathRow, modules = [], resources = []) {
     enrolledCount: pathRow.enrolled_count,
     mastery: pathRow.mastery,
     color: pathRow.color,
+    certificateImageData: pathRow.certificate_image_data || null,
     modules,
     resources,
   }

@@ -94,8 +94,8 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
     await conn.query(
       `INSERT INTO career_paths (
         id, slug, title, description, icon, learning_path_level,
-        difficulty, estimated_hours, enrolled_count, mastery, color
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        difficulty, estimated_hours, enrolled_count, mastery, color, certificate_image_data
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
       [
         id,
         id,
@@ -108,6 +108,7 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
         payload.enrolledCount || 0,
         payload.mastery || 0,
         payload.color || null,
+        payload.certificateImageData || null,
       ],
     )
 
@@ -171,7 +172,7 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
     await conn.query(
       `UPDATE career_paths SET
         title = ?, description = ?, icon = ?, learning_path_level = ?, difficulty = ?,
-        estimated_hours = ?, enrolled_count = ?, mastery = ?, color = ?
+        estimated_hours = ?, enrolled_count = ?, mastery = ?, color = ?, certificate_image_data = ?
       WHERE id = ?`,
       [
         payload.title ?? existing.title,
@@ -183,6 +184,7 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
         payload.enrolledCount ?? existing.enrolledCount,
         payload.mastery ?? existing.mastery,
         payload.color ?? existing.color,
+        payload.certificateImageData ?? existing.certificateImageData,
         existing.id,
       ],
     )
