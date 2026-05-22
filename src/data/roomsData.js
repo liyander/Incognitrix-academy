@@ -18,6 +18,7 @@ function normalizeRoom(room) {
     levelTone: room.levelTone || tone.levelTone,
     dotTone: room.dotTone || tone.dotTone,
     difficulty: room.difficulty || room.level || '',
+    roomType: room.roomType || room.room_type || 'theoretical',
     estimateTime: room.estimateTime || '',
     environment: room.environment || '',
     tags: room.tags || [],
@@ -51,6 +52,7 @@ export const defaultRooms = [
     description:
       'Analyze a legacy employee portal and extract encrypted credentials from the underlying database using union-based injection.',
     xp: '500 XP',
+    roomType: 'theoretical',
     difficulty: 'Easy',
     estimateTime: '45 minutes',
     environment: 'Web Browser + SQL Sandbox',
@@ -111,6 +113,7 @@ In this environment, the application dynamically constructs a SQL query by conca
     description:
       'A faulty encryption protocol is leaking prime factors. Intercept the handshake and decrypt the mission-critical command.',
     xp: '1,250 XP',
+    roomType: 'theoretical',
     difficulty: 'Medium',
     estimateTime: '60 minutes',
     environment: 'Crypto VM',
@@ -139,6 +142,7 @@ A faulty encryption protocol is leaking prime factors. Intercept the handshake a
     description:
       'Exploit a heap-based buffer overflow in a custom Linux driver to achieve ring-0 privilege escalation and maintain persistence.',
     xp: '2,500 XP',
+    roomType: 'practical',
     difficulty: 'Hard',
     estimateTime: '120 minutes',
     environment: 'Linux Kernel Lab',
@@ -167,6 +171,7 @@ Exploit a heap-based buffer overflow to achieve privilege escalation.`,
     description:
       'Examine a captured memory dump from a compromised workstation. Identify the malicious process and recover the exfiltrated file.',
     xp: '1,000 XP',
+    roomType: 'theoretical',
     difficulty: 'Medium',
     estimateTime: '75 minutes',
     environment: 'Forensics Workbench',

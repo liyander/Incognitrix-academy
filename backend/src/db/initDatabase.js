@@ -74,6 +74,7 @@ async function ensureDatabase() {
       title VARCHAR(255) NOT NULL,
       description TEXT,
       xp VARCHAR(50),
+      room_type VARCHAR(30) NOT NULL DEFAULT 'theoretical',
       difficulty VARCHAR(50),
       estimate_time VARCHAR(80),
       environment VARCHAR(255),
@@ -129,6 +130,25 @@ async function ensureDatabase() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       UNIQUE KEY uniq_user_room_question (user_id, room_id, question_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS user_room_theoretical_attempts (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      room_id VARCHAR(191) NOT NULL,
+      questions_json LONGTEXT NOT NULL,
+      answers_json LONGTEXT,
+      technical_score INT DEFAULT 0,
+      grammar_score INT DEFAULT 0,
+      feedback LONGTEXT,
+      passed BOOLEAN DEFAULT false,
+      evaluated_at DATETIME NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_theoretical_user_room (user_id, room_id),
+      INDEX idx_theoretical_room_score (room_id, technical_score, grammar_score),
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
     );
@@ -303,6 +323,7 @@ async function ensureDatabase() {
   await addColumnIfMissing('rooms', 'youtube_video_url', 'TEXT NULL')
   await addColumnIfMissing('rooms', 'questions_enabled', 'BOOLEAN DEFAULT false')
   await addColumnIfMissing('rooms', 'questions_json', 'LONGTEXT NULL')
+  await addColumnIfMissing('rooms', 'room_type', "VARCHAR(30) NOT NULL DEFAULT 'theoretical'")
   await addColumnIfMissing('admin_ai_chat_history', 'session_id', 'BIGINT NULL')
 
   const [usersCountRows] = await connection.query('SELECT COUNT(*) AS count FROM users')

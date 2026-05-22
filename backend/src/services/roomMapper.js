@@ -9,6 +9,7 @@ export function mapRoomRow(roomRow, tags = [], keywords = []) {
     title: roomRow.title,
     description: roomRow.description,
     xp: roomRow.xp,
+    roomType: roomRow.room_type || 'theoretical',
     difficulty: roomRow.difficulty,
     estimateTime: roomRow.estimate_time,
     environment: roomRow.environment,

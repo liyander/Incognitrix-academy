@@ -17,6 +17,10 @@ function renderRichContent(content, htmlOverride = '') {
   return parseMarkdownToHtml(content)
 }
 
+function hasContent(value) {
+  return Boolean(String(value || '').trim())
+}
+
 function toYouTubeEmbedUrl(input) {
   const raw = String(input || '').trim()
   if (!raw) return ''
@@ -72,6 +76,10 @@ function LabRoomPage() {
     total: 0,
     correct: 0,
     allCorrect: true,
+    mode: 'practical',
+    technicalScore: 0,
+    grammarScore: 0,
+    feedback: '',
     questions: [],
   })
   const [questionAnswers, setQuestionAnswers] = useState({})
@@ -79,7 +87,8 @@ function LabRoomPage() {
   const [questionFeedback, setQuestionFeedback] = useState('')
   const [completionError, setCompletionError] = useState('')
   const roomId = room?.id || ''
-  const questionsEnabled = Boolean(room?.content?.questionsEnabled)
+  const roomType = room?.roomType || 'theoretical'
+  const questionsEnabled = roomType === 'theoretical' || Boolean(room?.content?.questionsEnabled)
 
   useEffect(() => {
     let cancelled = false
@@ -126,9 +135,13 @@ function LabRoomPage() {
         if (!cancelled) {
           setQuestionStatus({
             enabled: false,
+            mode: 'practical',
             total: 0,
             correct: 0,
             allCorrect: true,
+            technicalScore: 0,
+            grammarScore: 0,
+            feedback: '',
             questions: [],
           })
         }
@@ -139,9 +152,13 @@ function LabRoomPage() {
         if (!cancelled) {
           setQuestionStatus({
             enabled: false,
+            mode: 'practical',
             total: 0,
             correct: 0,
             allCorrect: true,
+            technicalScore: 0,
+            grammarScore: 0,
+            feedback: '',
             questions: [],
           })
         }
@@ -153,11 +170,18 @@ function LabRoomPage() {
         if (!cancelled) {
           setQuestionStatus({
             enabled: Boolean(response?.enabled),
+            mode: response?.mode || 'practical',
             total: Number(response?.total || 0),
             correct: Number(response?.correct || 0),
             allCorrect: Boolean(response?.allCorrect),
+            technicalScore: Number(response?.technicalScore || 0),
+            grammarScore: Number(response?.grammarScore || 0),
+            feedback: response?.feedback || '',
             questions: Array.isArray(response?.questions) ? response.questions : [],
           })
+          if (response?.answers && typeof response.answers === 'object') {
+            setQuestionAnswers(response.answers)
+          }
         }
       } catch (error) {
         if (!cancelled) {
@@ -187,7 +211,10 @@ function LabRoomPage() {
     return <Navigate to="/learn" replace />
   }
 
-  const missionOverview = room.content?.missionOverview || room.content?.markdown || room.description
+  const primaryMarkdown = room.content?.markdown || ''
+  const missionOverview = hasContent(primaryMarkdown)
+    ? primaryMarkdown
+    : room.content?.missionOverview || room.description
   const remediationProtocols =
     room.content?.remediationProtocols ||
     'Apply secure coding practices, validate all user input, and enforce least privilege access.'
@@ -214,7 +241,11 @@ function LabRoomPage() {
     setCompletionError('')
 
     if (questionStatus.enabled && !questionStatus.allCorrect) {
-      setCompletionError('Answer all room questions correctly before marking complete.')
+      setCompletionError(
+        questionStatus.mode === 'theoretical'
+          ? 'Score 100 in the technical evaluation before marking complete.'
+          : 'Answer all room questions correctly before marking complete.',
+      )
       return
     }
 
@@ -255,12 +286,27 @@ function LabRoomPage() {
         correct: Number(result?.correct || 0),
         total: Number(result?.total || prev.total || 0),
         allCorrect: Boolean(result?.allCorrect),
+        technicalScore: Number(result?.technicalScore || prev.technicalScore || 0),
+        grammarScore: Number(result?.grammarScore || prev.grammarScore || 0),
+        feedback: result?.feedback || prev.feedback || '',
       }))
 
       if (result?.allCorrect) {
-        setQuestionFeedback('All answers are correct. You can now complete this room.')
+        if (result?.mode === 'theoretical') {
+          await markLabCompleted(room.id)
+          setLabStatus('completed')
+        }
+        setQuestionFeedback(
+          result?.mode === 'theoretical'
+            ? 'Technical score is 100. This room has been completed.'
+            : 'All answers are correct. You can now complete this room.',
+        )
       } else {
-        setQuestionFeedback('Some answers are incorrect. Review and try again.')
+        setQuestionFeedback(
+          result?.mode === 'theoretical'
+            ? `Technical: ${Number(result?.technicalScore || 0)} / Grammar: ${Number(result?.grammarScore || 0)}. ${result?.feedback || 'Review and try again.'}`
+            : 'Some answers are incorrect. Review and try again.',
+        )
       }
     } catch (error) {
       setQuestionFeedback(error?.message || 'Unable to submit answers right now.')
@@ -416,6 +462,12 @@ function LabRoomPage() {
                   </p>
                   <p className="font-headline font-bold text-lg">{(room.xp || 'N/A').toUpperCase()}</p>
                 </div>
+                <div>
+                  <p className="font-headline text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">
+                    Room Type
+                  </p>
+                  <p className="font-headline font-bold text-lg">{roomType.toUpperCase()}</p>
+                </div>
               </div>
               <div className="space-y-4">
                 <h3 className="font-headline text-xs font-black tracking-[0.2em] uppercase text-primary border-b border-primary/20 pb-2">
@@ -464,9 +516,32 @@ function LabRoomPage() {
                       Question Challenge
                     </span>
                     <span className="text-[10px] font-headline font-bold uppercase tracking-widest px-2 py-1 bg-secondary/15 text-secondary">
-                      {questionStatus.correct}/{questionStatus.total} Correct
+                      {questionStatus.mode === 'theoretical'
+                        ? `Tech ${questionStatus.technicalScore}/100`
+                        : `${questionStatus.correct}/${questionStatus.total} Correct`}
                     </span>
                   </div>
+
+                  {questionStatus.mode === 'theoretical' ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-surface-container-high p-3">
+                        <p className="font-headline text-[9px] uppercase tracking-widest text-on-surface-variant">
+                          Technical
+                        </p>
+                        <p className="font-space text-2xl font-bold text-primary">
+                          {questionStatus.technicalScore}
+                        </p>
+                      </div>
+                      <div className="bg-surface-container-high p-3">
+                        <p className="font-headline text-[9px] uppercase tracking-widest text-on-surface-variant">
+                          Grammar
+                        </p>
+                        <p className="font-space text-2xl font-bold text-secondary">
+                          {questionStatus.grammarScore}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div className="space-y-3">
                     {questionStatus.questions.map((question, index) => (
@@ -477,13 +552,23 @@ function LabRoomPage() {
                         {question.hint ? (
                           <p className="text-[10px] text-on-surface-variant mb-2">Hint: {question.hint}</p>
                         ) : null}
-                        <input
-                          className="w-full bg-surface-container-lowest border border-outline-variant/40 text-sm py-2 px-3 outline-none"
-                          onChange={(e) => handleQuestionAnswerChange(question.id, e.target.value)}
-                          placeholder="Enter your answer"
-                          type="text"
-                          value={questionAnswers[question.id] || ''}
-                        />
+                        {questionStatus.mode === 'theoretical' ? (
+                          <textarea
+                            className="w-full bg-surface-container-lowest border border-outline-variant/40 text-sm py-2 px-3 outline-none"
+                            onChange={(e) => handleQuestionAnswerChange(question.id, e.target.value)}
+                            placeholder="Write a complete answer"
+                            rows="5"
+                            value={questionAnswers[question.id] || ''}
+                          ></textarea>
+                        ) : (
+                          <input
+                            className="w-full bg-surface-container-lowest border border-outline-variant/40 text-sm py-2 px-3 outline-none"
+                            onChange={(e) => handleQuestionAnswerChange(question.id, e.target.value)}
+                            placeholder="Enter your answer"
+                            type="text"
+                            value={questionAnswers[question.id] || ''}
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
@@ -494,11 +579,17 @@ function LabRoomPage() {
                     onClick={handleSubmitQuestions}
                     type="button"
                   >
-                    {isSubmittingQuestions ? 'Checking Answers...' : 'Submit Answers'}
+                    {isSubmittingQuestions
+                      ? questionStatus.mode === 'theoretical'
+                        ? 'Evaluating...'
+                        : 'Checking Answers...'
+                      : questionStatus.mode === 'theoretical'
+                        ? 'Submit For AI Evaluation'
+                        : 'Submit Answers'}
                   </button>
 
-                  {questionFeedback ? (
-                    <p className="text-xs text-on-surface-variant">{questionFeedback}</p>
+                  {questionFeedback || questionStatus.feedback ? (
+                    <p className="text-xs text-on-surface-variant">{questionFeedback || questionStatus.feedback}</p>
                   ) : null}
                 </div>
               ) : null}

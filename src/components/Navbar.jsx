@@ -20,6 +20,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
   const [notifications, setNotifications] = useState([])
   const [showNotifications, setShowNotifications] = useState(false)
   const notificationsRef = useRef(null)
+  const [streak, setStreak] = useState({ currentStreak: 0 })
 
   const navItemClass = ({ isActive }) =>
     `transition-colors duration-200 ${
@@ -75,6 +76,31 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
       window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, handleNotificationsUpdated)
       window.removeEventListener('storage', handleStorage)
       document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchStreak = async () => {
+      try {
+        const data = await apiFetch('/rooms/streaks/me')
+        if (!cancelled) {
+          setStreak(data || { currentStreak: 0 })
+        }
+      } catch {
+        if (!cancelled) {
+          setStreak({ currentStreak: 0 })
+        }
+      }
+    }
+
+    void fetchStreak()
+    const interval = window.setInterval(fetchStreak, 30000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
     }
   }, [])
 
@@ -292,7 +318,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
         <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-surface-container-low rounded-full">
           <span className="material-symbols-outlined text-primary text-base">local_fire_department</span>
           <span className="font-headline text-[10px] font-bold tracking-widest text-on-background uppercase">
-            14 Day Streak
+            {Number(streak.currentStreak || 0)} Day Streak
           </span>
         </div>
         <div className="flex items-center gap-4 text-on-surface-variant">

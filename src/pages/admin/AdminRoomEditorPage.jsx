@@ -45,6 +45,7 @@ function AdminRoomEditorPage() {
       environment: '',
       description: '',
       xp: '',
+      roomType: 'theoretical',
       tags: [],
       requiredKeywords: [],
       content: {
@@ -96,6 +97,7 @@ function AdminRoomEditorPage() {
 
     const normalized = {
       ...formData,
+      roomType: formData.roomType || 'theoretical',
       slug: formData.slug || slugify(formData.title || ''),
       tags: splitCommaList(tagsInput),
       requiredKeywords: splitCommaList(requiredKeywordsInput),
@@ -307,6 +309,24 @@ function AdminRoomEditorPage() {
 
                 <div>
                   <label className="block font-headline text-xs uppercase tracking-widest font-bold mb-2">
+                    Room Type
+                  </label>
+                  <select
+                    className="w-full bg-surface-container-highest border-l-2 border-l-primary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                    name="roomType"
+                    onChange={handleInputChange}
+                    value={formData.roomType || 'theoretical'}
+                  >
+                    <option value="theoretical">Theoretical</option>
+                    <option value="practical">Practical</option>
+                  </select>
+                  <p className="text-xs text-on-surface-variant mt-2">
+                    Theoretical rooms use AI-generated questions per learner. Practical rooms use manually configured exact-answer checks.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block font-headline text-xs uppercase tracking-widest font-bold mb-2">
                     Category
                   </label>
                   <select
@@ -468,6 +488,7 @@ function AdminRoomEditorPage() {
                 </div>
                 <div className="mt-4 text-xs text-on-surface-variant space-y-1">
                   <p>Difficulty: {formData.difficulty || formData.level || 'N/A'}</p>
+                  <p>Room Type: {(formData.roomType || 'theoretical').toUpperCase()}</p>
                   <p>Estimated Time: {formData.estimateTime || 'N/A'}</p>
                   <p>Environment: {formData.environment || 'N/A'}</p>
                   <p>Tags: {splitCommaList(tagsInput).join(', ') || 'N/A'}</p>
@@ -606,32 +627,45 @@ function AdminRoomEditorPage() {
                 <h2 className="font-headline text-xl font-bold uppercase tracking-tight">
                   Question Configuration
                 </h2>
-                <button
-                  className="px-4 py-2 bg-secondary text-on-secondary font-headline text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
-                  onClick={handleAddQuestion}
-                  type="button"
-                >
-                  Add Question
-                </button>
+                {(formData.roomType || 'theoretical') === 'practical' ? (
+                  <button
+                    className="px-4 py-2 bg-secondary text-on-secondary font-headline text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
+                    onClick={handleAddQuestion}
+                    type="button"
+                  >
+                    Add Question
+                  </button>
+                ) : null}
               </div>
 
-              <label className="inline-flex items-center gap-3 mb-6 cursor-pointer">
-                <input
-                  checked={Boolean(formData.content?.questionsEnabled)}
-                  className="h-4 w-4"
-                  onChange={(e) => handleContentChange('questionsEnabled', e.target.checked)}
-                  type="checkbox"
-                />
-                <span className="font-headline text-xs font-bold uppercase tracking-widest text-on-surface">
-                  Enable Question Requirement For Room Completion
-                </span>
-              </label>
+              {(formData.roomType || 'theoretical') === 'practical' ? (
+                <label className="inline-flex items-center gap-3 mb-6 cursor-pointer">
+                  <input
+                    checked={Boolean(formData.content?.questionsEnabled)}
+                    className="h-4 w-4"
+                    onChange={(e) => handleContentChange('questionsEnabled', e.target.checked)}
+                    type="checkbox"
+                  />
+                  <span className="font-headline text-xs font-bold uppercase tracking-widest text-on-surface">
+                    Enable Question Requirement For Room Completion
+                  </span>
+                </label>
+              ) : null}
 
               <p className="text-xs text-on-surface-variant mb-6">
-                When enabled, this room can be marked complete only after all configured questions are answered correctly by the player.
+                Theoretical rooms generate AI questions automatically for each learner. Practical rooms can be marked complete only after all configured questions are answered correctly.
               </p>
 
-              {Array.isArray(formData.content?.questions) && formData.content.questions.length > 0 ? (
+              {(formData.roomType || 'theoretical') === 'theoretical' ? (
+                <div className="bg-surface-container-high p-6 border-l-2 border-l-primary">
+                  <p className="font-headline text-xs font-bold uppercase tracking-widest text-primary mb-2">
+                    AI Theoretical Evaluation
+                  </p>
+                  <p className="text-sm text-on-surface-variant">
+                    No manual questions are required. The system generates different open-ended questions for each learner and evaluates technical and grammatical quality with AI. Learners must score 100 technical to complete the room.
+                  </p>
+                </div>
+              ) : Array.isArray(formData.content?.questions) && formData.content.questions.length > 0 ? (
                 <div className="space-y-4">
                   {formData.content.questions.map((question, index) => (
                     <div key={`${question.id || 'q'}-${index}`} className="bg-surface-container-high p-5 border-l-2 border-l-secondary">

@@ -31,6 +31,7 @@ import ModulesPage from './pages/ModulesPage'
 import ModuleDetailPage from './pages/ModuleDetailPage'
 import NotesPage from './pages/NotesPage'
 import ProfilePage from './pages/ProfilePage'
+import ScoreboardPage from './pages/ScoreboardPage'
 import SettingsPage from './pages/SettingsPage'
 import RegistrationPage from './pages/RegistrationPage'
 import RedTeamOperatorPage from './pages/RedTeamOperatorPage'
@@ -393,6 +394,10 @@ function App() {
           <Route
             path="/notes"
             element={<NotesPage />}
+          />
+          <Route
+            path="/scoreboard"
+            element={<ScoreboardPage />}
           />
           <Route
             path="/cves/:id"
