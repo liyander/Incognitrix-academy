@@ -91,6 +91,7 @@ function LabRoomPage() {
   const [questionAnswers, setQuestionAnswers] = useState({})
   const [isSubmittingQuestions, setIsSubmittingQuestions] = useState(false)
   const [questionFeedback, setQuestionFeedback] = useState('')
+  const [resultModal, setResultModal] = useState(null)
   const [completionError, setCompletionError] = useState('')
   const roomId = room?.id || ''
   const roomType = normalizeRoomType(room?.roomType)
@@ -286,31 +287,47 @@ function LabRoomPage() {
         method: 'POST',
         body: JSON.stringify({ answers: questionAnswers }),
       })
+      const resultMode = result?.mode || questionStatus.mode || 'practical'
+      const passed = Boolean(result?.allCorrect)
+      const technicalScore = Number(result?.technicalScore || 0)
+      const grammarScore = Number(result?.grammarScore || 0)
+      const correct = Number(result?.correct || 0)
+      const total = Number(result?.total || questionStatus.total || 0)
 
       setQuestionStatus((prev) => ({
         ...prev,
-        correct: Number(result?.correct || 0),
-        total: Number(result?.total || prev.total || 0),
-        allCorrect: Boolean(result?.allCorrect),
-        technicalScore: Number(result?.technicalScore || prev.technicalScore || 0),
-        grammarScore: Number(result?.grammarScore || prev.grammarScore || 0),
+        correct,
+        total,
+        allCorrect: passed,
+        technicalScore: technicalScore || prev.technicalScore || 0,
+        grammarScore: grammarScore || prev.grammarScore || 0,
         feedback: result?.feedback || prev.feedback || '',
       }))
 
-      if (result?.allCorrect) {
-        if (result?.mode === 'theoretical') {
+      setResultModal({
+        mode: resultMode,
+        passed,
+        technicalScore,
+        grammarScore,
+        correct,
+        total,
+        feedback: result?.feedback || '',
+      })
+
+      if (passed) {
+        if (resultMode === 'theoretical') {
           await markLabCompleted(room.id)
           setLabStatus('completed')
         }
         setQuestionFeedback(
-          result?.mode === 'theoretical'
+          resultMode === 'theoretical'
             ? 'Technical score is 100. This room has been completed.'
             : 'All answers are correct. You can now complete this room.',
         )
       } else {
         setQuestionFeedback(
-          result?.mode === 'theoretical'
-            ? `Technical: ${Number(result?.technicalScore || 0)} / Grammar: ${Number(result?.grammarScore || 0)}. ${result?.feedback || 'Review and try again.'}`
+          resultMode === 'theoretical'
+            ? `Technical: ${technicalScore} / Grammar: ${grammarScore}. ${result?.feedback || 'Review and try again.'}`
             : 'Some answers are incorrect. Review and try again.',
         )
       }
@@ -323,6 +340,82 @@ function LabRoomPage() {
 
   return (
     <main className="pt-16 md:pt-20 min-h-screen">
+      {resultModal ? (
+        <div className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="w-full max-w-lg bg-surface-container-lowest border border-outline-variant/40 shadow-2xl">
+            <div className={`h-1 ${resultModal.passed ? 'bg-secondary' : 'bg-primary'}`}></div>
+            <div className="p-8">
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div>
+                  <span className="font-label text-[10px] uppercase tracking-[0.25em] text-primary font-bold">
+                    Evaluation Result
+                  </span>
+                  <h2 className="font-headline text-3xl font-black uppercase tracking-tight mt-2 text-on-background">
+                    {resultModal.passed ? 'Passed' : 'Not Passed'}
+                  </h2>
+                </div>
+                <button
+                  className="inline-flex items-center justify-center h-10 w-10 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
+                  onClick={() => setResultModal(null)}
+                  type="button"
+                  aria-label="Close result"
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+
+              {resultModal.mode === 'theoretical' ? (
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="bg-surface-container-low p-5">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-2">
+                      Technical
+                    </p>
+                    <p className="font-space text-4xl font-black text-primary">
+                      {resultModal.technicalScore}
+                    </p>
+                    <p className="text-xs text-on-surface-variant mt-2">Required: 100</p>
+                  </div>
+                  <div className="bg-surface-container-low p-5">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-2">
+                      Grammar
+                    </p>
+                    <p className="font-space text-4xl font-black text-secondary">
+                      {resultModal.grammarScore}
+                    </p>
+                    <p className="text-xs text-on-surface-variant mt-2">Writing quality</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-surface-container-low p-5 mb-6">
+                  <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-2">
+                    Correct Answers
+                  </p>
+                  <p className="font-space text-4xl font-black text-primary">
+                    {resultModal.correct}/{resultModal.total}
+                  </p>
+                </div>
+              )}
+
+              <p className="text-sm text-on-surface-variant leading-relaxed mb-6">
+                {resultModal.feedback ||
+                  (resultModal.passed
+                    ? 'You met the completion requirement for this room.'
+                    : resultModal.mode === 'theoretical'
+                      ? 'Improve the technical accuracy of your answers and submit again.'
+                      : 'Review the incorrect answers and submit again.')}
+              </p>
+
+              <button
+                className="w-full py-3 bg-primary text-on-primary font-headline text-[10px] font-bold tracking-widest uppercase hover:bg-primary-container transition-colors"
+                onClick={() => setResultModal(null)}
+                type="button"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="max-w-[96rem] mx-auto p-8 lg:p-12">
         <header className="mb-12 border-l-4 border-primary pl-8">
           <div className="flex flex-wrap gap-2 mb-4">
