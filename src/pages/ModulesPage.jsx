@@ -12,8 +12,6 @@ function searchableValue(value) {
 
 function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
   const allRooms = useMemo(() => getRoomsData(), [])
-  const activeRoom = allRooms.find((room) => room.slug === selectedLabId) ?? null
-  const showActiveSessions = false
 
   const [complexity, setComplexity] = useState('Any Difficulty')
   const [specialization, setSpecialization] = useState('All Categories')
@@ -185,11 +183,10 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
         </div>
       </div>
 
-      <div className="flex flex-col xl:flex-row gap-12">
-        <div className="flex-1">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
             {filteredRooms.length > 0 ? (
-              filteredRooms.map((room) => {
+              <>
+              {filteredRooms.slice(0, 2).map((room) => {
                 const status = getRoomStatus(room.id)
                 return (
                 <div
@@ -236,6 +233,89 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
                   </div>
                 </div>
               )})
+              }
+
+              <div className="p-8 border-t border-outline-variant/30 bg-surface">
+                <h2 className="font-label text-sm font-bold tracking-widest uppercase text-on-background mb-6">Your Proficiency</h2>
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex justify-between font-label text-[10px] font-bold uppercase mb-2">
+                      <span className="text-on-surface-variant">Web Hacking</span>
+                      <span className="text-primary">82%</span>
+                    </div>
+                    <div className="h-1 bg-surface-container-highest w-full overflow-hidden">
+                      <div className="h-full bg-primary w-[82%]"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between font-label text-[10px] font-bold uppercase mb-2">
+                      <span className="text-on-surface-variant">Cryptography</span>
+                      <span className="text-primary">45%</span>
+                    </div>
+                    <div className="h-1 bg-surface-container-highest w-full overflow-hidden">
+                      <div className="h-full bg-primary w-[45%]"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between font-label text-[10px] font-bold uppercase mb-2">
+                      <span className="text-on-surface-variant">Reversing</span>
+                      <span className="text-primary">12%</span>
+                    </div>
+                    <div className="h-1 bg-surface-container-highest w-full overflow-hidden">
+                      <div className="h-full bg-primary w-[12%]"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {filteredRooms.slice(2).map((room) => {
+                const status = getRoomStatus(room.id)
+                return (
+                <div
+                  className={`bg-surface-container-lowest group relative transition-all duration-300 ${room.slug === selectedLabId ? 'ring-1 ring-primary' : ''}`}
+                  key={room.slug || room.title}
+                >
+                  <div className="h-1 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500"></div>
+                  <div className="p-8">
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="bg-secondary/10 px-3 py-1">
+                        <span className="font-label text-[10px] font-bold text-secondary tracking-widest uppercase">{room.category}</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                        <div className={`w-2 h-2 rounded-full ${room.dotTone}`}></div>
+                        <span className={`font-label text-[10px] font-bold tracking-widest uppercase ${room.levelTone}`}>{room.level}</span>
+                        <span className={`font-label text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 ${status === 'completed' ? 'bg-secondary/15 text-secondary' : status === 'in-progress' ? 'bg-primary/15 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                          {status === 'completed' ? 'Completed' : status === 'in-progress' ? 'In Progress' : 'Not Started'}
+                        </span>
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-bold tracking-tight text-on-background mb-3 font-headline">{room.title}</h3>
+                    <p className="text-sm text-on-surface-variant font-body leading-relaxed mb-8">{room.description}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="font-label text-[10px] uppercase tracking-tighter text-on-surface-variant font-bold">Reward Pool</span>
+                        <span className="text-lg font-space font-bold text-primary">{room.xp}</span>
+                      </div>
+                      {allowLabRooms ? (
+                        <Link
+                          className="inline-block bg-primary text-on-primary font-label uppercase text-xs tracking-widest py-3 px-8 group-hover:bg-primary-container transition-colors font-bold"
+                          to={`/learn/lab/${room.slug}`}
+                        >
+                          {status === 'completed' ? 'REVISIT ROOM' : room.slug === selectedLabId ? 'IN ROOM' : 'ENTER ROOM'}
+                        </Link>
+                      ) : (
+                        <button
+                          className="inline-block bg-surface-container-highest text-on-surface-variant font-label uppercase text-xs tracking-widest py-3 px-8 font-bold cursor-not-allowed"
+                          type="button"
+                        >
+                          DISABLED
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )})}
+              </>
             ) : (
               <div className="col-span-full py-12 text-center">
                 <div className="flex flex-col items-center gap-4">
@@ -254,82 +334,6 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
                 </div>
               </div>
             )}
-          </div>
-        </div>
-
-        <aside className="w-full xl:w-96 shrink-0">
-          <div className="sticky top-28 space-y-8">
-            {showActiveSessions ? (
-              <div className="bg-surface-container-low border-l-4 border-l-primary p-8">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="font-label text-sm font-bold tracking-widest uppercase text-on-background">Active Sessions</h2>
-                  <span className="bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-black tracking-widest">1 RUNNING</span>
-                </div>
-
-                <div className="bg-white p-6 space-y-6">
-                  <div>
-                    <div className="font-label text-[10px] font-bold text-primary tracking-widest uppercase mb-1">Current Target</div>
-                    <h4 className="text-lg font-bold font-space text-on-background">
-                      {activeRoom?.title ?? 'XSS: The Social Engineering Path'}
-                    </h4>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-surface-container-low p-4">
-                      <div className="font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-tighter">Time Elapsed</div>
-                      <div className="font-space font-bold text-lg text-on-background">00:42:18</div>
-                    </div>
-                    <div className="bg-surface-container-low p-4">
-                      <div className="font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-tighter">Instance IP</div>
-                      <div className="font-space font-bold text-lg text-secondary">10.10.12.84</div>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <button className="w-full bg-secondary text-on-secondary font-label uppercase text-xs tracking-widest py-4 px-6 hover:opacity-90 active:scale-[0.98] transition-all font-bold flex items-center justify-center gap-3" type="button">
-                      <span className="material-symbols-outlined text-sm">terminal</span>
-                      ACCESS TERMINAL
-                    </button>
-                    <button className="w-full bg-surface-container-highest text-on-surface-variant font-label uppercase text-xs tracking-widest py-4 px-6 hover:bg-error/10 hover:text-error transition-all font-bold" type="button">
-                      TERMINATE SESSION
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
-            <div className="p-8 border-t border-outline-variant/30">
-              <h2 className="font-label text-sm font-bold tracking-widest uppercase text-on-background mb-6">Your Proficiency</h2>
-              <div className="space-y-6">
-                <div>
-                  <div className="flex justify-between font-label text-[10px] font-bold uppercase mb-2">
-                    <span className="text-on-surface-variant">Web Hacking</span>
-                    <span className="text-primary">82%</span>
-                  </div>
-                  <div className="h-1 bg-surface-container-highest w-full overflow-hidden">
-                    <div className="h-full bg-primary w-[82%]"></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between font-label text-[10px] font-bold uppercase mb-2">
-                    <span className="text-on-surface-variant">Cryptography</span>
-                    <span className="text-primary">45%</span>
-                  </div>
-                  <div className="h-1 bg-surface-container-highest w-full overflow-hidden">
-                    <div className="h-full bg-primary w-[45%]"></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between font-label text-[10px] font-bold uppercase mb-2">
-                    <span className="text-on-surface-variant">Reversing</span>
-                    <span className="text-primary">12%</span>
-                  </div>
-                  <div className="h-1 bg-surface-container-highest w-full overflow-hidden">
-                    <div className="h-full bg-primary w-[12%]"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </aside>
       </div>
 
       <section className="mt-20">
