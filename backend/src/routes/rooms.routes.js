@@ -11,6 +11,27 @@ function isTheoreticalRoom(room) {
   return String(room?.roomType || 'theoretical').toLowerCase() !== 'practical'
 }
 
+function extractMessageText(modelMessage) {
+  const content = modelMessage?.content
+  if (typeof content === 'string') {
+    return content
+  }
+
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => {
+        if (typeof part === 'string') return part
+        if (typeof part?.text === 'string') return part.text
+        if (typeof part?.output_text === 'string') return part.output_text
+        return ''
+      })
+      .join('\n')
+      .trim()
+  }
+
+  return ''
+}
+
 function safeJsonParse(raw, fallback) {
   try {
     const parsed = JSON.parse(raw || '')
@@ -105,7 +126,7 @@ async function generateTheoreticalQuestions(room, userId) {
       ],
     })
 
-    const raw = response?.choices?.[0]?.message?.content || ''
+    const raw = extractMessageText(response?.choices?.[0]?.message)
     const parsed = extractJsonObject(raw)
     const questions = Array.isArray(parsed?.questions) ? parsed.questions : []
     const normalized = questions
@@ -174,7 +195,7 @@ async function evaluateTheoreticalAnswers(room, questions, answers) {
       ],
     })
 
-    const parsed = extractJsonObject(response?.choices?.[0]?.message?.content || '')
+    const parsed = extractJsonObject(extractMessageText(response?.choices?.[0]?.message))
     return {
       technicalScore: Math.max(0, Math.min(100, Number(parsed?.technicalScore || 0))),
       grammarScore: Math.max(0, Math.min(100, Number(parsed?.grammarScore || 0))),
@@ -200,7 +221,34 @@ async function getOrCreateTheoreticalAttempt(room, userId) {
   )
 
   if (rows.length) {
-    return rows[0]
+    const questions = safeJsonParse(rows[0].questions_json, [])
+    if (Array.isArray(questions) && questions.length > 0) {
+      return rows[0]
+    }
+
+    const regeneratedQuestions = await generateTheoreticalQuestions(room, userId)
+    await pool.query(
+      `UPDATE user_room_theoretical_attempts
+       SET questions_json = ?,
+           answers_json = NULL,
+           technical_score = 0,
+           grammar_score = 0,
+           feedback = NULL,
+           passed = false,
+           evaluated_at = NULL
+       WHERE user_id = ? AND room_id = ?`,
+      [JSON.stringify(regeneratedQuestions), userId, room.id],
+    )
+
+    const [regeneratedRows] = await pool.query(
+      `SELECT *
+       FROM user_room_theoretical_attempts
+       WHERE user_id = ? AND room_id = ?
+       LIMIT 1`,
+      [userId, room.id],
+    )
+
+    return regeneratedRows[0]
   }
 
   const questions = await generateTheoreticalQuestions(room, userId)

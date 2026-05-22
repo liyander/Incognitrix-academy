@@ -21,6 +21,12 @@ function hasContent(value) {
   return Boolean(String(value || '').trim())
 }
 
+function normalizeRoomType(value) {
+  return String(value || 'theoretical').toLowerCase() === 'practical'
+    ? 'practical'
+    : 'theoretical'
+}
+
 function toYouTubeEmbedUrl(input) {
   const raw = String(input || '').trim()
   if (!raw) return ''
@@ -87,8 +93,8 @@ function LabRoomPage() {
   const [questionFeedback, setQuestionFeedback] = useState('')
   const [completionError, setCompletionError] = useState('')
   const roomId = room?.id || ''
-  const roomType = room?.roomType || 'theoretical'
-  const questionsEnabled = roomType === 'theoretical' || Boolean(room?.content?.questionsEnabled)
+  const roomType = normalizeRoomType(room?.roomType)
+  const questionsEnabled = roomType !== 'practical' || Boolean(room?.content?.questionsEnabled)
 
   useEffect(() => {
     let cancelled = false

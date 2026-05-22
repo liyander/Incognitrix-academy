@@ -27,6 +27,12 @@ function createEmptyQuestion(index) {
   }
 }
 
+function normalizeRoomType(value) {
+  return String(value || 'theoretical').toLowerCase() === 'practical'
+    ? 'practical'
+    : 'theoretical'
+}
+
 function AdminRoomEditorPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -97,7 +103,7 @@ function AdminRoomEditorPage() {
 
     const normalized = {
       ...formData,
-      roomType: formData.roomType || 'theoretical',
+      roomType: normalizeRoomType(formData.roomType),
       slug: formData.slug || slugify(formData.title || ''),
       tags: splitCommaList(tagsInput),
       requiredKeywords: splitCommaList(requiredKeywordsInput),
@@ -315,7 +321,7 @@ function AdminRoomEditorPage() {
                     className="w-full bg-surface-container-highest border-l-2 border-l-primary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                     name="roomType"
                     onChange={handleInputChange}
-                    value={formData.roomType || 'theoretical'}
+                    value={normalizeRoomType(formData.roomType)}
                   >
                     <option value="theoretical">Theoretical</option>
                     <option value="practical">Practical</option>
@@ -488,7 +494,7 @@ function AdminRoomEditorPage() {
                 </div>
                 <div className="mt-4 text-xs text-on-surface-variant space-y-1">
                   <p>Difficulty: {formData.difficulty || formData.level || 'N/A'}</p>
-                  <p>Room Type: {(formData.roomType || 'theoretical').toUpperCase()}</p>
+                  <p>Room Type: {normalizeRoomType(formData.roomType).toUpperCase()}</p>
                   <p>Estimated Time: {formData.estimateTime || 'N/A'}</p>
                   <p>Environment: {formData.environment || 'N/A'}</p>
                   <p>Tags: {splitCommaList(tagsInput).join(', ') || 'N/A'}</p>
@@ -627,7 +633,7 @@ function AdminRoomEditorPage() {
                 <h2 className="font-headline text-xl font-bold uppercase tracking-tight">
                   Question Configuration
                 </h2>
-                {(formData.roomType || 'theoretical') === 'practical' ? (
+                {normalizeRoomType(formData.roomType) === 'practical' ? (
                   <button
                     className="px-4 py-2 bg-secondary text-on-secondary font-headline text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
                     onClick={handleAddQuestion}
@@ -638,7 +644,7 @@ function AdminRoomEditorPage() {
                 ) : null}
               </div>
 
-              {(formData.roomType || 'theoretical') === 'practical' ? (
+              {normalizeRoomType(formData.roomType) === 'practical' ? (
                 <label className="inline-flex items-center gap-3 mb-6 cursor-pointer">
                   <input
                     checked={Boolean(formData.content?.questionsEnabled)}
@@ -656,7 +662,7 @@ function AdminRoomEditorPage() {
                 Theoretical rooms generate AI questions automatically for each learner. Practical rooms can be marked complete only after all configured questions are answered correctly.
               </p>
 
-              {(formData.roomType || 'theoretical') === 'theoretical' ? (
+              {normalizeRoomType(formData.roomType) === 'theoretical' ? (
                 <div className="bg-surface-container-high p-6 border-l-2 border-l-primary">
                   <p className="font-headline text-xs font-bold uppercase tracking-widest text-primary mb-2">
                     AI Theoretical Evaluation
