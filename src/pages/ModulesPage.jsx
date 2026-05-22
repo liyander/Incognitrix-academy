@@ -6,9 +6,8 @@ import {
   getLabProgressMap,
 } from '../services/labProgress'
 
-// Export function for backward compatibility with LabRoomPage
-export function rooms() {
-  return getRoomsData()
+function searchableValue(value) {
+  return String(value ?? '').toLowerCase()
 }
 
 function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
@@ -37,9 +36,9 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
       const query = searchQuery.trim().toLowerCase()
       results = results.filter(
         (room) =>
-          room.title.toLowerCase().includes(query) ||
-          room.description.toLowerCase().includes(query) ||
-          room.slug.toLowerCase().includes(query)
+          searchableValue(room.title).includes(query) ||
+          searchableValue(room.description).includes(query) ||
+          searchableValue(room.slug).includes(query)
       )
     }
 

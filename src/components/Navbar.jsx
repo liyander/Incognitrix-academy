@@ -7,6 +7,10 @@ import { apiFetch } from '../services/api'
 const NOTIFICATIONS_UPDATED_EVENT = 'incognitrix:notifications-updated'
 const NOTIFICATIONS_UPDATED_KEY = 'incognitrix_notifications_updated_at'
 
+function searchableValue(value) {
+  return String(value ?? '').toLowerCase()
+}
+
 function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
@@ -98,7 +102,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
       return
     }
 
-    const query = value.toLowerCase()
+    const query = value.trim().toLowerCase()
     const careerPaths = getCareerPathsData()
     const rooms = getRoomsData()
 
@@ -106,7 +110,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
 
     // Search in career paths
     careerPaths.forEach((path) => {
-      if (path.title.toLowerCase().includes(query) || path.description.toLowerCase().includes(query)) {
+      if (searchableValue(path.title).includes(query) || searchableValue(path.description).includes(query)) {
         results.push({
           type: 'path',
           id: path.id,
@@ -119,7 +123,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
       // Search in modules
       if (path.modules) {
         path.modules.forEach((module) => {
-          if (module.title.toLowerCase().includes(query) || module.description.toLowerCase().includes(query)) {
+          if (searchableValue(module.title).includes(query) || searchableValue(module.description).includes(query)) {
             results.push({
               type: 'module',
               id: module.id,
@@ -136,7 +140,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
 
     // Search in rooms
     rooms.forEach((room) => {
-      if (room.title.toLowerCase().includes(query) || room.description.toLowerCase().includes(query)) {
+      if (searchableValue(room.title).includes(query) || searchableValue(room.description).includes(query)) {
         results.push({
           type: 'room',
           id: room.id,
@@ -233,7 +237,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
                   </p>
                 </div>
                 <div className="max-h-96 overflow-y-auto">
-                  {searchResults.map((result, idx) => (
+                  {searchResults.map((result) => (
                     <button
                       key={`${result.type}-${result.id}`}
                       onClick={() => handleSelectResult(result)}
