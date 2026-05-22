@@ -3,6 +3,19 @@ import { apiFetch } from '../services/api'
 import { parseMarkdownToHtml } from '../utils/markdown'
 
 const EMPTY_NOTE_CONTENT = '# New note\n\nStart writing in Markdown...'
+const markdownPreviewClassName =
+  'overflow-y-auto p-6 border-l border-outline-variant/40 font-body leading-relaxed text-on-surface ' +
+  '[&_h1]:text-3xl [&_h1]:font-black [&_h1]:tracking-tight [&_h1]:mt-2 [&_h1]:mb-5 [&_h1]:pb-3 [&_h1]:border-b [&_h1]:border-outline-variant/30 ' +
+  '[&_h2]:text-2xl [&_h2]:font-bold [&_h2]:tracking-tight [&_h2]:mt-7 [&_h2]:mb-3 [&_h2]:pb-2 [&_h2]:border-b [&_h2]:border-outline-variant/25 ' +
+  '[&_h3]:text-xl [&_h3]:font-bold [&_h3]:mt-6 [&_h3]:mb-2 [&_h4]:text-lg [&_h4]:font-bold [&_h4]:mt-5 [&_h4]:mb-2 ' +
+  '[&_p]:mb-4 [&_p]:text-on-surface [&_strong]:font-bold [&_em]:italic [&_del]:line-through ' +
+  '[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4 [&_li]:mb-1.5 ' +
+  '[&_pre]:bg-surface-container-high [&_pre]:border [&_pre]:border-outline-variant/30 [&_pre]:p-5 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:my-5 ' +
+  '[&_code]:font-mono [&_code]:text-[0.9em] [&_code]:bg-surface-container-highest [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_pre_code]:bg-transparent [&_pre_code]:p-0 ' +
+  '[&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary-container [&_hr]:my-6 [&_hr]:border-outline-variant/40 ' +
+  '[&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:bg-surface-container-low [&_blockquote]:px-4 [&_blockquote]:py-3 [&_blockquote]:my-4 [&_blockquote]:italic ' +
+  '[&_img]:max-w-full [&_img]:my-5 [&_img]:border [&_img]:border-outline-variant/30 ' +
+  '[&_table]:w-full [&_table]:border-collapse [&_table]:my-5 [&_th]:text-left [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-widest [&_th]:font-headline [&_th]:bg-surface-container-high [&_th]:p-3 [&_th]:border [&_th]:border-outline-variant/30 [&_td]:p-3 [&_td]:border [&_td]:border-outline-variant/30'
 
 function createLocalNote() {
   return {
@@ -341,7 +354,7 @@ function NotesPage() {
                 value={draft.content}
               />
               <div
-                className={`overflow-y-auto p-6 border-l border-outline-variant/40 prose prose-sm max-w-none text-on-surface ${
+                className={`${markdownPreviewClassName} ${
                   mode === 'edit' ? 'hidden lg:block' : 'block'
                 }`}
                 dangerouslySetInnerHTML={{ __html: previewHtml }}
