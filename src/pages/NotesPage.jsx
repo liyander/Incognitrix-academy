@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { apiFetch } from '../services/api'
 import { parseMarkdownToHtml } from '../utils/markdown'
 
@@ -53,11 +53,6 @@ function NotesPage() {
   const saveTimerRef = useRef(null)
   const lastSavedDraftRef = useRef('')
 
-  const activeNote = useMemo(
-    () => notes.find((note) => note.id === activeNoteId) || null,
-    [activeNoteId, notes],
-  )
-
   const previewHtml = useMemo(() => parseMarkdownToHtml(draft.content), [draft.content])
 
   useEffect(() => {
@@ -101,16 +96,59 @@ function NotesPage() {
     }
   }, [])
 
-  useEffect(() => {
-    if (!activeNote) return
-
-    setDraft(activeNote)
-    lastSavedDraftRef.current = JSON.stringify({
-      id: activeNote.id,
-      title: activeNote.title,
-      content: activeNote.content,
+  const saveDraft = useCallback(async (noteDraft) => {
+    const snapshot = JSON.stringify({
+      id: noteDraft.id,
+      title: noteDraft.title,
+      content: noteDraft.content,
     })
-  }, [activeNote])
+
+    if (snapshot === lastSavedDraftRef.current) {
+      return noteDraft
+    }
+
+    setIsSaving(true)
+    setError('')
+
+    try {
+      const payload = {
+        title: noteDraft.title,
+        content: noteDraft.content,
+      }
+      const saved = noteDraft.id
+        ? await apiFetch(`/notes/${noteDraft.id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload),
+          })
+        : await apiFetch('/notes', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+          })
+
+      setNotes((current) => {
+        const exists = current.some((note) => note.id === saved.id)
+        const next = exists
+          ? current.map((note) => (note.id === saved.id ? saved : note))
+          : [saved, ...current]
+
+        return next.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+      })
+      setActiveNoteId(saved.id)
+      setDraft(saved)
+      lastSavedDraftRef.current = JSON.stringify({
+        id: saved.id,
+        title: saved.title,
+        content: saved.content,
+      })
+
+      return saved
+    } catch (saveError) {
+      setError(saveError?.message || 'Failed to save note')
+      return noteDraft
+    } finally {
+      setIsSaving(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (isLoading) return
@@ -129,45 +167,8 @@ function NotesPage() {
       window.clearTimeout(saveTimerRef.current)
     }
 
-    saveTimerRef.current = window.setTimeout(async () => {
-      setIsSaving(true)
-      setError('')
-
-      try {
-        const payload = {
-          title: draft.title,
-          content: draft.content,
-        }
-        const saved = draft.id
-          ? await apiFetch(`/notes/${draft.id}`, {
-              method: 'PUT',
-              body: JSON.stringify(payload),
-            })
-          : await apiFetch('/notes', {
-              method: 'POST',
-              body: JSON.stringify(payload),
-            })
-
-        setNotes((current) => {
-          const exists = current.some((note) => note.id === saved.id)
-          const next = exists
-            ? current.map((note) => (note.id === saved.id ? saved : note))
-            : [saved, ...current]
-
-          return next.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
-        })
-        setActiveNoteId(saved.id)
-        setDraft(saved)
-        lastSavedDraftRef.current = JSON.stringify({
-          id: saved.id,
-          title: saved.title,
-          content: saved.content,
-        })
-      } catch (saveError) {
-        setError(saveError?.message || 'Failed to save note')
-      } finally {
-        setIsSaving(false)
-      }
+    saveTimerRef.current = window.setTimeout(() => {
+      void saveDraft(draft)
     }, 700)
 
     return () => {
@@ -175,7 +176,7 @@ function NotesPage() {
         window.clearTimeout(saveTimerRef.current)
       }
     }
-  }, [draft, isLoading])
+  }, [draft, isLoading, saveDraft])
 
   const handleCreateNote = () => {
     const nextNote = createLocalNote()
@@ -183,6 +184,21 @@ function NotesPage() {
     setDraft(nextNote)
     lastSavedDraftRef.current = ''
     setMode('edit')
+  }
+
+  const handleSelectNote = async (note) => {
+    if (saveTimerRef.current) {
+      window.clearTimeout(saveTimerRef.current)
+    }
+
+    await saveDraft(draft)
+    setActiveNoteId(note.id)
+    setDraft(note)
+    lastSavedDraftRef.current = JSON.stringify({
+      id: note.id,
+      title: note.title,
+      content: note.content,
+    })
   }
 
   const updateDraft = (updates) => {
@@ -280,7 +296,9 @@ function NotesPage() {
                         : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
                     }`}
                     key={note.id}
-                    onClick={() => setActiveNoteId(note.id)}
+                    onClick={() => {
+                      void handleSelectNote(note)
+                    }}
                     type="button"
                   >
                     <span className="block font-headline text-sm font-bold uppercase truncate">
@@ -306,6 +324,9 @@ function NotesPage() {
             <div className="px-5 py-4 border-b border-outline-variant/40 flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
               <input
                 className="bg-transparent outline-none font-headline text-2xl lg:text-3xl font-black tracking-tight text-on-background min-w-0 flex-1"
+                onBlur={() => {
+                  void saveDraft(draft)
+                }}
                 onChange={(event) => updateDraft({ title: event.target.value })}
                 placeholder="Untitled note"
                 type="text"
@@ -348,6 +369,9 @@ function NotesPage() {
                 className={`w-full h-full min-h-[420px] resize-none bg-surface-container-lowest border-0 outline-none p-6 font-space text-sm leading-7 text-on-background ${
                   mode === 'preview' ? 'hidden lg:block' : 'block'
                 }`}
+                onBlur={() => {
+                  void saveDraft(draft)
+                }}
                 onChange={(event) => updateDraft({ content: event.target.value })}
                 placeholder="Write Markdown notes..."
                 spellCheck="true"
