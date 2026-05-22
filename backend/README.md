@@ -5,6 +5,7 @@ This backend provides API support for:
 - Experimental rooms
 - Career paths (including modules/resources)
 - Platform configuration
+- Public API access for external applications
 
 ## 1. Configure environment
 
@@ -18,6 +19,7 @@ Also set:
 - `DB_PORT`
 - `DB_NAME`
 - `JWT_SECRET`
+- `PUBLIC_API_KEY` or `PUBLIC_API_KEYS`
 - `NVIDIA_API_KEY`
 
 Optional AI overrides:
@@ -63,5 +65,27 @@ Backend runs on `http://localhost:4000` by default.
 - `DELETE /api/career-paths/:id` (admin)
 - `GET /api/platform-config`
 - `PUT /api/platform-config` (admin)
+- `GET /api/public/health`
+- `GET /api/public/meta` (requires API key)
+- `GET /api/public/summary` (requires API key)
+- `GET /api/public/students` (requires API key)
+- `GET /api/public/students/levels` (requires API key)
+- `GET /api/public/students/levels/:level` (requires API key)
+- `GET /api/public/students/:id` (requires API key)
+- `GET /api/public/students/:id/progress` (requires API key)
+- `GET /api/public/students/:id/certificates` (requires API key)
+- `GET /api/public/study-paths` (requires API key)
+- `GET /api/public/study-paths/:id` (requires API key)
+- `GET /api/public/rooms` (requires API key)
+- `GET /api/public/rooms/:id` (requires API key)
+- `GET /api/public/certificates` (requires API key)
+- `GET /api/public/certificates/:certificateId` (requires API key)
+- `GET /api/public/statistics/categories` (requires API key)
+- `GET /api/public/statistics/completion` (requires API key)
+- `GET /api/public/stats` (requires API key)
 
 All non-login endpoints require `Authorization: Bearer <token>`.
+
+Public API requests must include either `x-api-key: <key>` or `Authorization: Bearer <key>`.
+
+See [docs/public-api.md](docs/public-api.md) for request/response examples.

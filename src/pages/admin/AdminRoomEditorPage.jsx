@@ -321,6 +321,16 @@ function AdminRoomEditorPage() {
                     <option value="Binary Exploitation">Binary Exploitation</option>
                     <option value="Digital Forensics">Digital Forensics</option>
                     <option value="Network Security">Network Security</option>
+                    <option value="Cloud Security">Cloud Security</option>
+                    <option value="Mobile Security">Mobile Security</option>
+                    <option value="Secure Coding">Secure Coding</option>
+                    <option value="Incident Response">Incident Response</option>
+                    <option value="Malware Analysis">Malware Analysis</option>
+                    <option value="Privilege Escalation">Privilege Escalation</option>
+                    <option value="Social Engineering">Social Engineering</option>
+                    <option value="Container Security">Container Security</option>
+                    <option value="API Security">API Security</option>
+                    <option value="Threat Hunting">Threat Hunting</option>
                   </select>
                 </div>
 

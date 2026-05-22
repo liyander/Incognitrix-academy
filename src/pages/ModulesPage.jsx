@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { getRoomsData } from '../data/roomsData'
 import {
   getLabProgressEvents,
   getLabProgressMap,
-  getLabStatus,
 } from '../services/labProgress'
 
 // Export function for backward compatibility with LabRoomPage
@@ -13,7 +12,7 @@ export function rooms() {
 }
 
 function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
-  const allRooms = getRoomsData()
+  const allRooms = useMemo(() => getRoomsData(), [])
   const activeRoom = allRooms.find((room) => room.slug === selectedLabId) ?? null
   const showActiveSessions = false
 
@@ -22,7 +21,41 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [viewFilter, setViewFilter] = useState('all')
   const [progressMap, setProgressMap] = useState(() => getLabProgressMap())
-  const [filteredRooms, setFilteredRooms] = useState(allRooms)
+
+  const filteredRooms = useMemo(() => {
+    let results = allRooms
+
+    if (complexity !== 'Any Difficulty') {
+      results = results.filter((room) => room.level === complexity)
+    }
+
+    if (specialization !== 'All Categories') {
+      results = results.filter((room) => room.category === specialization)
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase()
+      results = results.filter(
+        (room) =>
+          room.title.toLowerCase().includes(query) ||
+          room.description.toLowerCase().includes(query) ||
+          room.slug.toLowerCase().includes(query)
+      )
+    }
+
+    if (viewFilter === 'in-progress') {
+      results = results.filter((room) => {
+        const progress = progressMap[room.id]
+        return Boolean(progress?.startedAt && !progress?.completedAt)
+      })
+    }
+
+    if (viewFilter === 'completed') {
+      results = results.filter((room) => Boolean(progressMap[room.id]?.completedAt))
+    }
+
+    return results
+  }, [allRooms, complexity, specialization, searchQuery, viewFilter, progressMap])
 
   useEffect(() => {
     const { updatedEvent, updatedStorageKey } = getLabProgressEvents()
@@ -45,44 +78,12 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
     }
   }, [])
 
-  // Auto-apply filters whenever any filter changes
-  useEffect(() => {
-    let results = allRooms
-
-    // Filter by complexity
-    if (complexity !== 'Any Difficulty') {
-      results = results.filter((room) => room.level === complexity)
-    }
-
-    // Filter by specialization
-    if (specialization !== 'All Categories') {
-      results = results.filter((room) => room.category === specialization)
-    }
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      results = results.filter(
-        (room) =>
-          room.title.toLowerCase().includes(query) ||
-          room.description.toLowerCase().includes(query) ||
-          room.slug.toLowerCase().includes(query)
-      )
-    }
-
-    if (viewFilter === 'in-progress') {
-      results = results.filter((room) => {
-        const progress = progressMap[room.id]
-        return Boolean(progress?.startedAt && !progress?.completedAt)
-      })
-    }
-
-    if (viewFilter === 'completed') {
-      results = results.filter((room) => Boolean(progressMap[room.id]?.completedAt))
-    }
-
-    setFilteredRooms(results)
-  }, [complexity, specialization, searchQuery, viewFilter, progressMap])
+  const getRoomStatus = (roomId) => {
+    const progress = progressMap[roomId]
+    if (progress?.completedAt) return 'completed'
+    if (progress?.startedAt) return 'in-progress'
+    return 'not-started'
+  }
 
   const handleReset = () => {
     setComplexity('Any Difficulty')
@@ -190,7 +191,7 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {filteredRooms.length > 0 ? (
               filteredRooms.map((room) => {
-                const status = getLabStatus(room.id)
+                const status = getRoomStatus(room.id)
                 return (
                 <div
                   className={`bg-surface-container-lowest group relative transition-all duration-300 ${room.slug === selectedLabId ? 'ring-1 ring-primary' : ''}`}
