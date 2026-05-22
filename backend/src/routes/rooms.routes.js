@@ -204,11 +204,17 @@ async function getOrCreateTheoreticalAttempt(room, userId) {
   }
 
   const questions = await generateTheoreticalQuestions(room, userId)
-  await pool.query(
-    `INSERT INTO user_room_theoretical_attempts (user_id, room_id, questions_json)
-     VALUES (?, ?, ?)`,
-    [userId, room.id, JSON.stringify(questions)],
-  )
+  try {
+    await pool.query(
+      `INSERT INTO user_room_theoretical_attempts (user_id, room_id, questions_json)
+       VALUES (?, ?, ?)`,
+      [userId, room.id, JSON.stringify(questions)],
+    )
+  } catch (error) {
+    if (error?.code !== 'ER_DUP_ENTRY') {
+      throw error
+    }
+  }
 
   const [createdRows] = await pool.query(
     `SELECT *
