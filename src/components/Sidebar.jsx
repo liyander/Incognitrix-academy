@@ -97,6 +97,10 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
             <span className="material-symbols-outlined">bug_report</span>
             CVEs
           </NavLink>
+          <NavLink className={navLinkClass} onClick={onClose} to="/notes">
+            <span className="material-symbols-outlined">edit_note</span>
+            Notes
+          </NavLink>
           {config.routes.profile ? (
             <NavLink className={navLinkClass} onClick={onClose} to="/profile">
               <span className="material-symbols-outlined">account_circle</span>
@@ -225,6 +229,18 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
               CVEs
             </span>
           </NavLink>
+        <NavLink
+          className={({ isActive }) =>
+            `flex flex-col items-center gap-1 ${isActive ? 'text-primary' : 'text-on-surface-variant'}`
+          }
+          onClick={onClose}
+          to="/notes"
+        >
+          <span className="material-symbols-outlined">edit_note</span>
+          <span className="font-headline text-[8px] font-bold uppercase tracking-widest">
+            Notes
+          </span>
+        </NavLink>
         <a className="flex flex-col items-center gap-1 text-on-surface-variant" href="#">
           <span className="material-symbols-outlined">science</span>
           <span className="font-headline text-[8px] font-bold uppercase tracking-widest">

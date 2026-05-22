@@ -133,6 +133,17 @@ async function ensureDatabase() {
       FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS user_notes (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      content LONGTEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_user_notes_user_updated (user_id, updated_at),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS career_paths (
       id VARCHAR(191) PRIMARY KEY,
       slug VARCHAR(191) NOT NULL UNIQUE,

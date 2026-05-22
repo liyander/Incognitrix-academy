@@ -29,6 +29,7 @@ import LearningPathsPage from './pages/LearningPathsPage'
 import LoginPage from './pages/LoginPage'
 import ModulesPage from './pages/ModulesPage'
 import ModuleDetailPage from './pages/ModuleDetailPage'
+import NotesPage from './pages/NotesPage'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import RegistrationPage from './pages/RegistrationPage'
@@ -388,6 +389,10 @@ function App() {
           <Route
             path="/cves"
             element={<CvesPage />}
+          />
+          <Route
+            path="/notes"
+            element={<NotesPage />}
           />
           <Route
             path="/cves/:id"

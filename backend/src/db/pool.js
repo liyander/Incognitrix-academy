@@ -171,6 +171,17 @@ export async function initializeDatabaseIfNeeded() {
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
 
+        CREATE TABLE IF NOT EXISTS user_notes (
+          id BIGINT AUTO_INCREMENT PRIMARY KEY,
+          user_id INT NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          content LONGTEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_user_notes_user_updated (user_id, updated_at),
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
         CREATE TABLE IF NOT EXISTS certificates (
           id BIGINT AUTO_INCREMENT PRIMARY KEY,
           certificate_id VARCHAR(80) NOT NULL UNIQUE,
@@ -468,6 +479,17 @@ export async function initializeDatabaseIfNeeded() {
         INDEX idx_admin_ai_chat_user_created (user_id, created_at),
         INDEX idx_admin_ai_chat_session_created (session_id, created_at),
         FOREIGN KEY (session_id) REFERENCES admin_ai_chat_sessions(id) ON DELETE SET NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS user_notes (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        content LONGTEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_user_notes_user_updated (user_id, updated_at),
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
     `)
