@@ -108,7 +108,7 @@ function UpcomingCtfPage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
+    <main className="min-h-screen bg-surface px-6 md:px-10 pt-24 pb-10">
       <section className="max-w-6xl mx-auto">
         <header className="bg-surface-container-lowest border-l-4 border-secondary p-8 md:p-10 mb-8">
           <p className="font-headline text-[10px] tracking-[0.25em] uppercase text-secondary font-bold">
@@ -173,7 +173,7 @@ function UpcomingCtfPage() {
                         : 'bg-primary text-on-primary hover:bg-primary-container'
                     }`}
                     disabled={savingId === event.id}
-                    onClick={() => handleRegistrationToggle(event.id, !Boolean(event.is_registered))}
+                    onClick={() => handleRegistrationToggle(event.id, !event.is_registered)}
                     type="button"
                   >
                     {savingId === event.id

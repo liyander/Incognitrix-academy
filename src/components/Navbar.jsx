@@ -196,11 +196,11 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
 
   return (
     <header
-      className={`fixed top-0 right-0 left-0 ${isSidebarOpen ? 'md:left-64' : 'md:left-0'} z-50 glass-nav flex justify-between items-center px-6 md:px-8 py-4 transition-all duration-300`}
+      className={`fixed top-0 right-0 left-0 ${isSidebarOpen ? 'md:left-64' : 'md:left-0'} z-50 glass-nav flex items-center justify-between gap-3 px-4 md:px-6 py-3 transition-all duration-300 overflow-visible`}
     >
-      <div className="flex items-center gap-8">
+      <div className="flex min-w-0 items-center gap-3 xl:gap-6">
         <button
-          className="inline-flex items-center justify-center h-10 w-10 border border-outline-variant bg-surface-container-low text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center border border-outline-variant bg-surface-container-low text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
           onClick={onToggleSidebar}
           type="button"
           aria-label="Toggle sidebar"
@@ -209,15 +209,15 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
             {isSidebarOpen ? 'menu_open' : 'menu'}
           </span>
         </button>
-        <div className="flex flex-col">
-          <h1 className="text-xl font-headline font-bold tracking-tighter text-neutral-900 leading-none">
+        <div className="flex min-w-0 flex-col">
+          <h1 className="truncate text-lg md:text-xl font-headline font-bold tracking-tighter text-neutral-900 leading-none">
             INCOGNITRIX
           </h1>
-          <span className="font-headline text-[10px] tracking-[0.2em] text-neutral-400 uppercase mt-1">
+          <span className="hidden sm:block truncate font-headline text-[10px] tracking-[0.2em] text-neutral-400 uppercase mt-1">
             Cybersecurity Academy
           </span>
         </div>
-        <nav className="hidden lg:flex items-center gap-6 font-headline tracking-tight text-sm uppercase">
+        <nav className="hidden 2xl:flex items-center gap-5 font-headline tracking-tight text-sm uppercase whitespace-nowrap">
           {config.routes.learningPaths ? (
             <NavLink className={navItemClass} to="/learn/paths">
               Learning Paths
@@ -239,10 +239,10 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
           </a>
         </nav>
       </div>
-      <div className="flex items-center gap-6">
+      <div className="flex shrink-0 items-center gap-3 xl:gap-4">
         {config.features.navbarSearch ? (
-          <div ref={searchRef} className="relative hidden md:block">
-            <div className="flex items-center gap-3 px-4 py-2.5 bg-gradient-to-br from-surface-container-low to-surface-container-highest border border-primary/20 rounded-lg shadow-sm hover:border-primary/40 hover:shadow-md transition-all duration-200 focus-within:border-primary focus-within:shadow-lg focus-within:ring-1 focus-within:ring-primary/20">
+          <div ref={searchRef} className="relative hidden xl:block">
+            <div className="flex items-center gap-2 px-3 py-2.5 bg-gradient-to-br from-surface-container-low to-surface-container-highest border border-primary/20 rounded-lg shadow-sm hover:border-primary/40 hover:shadow-md transition-all duration-200 focus-within:border-primary focus-within:shadow-lg focus-within:ring-1 focus-within:ring-primary/20">
               <span className="material-symbols-outlined text-primary text-lg">search</span>
               <input
                 type="text"
@@ -250,7 +250,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
                 onFocus={() => searchQuery && setShowResults(true)}
-                className="bg-transparent outline-none font-body text-sm text-on-background placeholder-neutral-500 w-40 font-medium"
+                className="bg-transparent outline-none font-body text-sm text-on-background placeholder-neutral-500 w-36 2xl:w-44 font-medium"
               />
             </div>
 
@@ -315,13 +315,13 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
             )}
           </div>
         ) : null}
-        <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-surface-container-low rounded-full">
+        <div className="hidden lg:flex items-center gap-2 px-3 py-2 bg-surface-container-low rounded-full whitespace-nowrap">
           <span className="material-symbols-outlined text-primary text-base">local_fire_department</span>
           <span className="font-headline text-[10px] font-bold tracking-widest text-on-background uppercase">
             {Number(streak.currentStreak || 0)} Day Streak
           </span>
         </div>
-        <div className="flex items-center gap-4 text-on-surface-variant">
+        <div className="flex items-center gap-3 text-on-surface-variant">
           {config.features.navbarNotifications ? (
             <div ref={notificationsRef} className="relative">
               <button
@@ -402,7 +402,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
           ) : null}
         </div>
         <button
-          className="px-4 py-2 border border-outline text-on-surface-variant font-headline text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container-high hover:text-on-surface transition-colors"
+          className="hidden sm:inline-flex px-3 xl:px-4 py-2 border border-outline text-on-surface-variant font-headline text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container-high hover:text-on-surface transition-colors"
           onClick={onLogout}
           type="button"
         >
