@@ -3,12 +3,52 @@ import { Link } from 'react-router-dom'
 import {
   getCareerPathsData,
   hydrateCareerPathsData,
-  subscribeCareerPathsData,
 } from '../data/careerPathsData'
+import { getRoomsData, hydrateRoomsData } from '../data/roomsData'
 import { apiFetch } from '../services/api'
+
+function normalizeDifficulty(value) {
+  return String(value || 'Unknown').trim()
+}
+
+function getRoomTone(room, index) {
+  const difficulty = normalizeDifficulty(room.difficulty || room.level).toLowerCase()
+  if (/hard|critical|advanced/.test(difficulty)) {
+    return {
+      border: 'border-primary',
+      badge: 'bg-primary-container text-on-primary-container',
+      text: 'text-primary',
+      icon: 'warning',
+    }
+  }
+
+  if (/medium|intermediate/.test(difficulty)) {
+    return {
+      border: 'border-secondary',
+      badge: 'bg-secondary-container text-on-secondary-container',
+      text: 'text-secondary',
+      icon: 'lock_open',
+    }
+  }
+
+  return index % 2 === 0
+    ? {
+        border: 'border-tertiary',
+        badge: 'bg-tertiary-container text-on-tertiary-container',
+        text: 'text-tertiary',
+        icon: 'play_circle',
+      }
+    : {
+        border: 'border-secondary',
+        badge: 'bg-secondary-container text-on-secondary-container',
+        text: 'text-secondary',
+        icon: 'play_circle',
+      }
+}
 
 function LearningPathsPage({ allowRedTeamPath = true }) {
   const [careerPaths, setCareerPaths] = useState([])
+  const [rooms, setRooms] = useState([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -19,18 +59,25 @@ function LearningPathsPage({ allowRedTeamPath = true }) {
       try {
         // Always fetch fresh from backend
         console.log('🌐 Fetching career paths from backend...')
-        const response = await apiFetch('/career-paths')
+        const [pathsResponse, roomsResponse] = await Promise.all([
+          apiFetch('/career-paths'),
+          apiFetch('/rooms'),
+        ])
+        const response = pathsResponse
         console.log('✅ Backend response:', response)
         
         if (!cancelled) {
-          const paths = Array.isArray(response) ? response : []
+          const paths = Array.isArray(pathsResponse) ? pathsResponse : []
+          const fetchedRooms = Array.isArray(roomsResponse) ? roomsResponse : []
           console.log('📊 Setting career paths. Count:', paths.length)
           
           // Hydrate localStorage with backend data
           hydrateCareerPathsData(paths)
+          hydrateRoomsData(fetchedRooms)
           
           // Directly set state with fresh data
           setCareerPaths(paths)
+          setRooms(fetchedRooms)
           console.log('✅ Career paths loaded successfully')
         }
       } catch (error) {
@@ -40,6 +87,7 @@ function LearningPathsPage({ allowRedTeamPath = true }) {
           const fallback = getCareerPathsData()
           console.log('⚠️ Using fallback data. Count:', fallback.length)
           setCareerPaths(fallback)
+          setRooms(getRoomsData())
         }
       } finally {
         if (!cancelled) {
@@ -57,6 +105,36 @@ function LearningPathsPage({ allowRedTeamPath = true }) {
 
   const redTeamPath = careerPaths.find((p) => p.id === 'red-team-operator')
   const otherPaths = careerPaths.filter((p) => p.id !== 'red-team-operator')
+  const roomsById = new Map(rooms.map((room) => [room.id, room]))
+  const linkedCurriculumRooms = careerPaths.flatMap((path) =>
+    (path.modules || []).flatMap((module) =>
+      (module.rooms || [])
+        .map((roomId) => {
+          const room = roomsById.get(roomId)
+          if (!room) return null
+          return {
+            ...room,
+            modulePhase: module.phase,
+            moduleTitle: module.title,
+            pathTitle: path.title,
+          }
+        })
+        .filter(Boolean),
+    ),
+  )
+  const curriculumRooms =
+    linkedCurriculumRooms.length > 0
+      ? linkedCurriculumRooms
+      : rooms.map((room) => ({
+          ...room,
+          modulePhase: 'Catalog',
+          moduleTitle: 'Room Catalog',
+          pathTitle: 'Unassigned',
+        }))
+  const emptyModulesMessage = isLoading
+    ? 'Loading curriculum modules...'
+    : 'No rooms available for curriculum modules.'
+
   return (
     <>
       <main className="pt-20">
@@ -210,119 +288,70 @@ function LearningPathsPage({ allowRedTeamPath = true }) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="md:col-span-2 bg-surface-container-lowest p-6 flex flex-col border-l-4 border-primary">
-              <div className="flex justify-between items-start mb-8">
-                <span className="font-headline text-[10px] font-bold tracking-widest uppercase bg-primary-container text-on-primary-container px-3 py-1">
-                  Advanced Exploit
-                </span>
-                <span className="material-symbols-outlined text-neutral-300">star</span>
-              </div>
-              <h4 className="font-headline text-lg font-bold mb-2">KERNEL_LEVEL_DEBUGGING</h4>
-              <p className="text-xs text-on-surface-variant mb-6 leading-relaxed">
-                Deep dive into memory corruption and privilege escalation in
-                enterprise OS environments.
-              </p>
-              <div className="mt-auto flex items-center justify-between">
-                <div className="flex gap-4">
-                  <div className="text-[10px] font-headline uppercase text-neutral-400">
-                    <p>Duration</p>
-                    <p className="text-on-surface">12H</p>
-                  </div>
-                  <div className="text-[10px] font-headline uppercase text-neutral-400">
-                    <p>Difficulty</p>
-                    <p className="text-red-600">CRITICAL</p>
-                  </div>
-                </div>
-                <button className="bg-neutral-900 text-white p-2 group hover:bg-primary transition-colors" type="button">
-                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                </button>
-              </div>
-            </div>
+            {curriculumRooms.length ? (
+              curriculumRooms.slice(0, 8).map((room, index) => {
+                const tone = getRoomTone(room, index)
+                const isFeatured = index === 0
+                const roomSlug = room.slug || room.id
 
-            <div className="bg-surface-container-lowest p-6 flex flex-col border-l-4 border-secondary">
-              <span className="font-headline text-[10px] font-bold tracking-widest uppercase bg-secondary-container text-on-secondary-container px-3 py-1 self-start mb-8">
-                Forensics
-              </span>
-              <h4 className="font-headline text-lg font-bold mb-2">DISK_ARTEFACTS</h4>
-              <p className="text-xs text-on-surface-variant mb-6">
-                Uncovering hidden persistence mechanisms in modern file systems.
-              </p>
-              <div className="mt-auto flex justify-between items-center">
-                <span className="text-[10px] font-headline font-bold text-neutral-400">XP: 2,500</span>
-                <button className="text-secondary hover:text-on-background" type="button">
-                  <span className="material-symbols-outlined">lock_open</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-surface-container-lowest p-6 flex flex-col border-l-4 border-tertiary">
-              <span className="font-headline text-[10px] font-bold tracking-widest uppercase bg-tertiary-container text-on-tertiary-container px-3 py-1 self-start mb-8">
-                OSINT
-              </span>
-              <h4 className="font-headline text-lg font-bold mb-2">SOCMINT_FLOW</h4>
-              <p className="text-xs text-on-surface-variant mb-6">
-                Advanced social media intelligence and metadata extraction.
-              </p>
-              <div className="mt-auto flex justify-between items-center">
-                <span className="text-[10px] font-headline font-bold text-neutral-400">XP: 1,200</span>
-                <button className="text-tertiary hover:text-on-background" type="button">
-                  <span className="material-symbols-outlined">play_circle</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-inverse-surface p-6 flex flex-col md:col-span-1">
-              <span className="font-headline text-[10px] font-bold tracking-widest uppercase text-surface-tint mb-4">
-                SYSTEM_MESSAGE
-              </span>
-              <h4 className="font-headline text-sm font-bold text-white mb-4">LATEST_BREACH_UPDATE</h4>
-              <div className="bg-black/30 p-3 mb-6">
-                <code className="text-[10px] text-primary-fixed-dim font-headline">
-                  $ tail -n 5 /logs/intel<br />
-                  &gt; New vector detected: APT_33<br />
-                  &gt; Origin: Undisclosed<br />
-                  &gt; Status: Critical
-                </code>
-              </div>
-              <button className="mt-auto w-full py-2 bg-primary text-white font-headline text-[10px] font-bold tracking-widest uppercase" type="button">
-                Analyze Now
-              </button>
-            </div>
-
-            <div className="md:col-span-3 bg-surface-container-lowest p-6 flex items-center gap-8 relative overflow-hidden">
-              <div
-                className="absolute right-0 top-0 h-full w-1/3 opacity-20"
-                style={{
-                  backgroundImage:
-                    "url('https://lh3.googleusercontent.com/aida-public/AB6AXuB68Q5QOpK_iAAAscH9dPvFw1v0v2t6WI7GqMOMKQ2KMzmZOHMciOJao5SG2B_AwDK5zxpZREiwnBvq1DEIinXMn_TKocdWXX1ksvmeoaUnPqciZPV3ABRtaYOZyeFRRQ79acH4RRcZcvXAWUujS0RG7d9HT1IU12kWvDvqDWfBWSEx1QANH_4Zcfz34fwKw4z15xujVfrRao9r47JmH2OI6wiCA9ipG5hpaFyTktFOgE0m0VyvS1yxDoBEO43q6nSe8IahgRZC4Mg')",
-                }}
-              ></div>
-              <div className="relative z-10 flex-1">
-                <span className="font-headline text-[10px] font-bold tracking-widest uppercase text-neutral-400 mb-2 block">
-                  Special Operations
-                </span>
-                <h4 className="font-headline text-2xl font-bold mb-4">INDUSTRIAL_CONTROL_SYSTEMS (ICS)</h4>
-                <p className="text-sm text-on-surface-variant max-w-lg mb-6 leading-relaxed">
-                  Understanding the vulnerabilities in physical infrastructure,
-                  power grids, and SCADA systems through simulated environments.
+                return (
+                  <Link
+                    className={`bg-surface-container-lowest p-6 flex flex-col border-l-4 ${tone.border} hover:bg-white transition-all ${
+                      isFeatured ? 'md:col-span-2' : ''
+                    }`}
+                    key={`${room.id}-${index}`}
+                    to={`/learn/lab/${roomSlug}`}
+                  >
+                    <div className="flex justify-between items-start mb-8">
+                      <span className={`font-headline text-[10px] font-bold tracking-widest uppercase px-3 py-1 ${tone.badge}`}>
+                        {room.categoryTag || room.category || room.moduleTitle || 'Room'}
+                      </span>
+                      <span className={`material-symbols-outlined ${isFeatured ? 'text-neutral-300' : tone.text}`}>
+                        {isFeatured ? 'star' : tone.icon}
+                      </span>
+                    </div>
+                    <h4 className={`font-headline font-bold mb-2 uppercase ${isFeatured ? 'text-lg' : 'text-base'}`}>
+                      {room.title}
+                    </h4>
+                    <p className={`text-xs text-on-surface-variant leading-relaxed ${isFeatured ? 'mb-6' : 'mb-5'}`}>
+                      {room.description || 'No room description configured yet.'}
+                    </p>
+                    <div className="mt-auto flex items-end justify-between gap-4">
+                      <div className="flex flex-wrap gap-4">
+                        <div className="text-[10px] font-headline uppercase text-neutral-400">
+                          <p>Duration</p>
+                          <p className="text-on-surface">{room.estimateTime || 'TBD'}</p>
+                        </div>
+                        <div className="text-[10px] font-headline uppercase text-neutral-400">
+                          <p>Difficulty</p>
+                          <p className={tone.text}>{normalizeDifficulty(room.difficulty || room.level).toUpperCase()}</p>
+                        </div>
+                        {!isFeatured ? (
+                          <div className="text-[10px] font-headline uppercase text-neutral-400">
+                            <p>XP</p>
+                            <p className="text-on-surface">{room.xp || 'N/A'}</p>
+                          </div>
+                        ) : null}
+                      </div>
+                      <span className={`inline-flex h-10 w-10 items-center justify-center ${isFeatured ? 'bg-neutral-900 text-white' : tone.text}`}>
+                        <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                      </span>
+                    </div>
+                    <div className="mt-5 border-t border-outline-variant/20 pt-3">
+                      <p className="text-[9px] font-headline uppercase tracking-widest text-neutral-400 truncate">
+                        {room.pathTitle} / {room.modulePhase || room.moduleTitle}
+                      </p>
+                    </div>
+                  </Link>
+                )
+              })
+            ) : (
+              <div className="md:col-span-4 bg-surface-container-lowest border border-dashed border-outline-variant/40 p-10 text-center">
+                <p className="font-headline text-xs uppercase tracking-widest text-on-surface-variant">
+                  {emptyModulesMessage}
                 </p>
-                <div className="flex gap-6">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-red-600 text-sm">warning</span>
-                    <span className="font-headline text-[10px] font-bold uppercase">Clearance Required</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-neutral-400 text-sm">schedule</span>
-                    <span className="font-headline text-[10px] font-bold uppercase">40 Hours</span>
-                  </div>
-                </div>
               </div>
-              <div className="relative z-10">
-                <button className="w-16 h-16 border-2 border-neutral-200 flex items-center justify-center hover:border-primary hover:text-primary transition-colors" type="button">
-                  <span className="material-symbols-outlined text-3xl">chevron_right</span>
-                </button>
-              </div>
-            </div>
+            )}
           </div>
         </section>
       </main>

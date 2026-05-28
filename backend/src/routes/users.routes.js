@@ -176,6 +176,95 @@ router.get('/admin/registrations', authenticate, requireAdmin, async (_req, res)
   return res.json(rows)
 })
 
+router.post('/admin/admins', authenticate, requireAdmin, async (req, res) => {
+  const username = String(req.body?.username || '').trim()
+  const registrationNumber = normalizeNullable(req.body?.registrationNumber)
+  const email = normalizeNullable(req.body?.email)?.toLowerCase() || null
+  const password = String(req.body?.password || '')
+
+  if (!username || !password) {
+    return res.status(400).json({ message: 'Username and password are required' })
+  }
+
+  if (password.trim().length < 8) {
+    return res.status(400).json({ message: 'Password must be at least 8 characters' })
+  }
+
+  const hash = await bcrypt.hash(password, 10)
+
+  try {
+    const [result] = await pool.query(
+      `INSERT INTO users (username, registration_number, email, password_hash, role, is_active)
+       VALUES (?, ?, ?, ?, 'admin', true)`,
+      [username, registrationNumber, email, hash],
+    )
+
+    const [rows] = await pool.query(
+      `SELECT
+        id,
+        username,
+        registration_number,
+        first_name,
+        last_name,
+        email,
+        role,
+        is_active,
+        created_at,
+        updated_at
+       FROM users
+       WHERE id = ?
+       LIMIT 1`,
+      [result.insertId],
+    )
+
+    return res.status(201).json(rows[0])
+  } catch (error) {
+    if (error?.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ message: 'Username, email, or registration number already exists' })
+    }
+    throw error
+  }
+})
+
+router.post('/admin/registrations/bulk-promote-admin', authenticate, requireAdmin, async (req, res) => {
+  const userIds = normalizeUserIds(req.body?.userIds)
+
+  if (!userIds.length) {
+    return res.status(400).json({ message: 'Select at least one valid user.' })
+  }
+
+  const [result] = await pool.query(
+    "UPDATE users SET role = 'admin', is_active = true WHERE id IN (?) AND role <> 'admin'",
+    [userIds],
+  )
+
+  return res.json({
+    promoted: Number(result.affectedRows || 0),
+    skipped: userIds.length - Number(result.affectedRows || 0),
+  })
+})
+
+router.post('/admin/registrations/:id/promote-admin', authenticate, requireAdmin, async (req, res) => {
+  const userId = Number(req.params.id)
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: 'Invalid user id' })
+  }
+
+  const [result] = await pool.query(
+    "UPDATE users SET role = 'admin', is_active = true WHERE id = ? AND role <> 'admin'",
+    [userId],
+  )
+
+  if (!result.affectedRows) {
+    const [rows] = await pool.query('SELECT id FROM users WHERE id = ? LIMIT 1', [userId])
+    if (!rows.length) {
+      return res.status(404).json({ message: 'User not found' })
+    }
+  }
+
+  return res.json({ promoted: Number(result.affectedRows || 0), userId })
+})
+
 router.get('/admin/registrations/:id', authenticate, requireAdmin, async (req, res) => {
   const userId = Number(req.params.id)
   if (!Number.isFinite(userId)) {

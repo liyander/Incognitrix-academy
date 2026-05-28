@@ -11,6 +11,14 @@ function AdminRegistrationsManagementPage() {
   const [search, setSearch] = useState('')
   const [selectedUserIds, setSelectedUserIds] = useState([])
   const [isBulkWorking, setIsBulkWorking] = useState(false)
+  const [isAdminWorking, setIsAdminWorking] = useState(false)
+  const [actionModal, setActionModal] = useState(null)
+  const [adminForm, setAdminForm] = useState({
+    username: '',
+    registrationNumber: '',
+    email: '',
+    password: '',
+  })
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -35,7 +43,9 @@ function AdminRegistrationsManagementPage() {
       if (!query) return true
       const registration = String(user.registration_number || '').toLowerCase()
       const username = String(user.username || '').toLowerCase()
-      return registration.includes(query) || username.includes(query)
+      const email = String(user.email || '').toLowerCase()
+      const role = String(user.role || '').toLowerCase()
+      return registration.includes(query) || username.includes(query) || email.includes(query) || role.includes(query)
     })
 
     return [...filtered].sort((a, b) => {
@@ -48,7 +58,13 @@ function AdminRegistrationsManagementPage() {
   const totalUsers = visibleUsers.length
   const activeUsers = visibleUsers.filter((user) => Boolean(user.is_active)).length
   const disabledUsers = totalUsers - activeUsers
+  const adminUsers = visibleUsers.filter((user) => user.role === 'admin').length
+  const operatorUsers = totalUsers - adminUsers
   const selectedVisibleIds = visibleUsers.map((user) => user.id)
+  const selectedPromotableIds = selectedUserIds.filter((id) => {
+    const user = users.find((entry) => entry.id === id)
+    return user && user.role !== 'admin'
+  })
   const allVisibleSelected =
     selectedVisibleIds.length > 0 && selectedVisibleIds.every((id) => selectedUserIds.includes(id))
 
@@ -70,14 +86,7 @@ function AdminRegistrationsManagementPage() {
     })
   }
 
-  const handleBulkReset = async () => {
-    if (!selectedUserIds.length || isBulkWorking) return
-
-    const confirmed = window.confirm(
-      `Reset activity for ${selectedUserIds.length} selected user(s)? This clears progress, notes, certificates, CTF registrations, and theoretical attempts.`,
-    )
-    if (!confirmed) return
-
+  const runBulkReset = async () => {
     setIsBulkWorking(true)
     setError('')
     setSuccess('')
@@ -96,14 +105,7 @@ function AdminRegistrationsManagementPage() {
     }
   }
 
-  const handleBulkDelete = async () => {
-    if (!selectedUserIds.length || isBulkWorking) return
-
-    const confirmed = window.confirm(
-      `Delete ${selectedUserIds.length} selected user(s)? This permanently removes their accounts and related data.`,
-    )
-    if (!confirmed) return
-
+  const runBulkDelete = async () => {
     setIsBulkWorking(true)
     setError('')
     setSuccess('')
@@ -122,10 +124,7 @@ function AdminRegistrationsManagementPage() {
     }
   }
 
-  const handleSingleReset = async (user) => {
-    const confirmed = window.confirm(`Reset activity for ${user.username || user.registration_number || 'this user'}?`)
-    if (!confirmed) return
-
+  const runSingleReset = async (user) => {
     setIsBulkWorking(true)
     setError('')
     setSuccess('')
@@ -140,10 +139,7 @@ function AdminRegistrationsManagementPage() {
     }
   }
 
-  const handleSingleDelete = async (user) => {
-    const confirmed = window.confirm(`Delete ${user.username || user.registration_number || 'this user'} permanently?`)
-    if (!confirmed) return
-
+  const runSingleDelete = async (user) => {
     setIsBulkWorking(true)
     setError('')
     setSuccess('')
@@ -157,6 +153,132 @@ function AdminRegistrationsManagementPage() {
     } finally {
       setIsBulkWorking(false)
     }
+  }
+
+  const updateAdminForm = (field, value) => {
+    setAdminForm((current) => ({ ...current, [field]: value }))
+  }
+
+  const createAdmin = async (event) => {
+    event.preventDefault()
+    setIsAdminWorking(true)
+    setError('')
+    setSuccess('')
+    try {
+      const created = await apiFetch('/users/admin/admins', {
+        method: 'POST',
+        body: JSON.stringify(adminForm),
+      })
+      setSuccess(`Admin account created for ${created?.username || adminForm.username}.`)
+      setAdminForm({
+        username: '',
+        registrationNumber: '',
+        email: '',
+        password: '',
+      })
+      await fetchUsers()
+    } catch (createError) {
+      setError(createError?.message || 'Failed to create admin account')
+    } finally {
+      setIsAdminWorking(false)
+    }
+  }
+
+  const promoteSelectedAdmins = async () => {
+    if (!selectedPromotableIds.length) return
+    setIsAdminWorking(true)
+    setError('')
+    setSuccess('')
+    try {
+      const result = await apiFetch('/users/admin/registrations/bulk-promote-admin', {
+        method: 'POST',
+        body: JSON.stringify({ userIds: selectedPromotableIds }),
+      })
+      setSuccess(`Promoted ${result?.promoted || 0} user(s) to admin. ${result?.skipped ? `${result.skipped} skipped.` : ''}`)
+      setSelectedUserIds([])
+      await fetchUsers()
+    } catch (promoteError) {
+      setError(promoteError?.message || 'Failed to promote selected users')
+    } finally {
+      setIsAdminWorking(false)
+    }
+  }
+
+  const promoteSingleAdmin = async (user) => {
+    setIsAdminWorking(true)
+    setError('')
+    setSuccess('')
+    try {
+      const result = await apiFetch(`/users/admin/registrations/${user.id}/promote-admin`, { method: 'POST' })
+      setSuccess(result?.promoted ? `${user.username || 'User'} promoted to admin.` : `${user.username || 'User'} is already an admin.`)
+      await fetchUsers()
+    } catch (promoteError) {
+      setError(promoteError?.message || 'Failed to promote user')
+    } finally {
+      setIsAdminWorking(false)
+    }
+  }
+
+  const openBulkResetModal = () => {
+    if (!selectedUserIds.length || isBulkWorking) return
+
+    setActionModal({
+      tone: 'warning',
+      title: 'Reset Selected Users',
+      eyebrow: 'Activity Reset',
+      description:
+        'This clears room progress, notes, certificates, CTF registrations, reminder logs, and theoretical attempts. Login and profile details remain.',
+      target: `${selectedUserIds.length} selected user(s)`,
+      confirmLabel: 'Reset Users',
+      onConfirm: runBulkReset,
+    })
+  }
+
+  const openBulkDeleteModal = () => {
+    if (!selectedUserIds.length || isBulkWorking) return
+
+    setActionModal({
+      tone: 'danger',
+      title: 'Delete Selected Users',
+      eyebrow: 'Permanent Deletion',
+      description:
+        'This permanently removes selected accounts and all cascaded user data. This operation cannot be undone.',
+      target: `${selectedUserIds.length} selected user(s)`,
+      confirmLabel: 'Delete Users',
+      onConfirm: runBulkDelete,
+    })
+  }
+
+  const openSingleResetModal = (user) => {
+    setActionModal({
+      tone: 'warning',
+      title: 'Reset User Activity',
+      eyebrow: 'Activity Reset',
+      description:
+        'This clears learning activity for this user while keeping the account, role, email, and profile data.',
+      target: user.username || user.registration_number || 'Selected user',
+      confirmLabel: 'Reset User',
+      onConfirm: () => runSingleReset(user),
+    })
+  }
+
+  const openSingleDeleteModal = (user) => {
+    setActionModal({
+      tone: 'danger',
+      title: 'Delete User Account',
+      eyebrow: 'Permanent Deletion',
+      description:
+        'This permanently removes the account and related user data. This operation cannot be undone.',
+      target: user.username || user.registration_number || 'Selected user',
+      confirmLabel: 'Delete User',
+      onConfirm: () => runSingleDelete(user),
+    })
+  }
+
+  const confirmModalAction = async () => {
+    if (!actionModal?.onConfirm || isBulkWorking) return
+    await actionModal.onConfirm()
+    setActionModal(null)
   }
 
   return (
@@ -183,7 +305,7 @@ function AdminRegistrationsManagementPage() {
             Click a registration number to open the full player profile.
           </p>
 
-          <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
             <div className="bg-surface-container-high p-4 border-l-2 border-l-primary">
               <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Total</p>
               <p className="text-2xl font-headline font-black mt-1">{totalUsers}</p>
@@ -195,6 +317,14 @@ function AdminRegistrationsManagementPage() {
             <div className="bg-surface-container-high p-4 border-l-2 border-l-error">
               <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Disabled</p>
               <p className="text-2xl font-headline font-black mt-1">{disabledUsers}</p>
+            </div>
+            <div className="bg-surface-container-high p-4 border-l-2 border-l-primary">
+              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Admins</p>
+              <p className="text-2xl font-headline font-black mt-1">{adminUsers}</p>
+            </div>
+            <div className="bg-surface-container-high p-4 border-l-2 border-l-secondary">
+              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Operators</p>
+              <p className="text-2xl font-headline font-black mt-1">{operatorUsers}</p>
             </div>
           </div>
 
@@ -211,6 +341,102 @@ function AdminRegistrationsManagementPage() {
             </label>
           </div>
         </header>
+
+        <section className="mb-6 grid grid-cols-1 xl:grid-cols-[1.4fr_1fr] gap-6">
+          <form
+            className="bg-surface-container-lowest border-l-4 border-l-primary p-6"
+            onSubmit={(event) => {
+              void createAdmin(event)
+            }}
+          >
+            <p className="font-label text-[10px] uppercase tracking-[0.25em] text-primary font-bold">
+              Direct Admin
+            </p>
+            <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight">
+              Add Admin Account
+            </h2>
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="block">
+                <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Username</span>
+                <input
+                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 text-sm outline-none"
+                  onChange={(event) => updateAdminForm('username', event.target.value)}
+                  placeholder="admin_username"
+                  required
+                  type="text"
+                  value={adminForm.username}
+                />
+              </label>
+              <label className="block">
+                <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Password</span>
+                <input
+                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 text-sm outline-none"
+                  minLength={8}
+                  onChange={(event) => updateAdminForm('password', event.target.value)}
+                  placeholder="Minimum 8 characters"
+                  required
+                  type="password"
+                  value={adminForm.password}
+                />
+              </label>
+              <label className="block">
+                <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Email</span>
+                <input
+                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 text-sm outline-none"
+                  onChange={(event) => updateAdminForm('email', event.target.value)}
+                  placeholder="admin@example.com"
+                  type="email"
+                  value={adminForm.email}
+                />
+              </label>
+              <label className="block">
+                <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Registration Number</span>
+                <input
+                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 text-sm outline-none"
+                  onChange={(event) => updateAdminForm('registrationNumber', event.target.value)}
+                  placeholder="Optional"
+                  type="text"
+                  value={adminForm.registrationNumber}
+                />
+              </label>
+            </div>
+            <button
+              className="mt-5 px-5 py-3 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+              disabled={isAdminWorking}
+              type="submit"
+            >
+              {isAdminWorking ? 'Creating...' : 'Create Admin'}
+            </button>
+          </form>
+
+          <div className="bg-surface-container-lowest border-l-4 border-l-secondary p-6">
+            <p className="font-label text-[10px] uppercase tracking-[0.25em] text-secondary font-bold">
+              From Users
+            </p>
+            <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight">
+              Promote Existing Users
+            </h2>
+            <p className="mt-4 text-sm text-on-surface-variant leading-relaxed">
+              Select users from the list below, then promote them into admin accounts without changing their profile data.
+            </p>
+            <div className="mt-5 bg-surface-container-high p-4">
+              <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                Selected promotable users
+              </p>
+              <p className="mt-1 font-headline text-3xl font-black">{selectedPromotableIds.length}</p>
+            </div>
+            <button
+              className="mt-5 px-5 py-3 bg-secondary text-on-secondary font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+              disabled={!selectedPromotableIds.length || isAdminWorking}
+              onClick={() => {
+                void promoteSelectedAdmins()
+              }}
+              type="button"
+            >
+              {isAdminWorking ? 'Promoting...' : 'Promote Selected'}
+            </button>
+          </div>
+        </section>
 
         <section className="mb-6 bg-surface-container-lowest border border-outline-variant/40 p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <label className="inline-flex items-center gap-3">
@@ -231,7 +457,7 @@ function AdminRegistrationsManagementPage() {
             <button
               className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
               disabled={!selectedUserIds.length || isBulkWorking}
-              onClick={handleBulkReset}
+              onClick={openBulkResetModal}
               type="button"
             >
               Reset Selected
@@ -239,7 +465,7 @@ function AdminRegistrationsManagementPage() {
             <button
               className="px-4 py-2 bg-error text-on-error font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
               disabled={!selectedUserIds.length || isBulkWorking}
-              onClick={handleBulkDelete}
+              onClick={openBulkDeleteModal}
               type="button"
             >
               Delete Selected
@@ -288,13 +514,21 @@ function AdminRegistrationsManagementPage() {
                       <p className="text-sm text-on-surface-variant break-all">
                         Email: {user.email || 'N/A'}
                       </p>
+                      <p className="text-sm text-on-surface-variant">
+                        Role: <span className="font-bold uppercase">{user.role || 'operator'}</span>
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex flex-col md:items-end gap-3">
-                    <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold ${user.is_active ? 'bg-secondary/15 text-secondary' : 'bg-error/15 text-error'}`}>
-                      {user.is_active ? 'Active' : 'Disabled'}
-                    </span>
+                    <div className="flex flex-wrap justify-start md:justify-end gap-2">
+                      <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold ${user.is_active ? 'bg-secondary/15 text-secondary' : 'bg-error/15 text-error'}`}>
+                        {user.is_active ? 'Active' : 'Disabled'}
+                      </span>
+                      <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold ${user.role === 'admin' ? 'bg-primary/15 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                        {user.role === 'admin' ? 'Admin' : 'Operator'}
+                      </span>
+                    </div>
                     <button
                       className="px-4 py-2 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest"
                       onClick={() => navigate(`/admin/registrations/${user.id}`)}
@@ -302,12 +536,24 @@ function AdminRegistrationsManagementPage() {
                     >
                       Open Profile
                     </button>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap justify-start md:justify-end gap-2">
+                      {user.role !== 'admin' ? (
+                        <button
+                          className="px-3 py-2 bg-secondary text-on-secondary font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-50"
+                          disabled={isAdminWorking}
+                          onClick={() => {
+                            void promoteSingleAdmin(user)
+                          }}
+                          type="button"
+                        >
+                          Make Admin
+                        </button>
+                      ) : null}
                       <button
                         className="px-3 py-2 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-50"
                         disabled={isBulkWorking}
                         onClick={() => {
-                          void handleSingleReset(user)
+                          openSingleResetModal(user)
                         }}
                         type="button"
                       >
@@ -317,7 +563,7 @@ function AdminRegistrationsManagementPage() {
                         className="px-3 py-2 bg-error text-on-error font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-50"
                         disabled={isBulkWorking}
                         onClick={() => {
-                          void handleSingleDelete(user)
+                          openSingleDeleteModal(user)
                         }}
                         type="button"
                       >
@@ -337,6 +583,72 @@ function AdminRegistrationsManagementPage() {
           </div>
         )}
       </section>
+      {actionModal ? (
+        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="w-full max-w-lg bg-surface-container-lowest border border-outline-variant shadow-2xl">
+            <div className={`h-1 ${actionModal.tone === 'danger' ? 'bg-error' : 'bg-primary'}`}></div>
+            <div className="p-7">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className={`font-label text-[10px] uppercase tracking-[0.25em] font-bold ${actionModal.tone === 'danger' ? 'text-error' : 'text-primary'}`}>
+                    {actionModal.eyebrow}
+                  </p>
+                  <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                    {actionModal.title}
+                  </h2>
+                </div>
+                <button
+                  className="inline-flex h-10 w-10 items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
+                  onClick={() => setActionModal(null)}
+                  type="button"
+                  aria-label="Close action modal"
+                  disabled={isBulkWorking}
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+
+              <div className="mt-6 bg-surface-container-high p-4 border-l-2 border-l-primary">
+                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                  Target
+                </p>
+                <p className="mt-1 font-headline text-lg font-bold text-on-background break-words">
+                  {actionModal.target}
+                </p>
+              </div>
+
+              <p className="mt-5 text-sm leading-relaxed text-on-surface-variant">
+                {actionModal.description}
+              </p>
+
+              <div className="mt-7 flex flex-col sm:flex-row sm:justify-end gap-3">
+                <button
+                  className="px-5 py-3 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                  onClick={() => setActionModal(null)}
+                  type="button"
+                  disabled={isBulkWorking}
+                >
+                  Cancel
+                </button>
+                <button
+                  className={`px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50 ${
+                    actionModal.tone === 'danger'
+                      ? 'bg-error text-on-error'
+                      : 'bg-primary text-on-primary'
+                  }`}
+                  onClick={() => {
+                    void confirmModalAction()
+                  }}
+                  type="button"
+                  disabled={isBulkWorking}
+                >
+                  {isBulkWorking ? 'Processing...' : actionModal.confirmLabel}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   )
 }
