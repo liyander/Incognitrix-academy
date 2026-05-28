@@ -52,6 +52,7 @@ function NotesPage() {
   const [mode, setMode] = useState('edit')
   const saveTimerRef = useRef(null)
   const lastSavedDraftRef = useRef('')
+  const contentEditorRef = useRef(null)
 
   const previewHtml = useMemo(() => parseMarkdownToHtml(draft.content), [draft.content])
 
@@ -214,6 +215,35 @@ function NotesPage() {
     }
   }
 
+  const insertIntoContent = (insertedText) => {
+    const editor = contentEditorRef.current
+    if (!editor) return
+
+    const start = editor.selectionStart
+    const end = editor.selectionEnd
+    const currentContent = draft.content || ''
+    const nextContent = `${currentContent.slice(0, start)}${insertedText}${currentContent.slice(end)}`
+    const nextPosition = start + insertedText.length
+
+    updateDraft({ content: nextContent })
+    window.requestAnimationFrame(() => {
+      editor.setSelectionRange(nextPosition, nextPosition)
+    })
+  }
+
+  const handleContentKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      insertIntoContent('\n')
+      return
+    }
+
+    if (event.key === 'Tab') {
+      event.preventDefault()
+      insertIntoContent('  ')
+    }
+  }
+
   const handleDeleteNote = async () => {
     if (!draft.id) {
       handleCreateNote()
@@ -366,6 +396,7 @@ function NotesPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 flex-1 min-h-0">
               <textarea
+                ref={contentEditorRef}
                 className={`w-full h-full min-h-[420px] resize-none bg-surface-container-lowest border-0 outline-none p-6 font-space text-sm leading-7 text-on-background ${
                   mode === 'preview' ? 'hidden lg:block' : 'block'
                 }`}
@@ -373,9 +404,11 @@ function NotesPage() {
                   void saveDraft(draft)
                 }}
                 onChange={(event) => updateDraft({ content: event.target.value })}
+                onKeyDown={handleContentKeyDown}
                 placeholder="Write Markdown notes..."
                 spellCheck="true"
                 value={draft.content}
+                wrap="soft"
               />
               <div
                 className={`${markdownPreviewClassName} ${

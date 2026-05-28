@@ -237,7 +237,9 @@ function LabRoomPage() {
 
   const roomTags = room.tags?.length ? room.tags : [room.categoryTag || room.category].filter(Boolean)
   const keywordTags = room.requiredKeywords?.length ? room.requiredKeywords : []
-  const missionOverviewMarkup = renderRichContent(missionOverview, room.content?.html)
+  const missionOverviewMarkup = hasContent(primaryMarkdown)
+    ? parseMarkdownToHtml(missionOverview)
+    : renderRichContent(missionOverview, room.content?.html)
   const remediationProtocolsMarkup = renderRichContent(remediationProtocols)
   const technicalDeepDiveMarkup = renderRichContent(technicalDeepDive)
   const vulnerabilityDefinitionMarkup = renderRichContent(vulnerabilityDefinition)
@@ -650,6 +652,20 @@ function LabRoomPage() {
                         </p>
                         {question.hint ? (
                           <p className="text-[10px] text-on-surface-variant mb-2">Hint: {question.hint}</p>
+                        ) : null}
+                        {question.sourceType === 'interview' ? (
+                          <div className="mb-3 border-l-2 border-primary/60 bg-primary/10 px-3 py-2">
+                            <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-primary">
+                              Interview Source
+                            </p>
+                            <p className="mt-1 text-[10px] text-on-surface-variant">
+                              {[question.company, question.interview].filter(Boolean).join(' • ') ||
+                                'Interview-style cybersecurity question'}
+                            </p>
+                            {question.sourceInfo ? (
+                              <p className="mt-1 text-[10px] text-on-surface-variant">{question.sourceInfo}</p>
+                            ) : null}
+                          </div>
                         ) : null}
                         {questionStatus.mode === 'theoretical' ? (
                           <textarea

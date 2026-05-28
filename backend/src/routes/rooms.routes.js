@@ -62,7 +62,7 @@ function extractJsonObject(raw) {
 }
 
 function buildFallbackTheoreticalQuestions(room, userId) {
-  const seed = Number(userId || 1) % 3
+  const seed = Number(userId || 1) % 5
   const topic = room.title || room.category || 'this security concept'
   const variants = [
     [
@@ -80,12 +80,29 @@ function buildFallbackTheoreticalQuestions(room, userId) {
       `Compare prevention and detection controls for "${topic}".`,
       `Write a short incident note explaining the likely impact of "${topic}".`,
     ],
+    [
+      `You are asked about "${topic}" in a security analyst interview. How would you explain the issue to both a developer and a manager?`,
+      `Describe a real-world triage process for "${topic}", including evidence you would collect first.`,
+      `What mistakes do beginners commonly make when handling "${topic}", and how would you avoid them?`,
+    ],
+    [
+      `Build a short threat model for "${topic}" with assets, attacker capability, and likely impact.`,
+      `Write an interview-style answer explaining how you would verify a fix for "${topic}".`,
+      `Give a concise post-incident recommendation for a team affected by "${topic}".`,
+    ],
   ]
 
   return variants[seed].map((prompt, index) => ({
-    id: `ai-q-${index + 1}`,
+    id: `u${userId || 0}-q-${index + 1}`,
     prompt,
     rubric: 'Assess conceptual accuracy, specificity, remediation quality, and clarity.',
+    sourceType: index === 0 && seed >= 3 ? 'interview' : 'generated',
+    company: index === 0 && seed >= 3 ? 'Cybersecurity interview practice' : '',
+    interview: index === 0 && seed >= 3 ? `${topic} role-screening question` : '',
+    sourceInfo: index === 0 && seed >= 3
+      ? 'Fallback interview-style question generated from the room topic.'
+      : '',
+    learnerVariant: `${room.id || topic}-${userId || 0}-${seed}`,
   }))
 }
 
@@ -102,20 +119,23 @@ async function generateTheoreticalQuestions(room, userId) {
 
     const response = await client.chat.completions.create({
       model: env.aiModel,
-      temperature: 0.7,
+      temperature: Math.max(0.75, Number(env.aiTemperature || 0.9)),
       top_p: env.aiTopP,
-      max_tokens: 900,
+      max_tokens: 1200,
       stream: false,
       messages: [
         {
           role: 'system',
           content:
-            'Generate assessment questions for a cybersecurity learning room. Return strict JSON only: {"questions":[{"id":"q1","prompt":"string","rubric":"string"}]}. Create exactly 3 open-ended theoretical questions. Do not include answers.',
+            'Generate assessment questions for a cybersecurity learning room. Return strict JSON only: {"questions":[{"id":"string","prompt":"string","rubric":"string","sourceType":"generated|interview","company":"string","interview":"string","sourceInfo":"string","learnerVariant":"string"}]}. Create exactly 3 open-ended theoretical questions. The questions must be personalized by learnerVariant and must not be the same generic wording for every learner. At least one question may be interview-style from known public cybersecurity interview patterns; when sourceType is "interview", include the company name if known, the interview/role context, and a short sourceInfo note. Do not include answers.',
         },
         {
           role: 'user',
           content: JSON.stringify({
             learnerSeed: userId,
+            learnerVariant: `${room.id || room.slug}-${userId}-${Date.now().toString(36)}`,
+            uniquenessInstruction:
+              'Use the learnerSeed and learnerVariant to vary scenario, wording, constraints, and interview source metadata for this learner.',
             title: room.title,
             category: room.category,
             difficulty: room.difficulty || room.level,
@@ -131,9 +151,16 @@ async function generateTheoreticalQuestions(room, userId) {
     const questions = Array.isArray(parsed?.questions) ? parsed.questions : []
     const normalized = questions
       .map((question, index) => ({
-        id: String(question?.id || `ai-q-${index + 1}`).trim(),
+        id: String(question?.id || `u${userId}-q-${index + 1}`).trim(),
         prompt: String(question?.prompt || '').trim(),
         rubric: String(question?.rubric || '').trim(),
+        sourceType: String(question?.sourceType || 'generated').toLowerCase() === 'interview'
+          ? 'interview'
+          : 'generated',
+        company: String(question?.company || '').trim(),
+        interview: String(question?.interview || '').trim(),
+        sourceInfo: String(question?.sourceInfo || '').trim(),
+        learnerVariant: String(question?.learnerVariant || `${room.id || room.slug}-${userId}-${index + 1}`).trim(),
       }))
       .filter((question) => question.id && question.prompt)
 
@@ -142,6 +169,18 @@ async function generateTheoreticalQuestions(room, userId) {
     console.error('Failed to generate theoretical questions:', error)
     return buildFallbackTheoreticalQuestions(room, userId)
   }
+}
+
+function shouldRefreshTheoreticalQuestions(questions, attempt) {
+  if (!Array.isArray(questions) || questions.length === 0) {
+    return true
+  }
+
+  if (attempt?.evaluated_at || attempt?.answers_json) {
+    return false
+  }
+
+  return questions.some((question) => !question.learnerVariant && !question.sourceType)
 }
 
 async function evaluateTheoreticalAnswers(room, questions, answers) {
@@ -211,6 +250,105 @@ async function evaluateTheoreticalAnswers(room, questions, answers) {
   }
 }
 
+function buildFallbackProfileAnalysis(completedRooms) {
+  const categoryCounts = new Map()
+  const strengths = []
+  const improvements = []
+
+  for (const room of completedRooms) {
+    const category = room.category || 'General Security'
+    categoryCounts.set(category, (categoryCounts.get(category) || 0) + 1)
+
+    if (Number(room.technicalScore || 0) >= 90) {
+      strengths.push(`${room.title}: strong technical accuracy`)
+    } else if (room.roomType === 'theoretical') {
+      improvements.push(`${room.title}: raise technical precision in written answers`)
+    }
+  }
+
+  const topCategory = [...categoryCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 'Cybersecurity Fundamentals'
+  const roleMap = {
+    Cryptography: 'Cryptography Analyst',
+    'Web Hacking': 'Web Application Security Tester',
+    Reversing: 'Reverse Engineering Analyst',
+    'Digital Forensics': 'Digital Forensics Analyst',
+  }
+
+  return {
+    suitableRole: roleMap[topCategory] || `${topCategory} Security Analyst`,
+    confidence: completedRooms.length >= 5 ? 'High' : completedRooms.length >= 2 ? 'Medium' : 'Early signal',
+    summary: completedRooms.length
+      ? `Your completed rooms show the strongest signal in ${topCategory}. Continue completing varied rooms to improve the recommendation quality.`
+      : 'Complete rooms and theoretical evaluations to unlock a more accurate role recommendation.',
+    strengths: strengths.slice(0, 3).length ? strengths.slice(0, 3) : [`Consistent progress in ${topCategory}`],
+    improvementAreas: improvements.slice(0, 3).length
+      ? improvements.slice(0, 3)
+      : ['Complete more theoretical rooms with detailed, specific answers.'],
+  }
+}
+
+async function generateProfileAnalysis(completedRooms) {
+  if (!env.nvidiaApiKey || !completedRooms.length) {
+    return buildFallbackProfileAnalysis(completedRooms)
+  }
+
+  try {
+    const client = new OpenAI({
+      baseURL: env.aiBaseUrl,
+      apiKey: env.nvidiaApiKey,
+    })
+
+    const response = await client.chat.completions.create({
+      model: env.aiModel,
+      temperature: 0.25,
+      top_p: env.aiTopP,
+      max_tokens: 900,
+      stream: false,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'Analyze a cybersecurity learner profile. Return strict JSON only: {"suitableRole":"string","confidence":"High|Medium|Early signal","summary":"string","strengths":["string"],"improvementAreas":["string"]}. Base the recommendation only on completed rooms, theoretical answers, scores, and feedback.',
+        },
+        {
+          role: 'user',
+          content: JSON.stringify({
+            completedRooms: completedRooms.map((room) => ({
+              title: room.title,
+              category: room.category,
+              roomType: room.roomType,
+              technicalScore: room.technicalScore,
+              grammarScore: room.grammarScore,
+              feedback: room.feedback,
+              questions: room.questions,
+              answerPreview: room.answerPreview,
+              completedAt: room.completedAt,
+            })),
+          }),
+        },
+      ],
+    })
+
+    const parsed = extractJsonObject(extractMessageText(response?.choices?.[0]?.message))
+    const fallback = buildFallbackProfileAnalysis(completedRooms)
+
+    return {
+      suitableRole: String(parsed?.suitableRole || fallback.suitableRole),
+      confidence: String(parsed?.confidence || fallback.confidence),
+      summary: String(parsed?.summary || fallback.summary),
+      strengths: Array.isArray(parsed?.strengths) && parsed.strengths.length
+        ? parsed.strengths.map((item) => String(item)).slice(0, 4)
+        : fallback.strengths,
+      improvementAreas: Array.isArray(parsed?.improvementAreas) && parsed.improvementAreas.length
+        ? parsed.improvementAreas.map((item) => String(item)).slice(0, 4)
+        : fallback.improvementAreas,
+    }
+  } catch (error) {
+    console.error('Failed to generate profile analysis:', error)
+    return buildFallbackProfileAnalysis(completedRooms)
+  }
+}
+
 async function getOrCreateTheoreticalAttempt(room, userId) {
   const [rows] = await pool.query(
     `SELECT *
@@ -222,7 +360,7 @@ async function getOrCreateTheoreticalAttempt(room, userId) {
 
   if (rows.length) {
     const questions = safeJsonParse(rows[0].questions_json, [])
-    if (Array.isArray(questions) && questions.length > 0) {
+    if (!shouldRefreshTheoreticalQuestions(questions, rows[0])) {
       return rows[0]
     }
 
@@ -447,6 +585,66 @@ router.get('/streaks/me', authenticate, async (req, res) => {
   })
 })
 
+router.get('/profile/analysis', authenticate, async (req, res) => {
+  const [rows] = await pool.query(
+    `SELECT
+       r.id,
+       r.title,
+       r.category,
+       r.room_type,
+       urp.completed_at,
+       uta.questions_json,
+       uta.answers_json,
+       uta.technical_score,
+       uta.grammar_score,
+       uta.feedback
+     FROM user_room_progress urp
+     INNER JOIN rooms r ON r.id = urp.room_id
+     LEFT JOIN user_room_theoretical_attempts uta
+       ON uta.user_id = urp.user_id AND uta.room_id = urp.room_id
+     WHERE urp.user_id = ? AND urp.completed_at IS NOT NULL
+     ORDER BY urp.completed_at DESC
+     LIMIT 40`,
+    [req.user.id],
+  )
+
+  const completedRooms = rows.map((row) => {
+    const questions = safeJsonParse(row.questions_json, [])
+    const answers = safeJsonParse(row.answers_json, {})
+    const answerPreview = Object.values(answers || {})
+      .map((answer) => String(answer || '').trim())
+      .filter(Boolean)
+      .join(' ')
+      .slice(0, 800)
+
+    return {
+      id: row.id,
+      title: row.title,
+      category: row.category,
+      roomType: row.room_type || 'theoretical',
+      completedAt: row.completed_at ? new Date(row.completed_at).toISOString() : null,
+      technicalScore: Number(row.technical_score || 0),
+      grammarScore: Number(row.grammar_score || 0),
+      feedback: row.feedback || '',
+      questions: Array.isArray(questions)
+        ? questions.map((question) => ({
+            prompt: question.prompt,
+            sourceType: question.sourceType || 'generated',
+            company: question.company || '',
+            interview: question.interview || '',
+          }))
+        : [],
+      answerPreview,
+    }
+  })
+
+  const analysis = await generateProfileAnalysis(completedRooms)
+  return res.json({
+    completedRooms: completedRooms.length,
+    ...analysis,
+  })
+})
+
 router.put('/:id/progress', authenticate, async (req, res) => {
   const room = await fetchRoomById(req.params.id)
   if (!room) {
@@ -569,6 +767,10 @@ router.get('/:id/questions/status', authenticate, async (req, res) => {
         id: question.id,
         prompt: question.prompt,
         hint: question.rubric || '',
+        sourceType: question.sourceType || 'generated',
+        company: question.company || '',
+        interview: question.interview || '',
+        sourceInfo: question.sourceInfo || '',
         answeredCorrectly: Boolean(attempt.passed),
         answeredAt: attempt.evaluated_at ? new Date(attempt.evaluated_at).toISOString() : null,
       })),

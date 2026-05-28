@@ -217,7 +217,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
             Cybersecurity Academy
           </span>
         </div>
-        <nav className="hidden 2xl:flex items-center gap-5 font-headline tracking-tight text-sm uppercase whitespace-nowrap">
+        <nav className="hidden xl:flex items-center gap-5 font-headline tracking-tight text-sm uppercase whitespace-nowrap">
           {config.routes.learningPaths ? (
             <NavLink className={navItemClass} to="/learn/paths">
               Learning Paths
@@ -241,7 +241,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
       </div>
       <div className="flex shrink-0 items-center gap-3 xl:gap-4">
         {config.features.navbarSearch ? (
-          <div ref={searchRef} className="relative hidden xl:block">
+          <div ref={searchRef} className="relative hidden 2xl:block">
             <div className="flex items-center gap-2 px-3 py-2.5 bg-gradient-to-br from-surface-container-low to-surface-container-highest border border-primary/20 rounded-lg shadow-sm hover:border-primary/40 hover:shadow-md transition-all duration-200 focus-within:border-primary focus-within:shadow-lg focus-within:ring-1 focus-within:ring-primary/20">
               <span className="material-symbols-outlined text-primary text-lg">search</span>
               <input

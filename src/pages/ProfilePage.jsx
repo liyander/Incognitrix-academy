@@ -8,6 +8,8 @@ function ProfilePage() {
   const [careerPaths, setCareerPaths] = useState([])
   const [isLoadingPaths, setIsLoadingPaths] = useState(true)
   const [labProgressTick, setLabProgressTick] = useState(0)
+  const [aiAnalysis, setAiAnalysis] = useState(null)
+  const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(true)
 
   useEffect(() => {
     let cancelled = false
@@ -60,7 +62,37 @@ function ProfilePage() {
     }
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+
+    const loadAnalysis = async () => {
+      setIsLoadingAnalysis(true)
+      try {
+        const response = await apiFetch('/rooms/profile/analysis')
+        if (!cancelled) {
+          setAiAnalysis(response)
+        }
+      } catch (error) {
+        console.error('Failed to load profile AI analysis:', error)
+        if (!cancelled) {
+          setAiAnalysis(null)
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingAnalysis(false)
+        }
+      }
+    }
+
+    void loadAnalysis()
+
+    return () => {
+      cancelled = true
+    }
+  }, [labProgressTick])
+
   const moduleProgressItems = useMemo(() => {
+    void labProgressTick
     const roomsById = new Map(getRoomsData().map((room) => [room.id, room]))
     const progressMap = getLabProgressMap()
 
@@ -74,7 +106,7 @@ function ProfilePage() {
         return {
           id: `${path.id}-${module.id}`,
           title: module.title || 'Untitled Module',
-          subtitle: `${module.phase || 'Module'} • ${path.title || 'Path'}`,
+          subtitle: `${module.phase || 'Module'} / ${path.title || 'Path'}`,
           percentage,
           completedRooms,
           totalRooms,
@@ -128,6 +160,63 @@ function ProfilePage() {
           </div>
 
           <div className="grid grid-cols-12 gap-8">
+            <div className="col-span-12 bg-surface-container-lowest p-8 border-l-4 border-secondary">
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+                <div className="max-w-3xl">
+                  <span className="font-label text-[10px] tracking-[0.25em] uppercase text-secondary font-bold">
+                    AI Career Analysis
+                  </span>
+                  <h2 className="font-headline font-bold text-2xl uppercase tracking-tight mt-2">
+                    {isLoadingAnalysis
+                      ? 'Analyzing completed rooms...'
+                      : aiAnalysis?.suitableRole || 'Complete rooms to unlock role analysis'}
+                  </h2>
+                  <p className="text-sm text-on-surface-variant leading-relaxed mt-3">
+                    {aiAnalysis?.summary ||
+                      'The recommendation is generated from completed rooms, theoretical scores, answered questions, and evaluator feedback.'}
+                  </p>
+                </div>
+                <div className="bg-surface-container-high px-5 py-4 min-w-44">
+                  <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                    Confidence
+                  </p>
+                  <p className="font-headline text-2xl font-black text-secondary mt-1">
+                    {aiAnalysis?.confidence || 'Pending'}
+                  </p>
+                  <p className="text-[10px] text-on-surface-variant mt-2">
+                    {Number(aiAnalysis?.completedRooms || 0)} rooms completed
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+                <div className="bg-surface p-5">
+                  <h3 className="font-headline text-xs font-bold uppercase tracking-widest text-primary mb-4">
+                    Strengths
+                  </h3>
+                  <div className="space-y-3">
+                    {(aiAnalysis?.strengths || ['Complete more rooms to identify your strongest skills.']).map((item) => (
+                      <p className="text-sm text-on-surface-variant leading-relaxed" key={item}>
+                        {item}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-surface p-5">
+                  <h3 className="font-headline text-xs font-bold uppercase tracking-widest text-primary mb-4">
+                    Improve Next
+                  </h3>
+                  <div className="space-y-3">
+                    {(aiAnalysis?.improvementAreas || ['Submit detailed theoretical answers to improve analysis quality.']).map((item) => (
+                      <p className="text-sm text-on-surface-variant leading-relaxed" key={item}>
+                        {item}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="col-span-12 lg:col-span-8 bg-surface-container-lowest p-8 border-l-4 border-primary/70">
               <div className="flex justify-between items-center mb-6">
                 <div>

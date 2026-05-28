@@ -3,7 +3,7 @@ function escapeHtml(value) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/\"/g, '&quot;')
+    .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
 }
 
@@ -142,28 +142,34 @@ function stripCodeIndent(line) {
   return line
 }
 
+function parseFenceStart(line) {
+  const match = line.match(/^[ \t]*(`{3,}|~{3,})[ \t]*([a-zA-Z0-9_-]*)[ \t]*$/)
+  if (!match) {
+    return null
+  }
+
+  return {
+    marker: match[1][0],
+    length: match[1].length,
+    lang: match[2] || '',
+  }
+}
+
+function isFenceEnd(line, fence) {
+  if (!fence) {
+    return false
+  }
+
+  const escapedMarker = fence.marker === '`' ? '`' : '~'
+  const pattern = new RegExp(`^[ \\t]*${escapedMarker}{${fence.length},}[ \\t]*$`)
+  return pattern.test(line)
+}
+
 export function parseMarkdownToHtml(markdown) {
-  let source = String(markdown || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const source = String(markdown || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   if (!source.trim()) {
     return "<p></p>";
   }
-
-  const blockTokens = [];
-  source = source.replace(/^[ \t]*(`{3,}|~{3,})[ \t]*([a-zA-Z0-9_-]*)[ \t]*\n([\s\S]*?)(?:\n[ \t]*\1[ \t]*$|$)/gm, (match, fence, lang, code) => {
-    const indentMatch = match.match(/^[ \t]*/);
-    const indent = indentMatch ? indentMatch[0] : "";
-    let processedCode = code;
-    if (indent) {
-      const lines = code.split("\n");
-      const allIndented = lines.every(line => !line || line.startsWith(indent));
-      if (allIndented) {
-        processedCode = lines.map(line => line.startsWith(indent) ? line.slice(indent.length) : line).join("\n");
-      }
-    }
-    const token = `\uE100BLOCK_TOKEN_${blockTokens.length}\uE101`;
-    blockTokens.push({ lang: lang.trim(), code: processedCode });
-    return token;
-  });
 
   const lines = source.split("\n");
   const output = [];
@@ -174,6 +180,26 @@ export function parseMarkdownToHtml(markdown) {
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
     const trimmed = line.trim();
+    const fence = parseFenceStart(line)
+
+    if (fence) {
+      flushParagraph(paragraphLines, output);
+      flushList(listItems, output, listType);
+      listType = null;
+
+      const codeLines = [];
+      while (i + 1 < lines.length) {
+        i += 1;
+        if (isFenceEnd(lines[i], fence)) {
+          break;
+        }
+        codeLines.push(lines[i]);
+      }
+
+      const className = fence.lang ? ` class="language-${escapeHtml(fence.lang)}"` : "";
+      output.push(`<pre><code${className}>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+      continue;
+    }
 
     if (isIndentedCodeLine(line, lines, i)) {
       flushParagraph(paragraphLines, output);
@@ -330,19 +356,5 @@ export function parseMarkdownToHtml(markdown) {
   flushParagraph(paragraphLines, output);
   flushList(listItems, output, listType);
 
-  let html = output.join("\n");
-  
-  html = html.replace(/<p>\s*\uE100BLOCK_TOKEN_(\d+)\uE101\s*<\/p>|\uE100BLOCK_TOKEN_(\d+)\uE101/g, (match, id1, id2) => {
-    const id = id1 !== undefined ? id1 : id2;
-    if (!id) return match;
-    const tokenData = blockTokens[Number(id)];
-    if (!tokenData) return match;
-    
-    const { lang, code } = tokenData;
-    const codeHtml = escapeHtml(code);
-    const className = lang ? ` class="language-${escapeHtml(lang)}"` : "";
-    return `<pre><code${className}>${codeHtml}</code></pre>`;
-  });
-
-  return html;
+  return output.join("\n");
 }
