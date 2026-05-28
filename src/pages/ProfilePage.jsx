@@ -88,12 +88,44 @@ const ACHIEVEMENT_DEFINITIONS = [
     isUnlocked: ({ completedRooms }) => completedRooms >= 3,
   },
   {
+    id: 'lab-operator',
+    name: 'Lab Operator',
+    icon: 'terminal',
+    tone: 'primary',
+    criteria: 'Complete 5 rooms',
+    isUnlocked: ({ completedRooms }) => completedRooms >= 5,
+  },
+  {
+    id: 'mission-chain',
+    name: 'Mission Chain',
+    icon: 'conversion_path',
+    tone: 'secondary',
+    criteria: 'Complete 7 rooms',
+    isUnlocked: ({ completedRooms }) => completedRooms >= 7,
+  },
+  {
     id: 'xp-hunter',
     name: 'XP Hunter',
     icon: 'data_thresholding',
     tone: 'primary',
     criteria: 'Earn 1,000 XP',
     isUnlocked: ({ xp }) => xp >= 1000,
+  },
+  {
+    id: 'signal-amplifier',
+    name: 'Signal Amplifier',
+    icon: 'monitoring',
+    tone: 'secondary',
+    criteria: 'Earn 2,500 XP',
+    isUnlocked: ({ xp }) => xp >= 2500,
+  },
+  {
+    id: 'vault-runner',
+    name: 'Vault Runner',
+    icon: 'encrypted',
+    tone: 'primary',
+    criteria: 'Earn 4,000 XP',
+    isUnlocked: ({ xp }) => xp >= 4000,
   },
   {
     id: 'domain-hopper',
@@ -104,12 +136,52 @@ const ACHIEVEMENT_DEFINITIONS = [
     isUnlocked: ({ categories }) => categories >= 3,
   },
   {
+    id: 'domain-cartographer',
+    name: 'Domain Cartographer',
+    icon: 'travel_explore',
+    tone: 'secondary',
+    criteria: 'Complete rooms in 5 categories',
+    isUnlocked: ({ categories }) => categories >= 5,
+  },
+  {
     id: 'module-master',
     name: 'Module Master',
     icon: 'military_tech',
     tone: 'primary',
     criteria: 'Master 1 module',
     isUnlocked: ({ masteredModules }) => masteredModules >= 1,
+  },
+  {
+    id: 'path-breaker',
+    name: 'Path Breaker',
+    icon: 'account_tree',
+    tone: 'primary',
+    criteria: 'Master 2 modules',
+    isUnlocked: ({ masteredModules }) => masteredModules >= 2,
+  },
+  {
+    id: 'completion-specialist',
+    name: 'Completion Specialist',
+    icon: 'fact_check',
+    tone: 'secondary',
+    criteria: 'Master 4 modules',
+    isUnlocked: ({ masteredModules }) => masteredModules >= 4,
+  },
+  {
+    id: 'fresh-operator',
+    name: 'Fresh Operator',
+    icon: 'bolt',
+    tone: 'primary',
+    criteria: 'Complete a room in the last 7 days',
+    isUnlocked: ({ recentCompletions }) => recentCompletions >= 1,
+  },
+  {
+    id: 'rapid-triage',
+    name: 'Rapid Triage',
+    icon: 'speed',
+    tone: 'secondary',
+    criteria: 'Complete 3 rooms in the last 7 days',
+    isUnlocked: ({ recentCompletions }) => recentCompletions >= 3,
   },
   {
     id: 'deep-operator',
@@ -437,11 +509,16 @@ function ProfilePage() {
     [labTimelineItems],
   )
   const masteredModuleCount = moduleProgressItems.filter((item) => item.percentage === 100).length
+  const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000)
+  const recentCompletionCount = labTimelineItems.filter(
+    (item) => new Date(item.completedAt).getTime() >= sevenDaysAgo,
+  ).length
   const achievementContext = {
     xp: profileStats.xp,
     completedRooms: profileStats.completedRooms,
     categories: completedCategoryCount,
     masteredModules: masteredModuleCount,
+    recentCompletions: recentCompletionCount,
   }
   const achievements = ACHIEVEMENT_DEFINITIONS.map((achievement) => ({
     ...achievement,

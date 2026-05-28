@@ -329,6 +329,12 @@ export async function initializeDatabaseIfNeeded() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       );
 
+      CREATE TABLE IF NOT EXISTS room_categories (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(120) NOT NULL UNIQUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE TABLE IF NOT EXISTS room_tags (
         id INT AUTO_INCREMENT PRIMARY KEY,
         room_id VARCHAR(191) NOT NULL,

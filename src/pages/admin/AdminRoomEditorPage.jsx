@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { fetchRoomCategories, getRoomCategories } from '../../data/categoriesData'
 import { addRoom, getRoomById, updateRoom } from '../../data/roomsData'
 
 function slugify(value) {
@@ -77,6 +78,24 @@ function AdminRoomEditorPage() {
   const [requiredKeywordsInput, setRequiredKeywordsInput] = useState(
     (room?.requiredKeywords || []).join(', ')
   )
+  const [roomCategories, setRoomCategories] = useState(() => getRoomCategories([formData.category]))
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadCategories = async () => {
+      const categories = await fetchRoomCategories([formData.category])
+      if (!cancelled) {
+        setRoomCategories(categories)
+      }
+    }
+
+    void loadCategories()
+
+    return () => {
+      cancelled = true
+    }
+  }, [formData.category])
 
   if (!isNewRoom && !room) {
     return (
@@ -342,21 +361,9 @@ function AdminRoomEditorPage() {
                     value={formData.category || ''}
                   >
                     <option value="">Select Category</option>
-                    <option value="Web Exploitation">Web Exploitation</option>
-                    <option value="Cryptography">Cryptography</option>
-                    <option value="Binary Exploitation">Binary Exploitation</option>
-                    <option value="Digital Forensics">Digital Forensics</option>
-                    <option value="Network Security">Network Security</option>
-                    <option value="Cloud Security">Cloud Security</option>
-                    <option value="Mobile Security">Mobile Security</option>
-                    <option value="Secure Coding">Secure Coding</option>
-                    <option value="Incident Response">Incident Response</option>
-                    <option value="Malware Analysis">Malware Analysis</option>
-                    <option value="Privilege Escalation">Privilege Escalation</option>
-                    <option value="Social Engineering">Social Engineering</option>
-                    <option value="Container Security">Container Security</option>
-                    <option value="API Security">API Security</option>
-                    <option value="Threat Hunting">Threat Hunting</option>
+                    {roomCategories.map((category) => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
                   </select>
                 </div>
 

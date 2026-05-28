@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.routes.js'
 import careerPathRoutes from './routes/careerPaths.routes.js'
 import platformRoutes from './routes/platform.routes.js'
 import roomRoutes from './routes/rooms.routes.js'
+import categoryRoutes from './routes/categories.routes.js'
 import notificationsRoutes from './routes/notifications.routes.js'
 import ctfEventsRoutes from './routes/ctfEvents.routes.js'
 import usersRoutes from './routes/users.routes.js'
@@ -41,6 +42,7 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/rooms', roomRoutes)
+app.use('/api/categories', categoryRoutes)
 app.use('/api/career-paths', careerPathRoutes)
 app.use('/api/platform-config', platformRoutes)
 app.use('/api/notifications', notificationsRoutes)

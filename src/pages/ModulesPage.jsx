@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { CATEGORIES_UPDATED_EVENT, fetchRoomCategories, getRoomCategories } from '../data/categoriesData'
 import { getRoomsData } from '../data/roomsData'
 import {
   getLabProgressEvents,
@@ -11,13 +12,16 @@ function searchableValue(value) {
 }
 
 function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
-  const allRooms = useMemo(() => getRoomsData(), [])
-
   const [complexity, setComplexity] = useState('Any Difficulty')
   const [specialization, setSpecialization] = useState('All Categories')
   const [searchQuery, setSearchQuery] = useState('')
   const [viewFilter, setViewFilter] = useState('all')
   const [progressMap, setProgressMap] = useState(() => getLabProgressMap())
+  const [categoryTick, setCategoryTick] = useState(0)
+  const allRooms = useMemo(() => getRoomsData(), [])
+  const [roomCategories, setRoomCategories] = useState(() =>
+    getRoomCategories(allRooms.map((room) => room.category)),
+  )
 
   const filteredRooms = useMemo(() => {
     let results = allRooms
@@ -54,6 +58,34 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
     return results
   }, [allRooms, complexity, specialization, searchQuery, viewFilter, progressMap])
 
+  const proficiencyItems = useMemo(() => {
+    void categoryTick
+    return roomCategories
+      .map((category) => {
+        const categoryRooms = allRooms.filter((room) => room.category === category)
+        const completedRooms = categoryRooms.filter((room) => Boolean(progressMap[room.id]?.completedAt)).length
+        const percentage = categoryRooms.length
+          ? Math.round((completedRooms / categoryRooms.length) * 100)
+          : 0
+
+        return {
+          category,
+          completedRooms,
+          totalRooms: categoryRooms.length,
+          percentage,
+        }
+      })
+      .filter((item) => item.totalRooms > 0)
+      .sort(
+        (a, b) =>
+          b.percentage - a.percentage ||
+          b.completedRooms - a.completedRooms ||
+          b.totalRooms - a.totalRooms ||
+          a.category.localeCompare(b.category),
+      )
+      .slice(0, 5)
+  }, [allRooms, categoryTick, progressMap, roomCategories])
+
   useEffect(() => {
     const { updatedEvent, updatedStorageKey } = getLabProgressEvents()
 
@@ -66,14 +98,36 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
         syncProgress()
       }
     }
+    const syncCategories = () => {
+      setCategoryTick((value) => value + 1)
+    }
 
     window.addEventListener(updatedEvent, syncProgress)
     window.addEventListener('storage', onStorage)
+    window.addEventListener(CATEGORIES_UPDATED_EVENT, syncCategories)
     return () => {
       window.removeEventListener(updatedEvent, syncProgress)
       window.removeEventListener('storage', onStorage)
+      window.removeEventListener(CATEGORIES_UPDATED_EVENT, syncCategories)
     }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadCategories = async () => {
+      const categories = await fetchRoomCategories(allRooms.map((room) => room.category))
+      if (!cancelled) {
+        setRoomCategories(categories)
+      }
+    }
+
+    void loadCategories()
+
+    return () => {
+      cancelled = true
+    }
+  }, [allRooms, categoryTick])
 
   const getRoomStatus = (roomId) => {
     const progress = progressMap[roomId]
@@ -150,10 +204,9 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
               onChange={(e) => setSpecialization(e.target.value)}
             >
               <option>All Categories</option>
-              <option>Web Exploitation</option>
-              <option>Cryptography</option>
-              <option>Binary Exploitation</option>
-              <option>Digital Forensics</option>
+              {roomCategories.map((category) => (
+                <option key={category}>{category}</option>
+              ))}
             </select>
           </div>
           <div className="flex flex-col gap-2">
@@ -238,33 +291,23 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
               <div className="p-8 border-t border-outline-variant/30 bg-surface">
                 <h2 className="font-label text-sm font-bold tracking-widest uppercase text-on-background mb-6">Your Proficiency</h2>
                 <div className="space-y-6">
-                  <div>
-                    <div className="flex justify-between font-label text-[10px] font-bold uppercase mb-2">
-                      <span className="text-on-surface-variant">Web Hacking</span>
-                      <span className="text-primary">82%</span>
-                    </div>
-                    <div className="h-1 bg-surface-container-highest w-full overflow-hidden">
-                      <div className="h-full bg-primary w-[82%]"></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between font-label text-[10px] font-bold uppercase mb-2">
-                      <span className="text-on-surface-variant">Cryptography</span>
-                      <span className="text-primary">45%</span>
-                    </div>
-                    <div className="h-1 bg-surface-container-highest w-full overflow-hidden">
-                      <div className="h-full bg-primary w-[45%]"></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between font-label text-[10px] font-bold uppercase mb-2">
-                      <span className="text-on-surface-variant">Reversing</span>
-                      <span className="text-primary">12%</span>
-                    </div>
-                    <div className="h-1 bg-surface-container-highest w-full overflow-hidden">
-                      <div className="h-full bg-primary w-[12%]"></div>
-                    </div>
-                  </div>
+                  {proficiencyItems.length > 0 ? (
+                    proficiencyItems.map((item) => (
+                      <div key={item.category}>
+                        <div className="flex justify-between gap-4 font-label text-[10px] font-bold uppercase mb-2">
+                          <span className="text-on-surface-variant truncate">{item.category}</span>
+                          <span className="text-primary shrink-0">
+                            {item.percentage}% ({item.completedRooms}/{item.totalRooms})
+                          </span>
+                        </div>
+                        <div className="h-1 bg-surface-container-highest w-full overflow-hidden">
+                          <div className="h-full bg-primary" style={{ width: `${item.percentage}%` }}></div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-on-surface-variant">Complete rooms to build proficiency.</p>
+                  )}
                 </div>
               </div>
 

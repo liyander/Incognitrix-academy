@@ -1,10 +1,40 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getCveById, subscribeCvesData } from '../data/cvesData'
+import { parseMarkdownToHtml } from '../utils/markdown'
+
+function looksLikeCodeContent(text) {
+  const lines = String(text || '').split('\n')
+  const codeLikeLines = lines.filter((line) => {
+    const trimmed = line.trim()
+    if (!trimmed) return false
+
+    return (
+      /^(#\s?(?:!|import|from|\$|curl|python|bash|cat|echo|base64|payload|validate)|curl\s|-[A-Z]\s|--[a-z-]+|\w+\.\w+\(|[A-Za-z0-9+/]{40,}={0,2}$)/i.test(trimmed) ||
+      /[{}()[\]=<>]|\\$/.test(trimmed)
+    )
+  })
+
+  return codeLikeLines.length >= 3 || codeLikeLines.length / Math.max(1, lines.filter((line) => line.trim()).length) >= 0.45
+}
+
+function renderCveContent(text, { preferCode = false } = {}) {
+  const raw = String(text || '').trim()
+  if (!raw) {
+    return parseMarkdownToHtml('No details available.')
+  }
+
+  if (preferCode && looksLikeCodeContent(raw) && !/^```/m.test(raw)) {
+    return parseMarkdownToHtml(`\`\`\`bash\n${raw}\n\`\`\``)
+  }
+
+  return parseMarkdownToHtml(raw)
+}
 
 function CveDetailPage() {
   const { id } = useParams()
   const [cve, setCve] = useState(() => getCveById(id))
+  const contentRootRef = useRef(null)
 
   useEffect(() => {
     return subscribeCvesData(() => {
@@ -14,6 +44,55 @@ function CveDetailPage() {
       }
     })
   }, [id])
+
+  useEffect(() => {
+    const root = contentRootRef.current
+    if (!root) {
+      return undefined
+    }
+
+    const cleanupHandlers = []
+    root.querySelectorAll('pre').forEach((block) => {
+      if (block.querySelector('[data-copy-code]')) {
+        return
+      }
+
+      block.classList.add('relative', 'group')
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.dataset.copyCode = 'true'
+      button.className =
+        'absolute right-3 top-3 bg-surface-container-lowest border border-outline-variant/40 px-3 py-1.5 font-headline text-[9px] font-bold uppercase tracking-widest text-on-surface-variant opacity-0 transition-opacity group-hover:opacity-100 hover:text-primary'
+      button.textContent = 'Copy'
+
+      const handleClick = async () => {
+        const code = block.querySelector('code')?.textContent || block.textContent || ''
+        try {
+          await navigator.clipboard.writeText(code)
+          button.textContent = 'Copied'
+          window.setTimeout(() => {
+            button.textContent = 'Copy'
+          }, 1200)
+        } catch {
+          button.textContent = 'Failed'
+          window.setTimeout(() => {
+            button.textContent = 'Copy'
+          }, 1200)
+        }
+      }
+
+      button.addEventListener('click', handleClick)
+      block.appendChild(button)
+      cleanupHandlers.push(() => {
+        button.removeEventListener('click', handleClick)
+        button.remove()
+      })
+    })
+
+    return () => {
+      cleanupHandlers.forEach((cleanup) => cleanup())
+    }
+  }, [cve])
 
   if (!cve) {
     return (
@@ -32,18 +111,9 @@ function CveDetailPage() {
     )
   }
 
-  const renderTextContent = (text) => {
-    if (!text) return 'No details available.'
-    return text.split('\n').map((paragraph, index) => (
-      <p key={index} className="mb-4 last:mb-0">
-        {paragraph}
-      </p>
-    ))
-  }
-
   return (
     <main className="min-h-screen bg-surface px-6 md:px-10 py-10 mt-16 md:mt-20">
-      <div className="max-w-4xl mx-auto space-y-12">
+      <div ref={contentRootRef} className="max-w-4xl mx-auto space-y-12">
         <nav className="flex items-center gap-4 border-b border-outline-variant pb-6 mb-10">
           <Link
             to="/cves"
@@ -82,9 +152,10 @@ function CveDetailPage() {
             <span className="material-symbols-outlined text-primary">bug_report</span>
             Vulnerability Report
           </h2>
-          <div className="font-body text-sm md:text-base text-on-surface-variant leading-relaxed">
-            {renderTextContent(cve.vulnerability_report)}
-          </div>
+          <div
+            className="font-body text-sm md:text-base text-on-surface-variant leading-relaxed [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mt-4 [&_h3]:mb-2 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mb-1.5 [&_pre]:bg-surface [&_pre]:border [&_pre]:border-outline-variant/30 [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre]:my-4 [&_pre]:text-sm [&_code]:font-mono [&_code]:text-[0.9em] [&_code]:bg-on-surface/5 [&_code]:px-1.5 [&_code]:py-0.5 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_a]:text-primary [&_a]:underline"
+            dangerouslySetInnerHTML={{ __html: renderCveContent(cve.vulnerability_report) }}
+          ></div>
         </section>
 
         <section className="bg-surface-container-lowest p-8 border-l border-outline-variant/30">
@@ -92,9 +163,10 @@ function CveDetailPage() {
             <span className="material-symbols-outlined text-primary">search_insights</span>
             Discovery Method
           </h2>
-          <div className="font-body text-sm md:text-base text-on-surface-variant leading-relaxed">
-            {renderTextContent(cve.method_followed)}
-          </div>
+          <div
+            className="font-body text-sm md:text-base text-on-surface-variant leading-relaxed [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mt-4 [&_h3]:mb-2 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mb-1.5 [&_pre]:bg-surface [&_pre]:border [&_pre]:border-outline-variant/30 [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre]:my-4 [&_pre]:text-sm [&_code]:font-mono [&_code]:text-[0.9em] [&_code]:bg-on-surface/5 [&_code]:px-1.5 [&_code]:py-0.5 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_a]:text-primary [&_a]:underline"
+            dangerouslySetInnerHTML={{ __html: renderCveContent(cve.method_followed, { preferCode: true }) }}
+          ></div>
         </section>
 
         <section className="bg-surface-container-lowest p-8 border-l border-outline-variant/30">

@@ -90,6 +90,32 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
               </a>
             </div>
 
+            <div className="bg-surface-container-lowest border-l-4 border-primary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+              <a className="block" href="/admin/categories">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-primary" style={{ fontSize: '32px' }}>
+                      category
+                    </span>
+                    <div>
+                      <h3 className="font-headline text-lg font-bold uppercase">
+                        Room Categories
+                      </h3>
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
+                        Manage Specializations
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-on-surface-variant">
+                    chevron_right
+                  </span>
+                </div>
+                <p className="text-sm text-on-surface-variant">
+                  Add specialization categories for room filters, room creation, and dynamic proficiency tracking.
+                </p>
+              </a>
+            </div>
+
             {/* CVE Database Management */}
             <div className="bg-surface-container-lowest border-l-4 border-error p-6 hover:bg-surface-container-high transition-all cursor-pointer">
               <a className="block" href="/admin/cves">
