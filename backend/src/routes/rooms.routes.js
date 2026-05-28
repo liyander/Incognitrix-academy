@@ -151,6 +151,121 @@ function ensureImprovementFeedback(feedback) {
   return `${text}\n\nImprove next: 1) Tie each answer directly to the room content. 2) Include the main security impact. 3) Add one concrete mitigation or validation step.`
 }
 
+function tokenizeForAssessment(value) {
+  const stopWords = new Set([
+    'about',
+    'after',
+    'also',
+    'and',
+    'answer',
+    'are',
+    'because',
+    'before',
+    'being',
+    'can',
+    'does',
+    'for',
+    'from',
+    'have',
+    'how',
+    'include',
+    'into',
+    'its',
+    'main',
+    'one',
+    'only',
+    'room',
+    'should',
+    'that',
+    'the',
+    'their',
+    'this',
+    'using',
+    'what',
+    'when',
+    'where',
+    'which',
+    'why',
+    'with',
+    'would',
+    'your',
+  ])
+
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((token) => token.length > 2 && !stopWords.has(token))
+}
+
+function scoreAnswerLocally(question, answer, roomContent) {
+  const answerText = String(answer || '').trim()
+  const wordCount = answerText.split(/\s+/).filter(Boolean).length
+  if (wordCount < 8) {
+    return 0
+  }
+
+  const answerTokens = new Set(tokenizeForAssessment(answerText))
+  const questionTokens = tokenizeForAssessment(`${question?.prompt || ''} ${question?.rubric || ''}`)
+  const contentTokens = tokenizeForAssessment(roomContent).slice(0, 700)
+  const questionOverlap = questionTokens.filter((token) => answerTokens.has(token)).length
+  const contentOverlap = contentTokens.filter((token) => answerTokens.has(token)).length
+  const contentRatio = contentOverlap / Math.max(1, Math.min(contentTokens.length, answerTokens.size))
+  const hasImpact = /\b(impact|risk|danger|security|compromise|attack|vulnerab|exposure|damage|protect|prevent|mitigat|detect|verify|validate|fix|secure)\b/i.test(answerText)
+  const hasConcreteDetail = /\b(example|because|therefore|such as|for example|step|process|check|log|file|network|system|user|permission|access|service|process|job)\b/i.test(answerText)
+
+  let score = 35
+  if (wordCount >= 25) score += 15
+  if (wordCount >= 45) score += 12
+  if (wordCount >= 70) score += 8
+  if (questionOverlap >= 2) score += 10
+  if (questionOverlap >= 4) score += 8
+  if (contentOverlap >= 4 || contentRatio >= 0.12) score += 12
+  if (contentOverlap >= 8 || contentRatio >= 0.2) score += 8
+  if (hasImpact) score += 6
+  if (hasConcreteDetail) score += 6
+
+  return Math.max(0, Math.min(100, score))
+}
+
+function evaluateTheoreticalAnswersLocally(room, questions, answers, reason = '') {
+  const requiredQuestions = questions.filter((question) => !question.bonus && !question.optional)
+  const bonusQuestions = questions.filter((question) => question.bonus || question.optional)
+  const roomContent = buildQuestionContentContext(room)
+  const requiredScores = requiredQuestions.map((question) =>
+    scoreAnswerLocally(question, answers?.[question.id], roomContent),
+  )
+  const answeredCount = requiredScores.filter((score) => score > 0).length
+  const allRequiredAttempted = requiredQuestions.length > 0 && answeredCount === requiredQuestions.length
+  const averageScore = requiredScores.length
+    ? Math.round(requiredScores.reduce((sum, score) => sum + score, 0) / requiredScores.length)
+    : 0
+  const baseTechnicalScore = allRequiredAttempted
+    ? Math.min(96, Math.max(45, averageScore))
+    : Math.round((answeredCount / Math.max(1, requiredQuestions.length)) * 70)
+  const bonusAnswered = bonusQuestions.some((question) => String(answers?.[question.id] || '').trim().split(/\s+/).filter(Boolean).length >= 15)
+  const bonusScore = bonusAnswered ? 5 : 0
+  const allAnswerWords = Object.values(answers || {}).join(' ').split(/\s+/).filter(Boolean).length
+  const grammarScore = allAnswerWords
+    ? Math.min(92, Math.max(45, Math.round(allAnswerWords * 1.4)))
+    : 0
+  const feedbackPrefix = reason
+    ? `AI evaluation was not parseable, so a local content-alignment fallback was used. ${reason}`
+    : 'Local content-alignment fallback evaluation completed.'
+
+  return {
+    technicalScore: Math.min(100, baseTechnicalScore + bonusScore),
+    grammarScore,
+    baseTechnicalScore,
+    bonusScore,
+    feedback: ensureImprovementFeedback(
+      `${feedbackPrefix} ${allRequiredAttempted
+        ? 'Your answers were scored from answer completeness, room keyword alignment, and concrete security reasoning.'
+        : 'Some required answers were missing or too short to evaluate fairly.'}`,
+    ),
+  }
+}
+
 async function generateTheoreticalQuestions(room, userId, attemptSalt = '') {
   if (!env.nvidiaApiKey) {
     return buildFallbackTheoreticalQuestions(room, userId, attemptSalt)
@@ -308,7 +423,13 @@ async function evaluateTheoreticalAnswers(room, questions, answers) {
       ],
     })
 
-    const parsed = extractJsonObject(extractMessageText(response?.choices?.[0]?.message))
+    const rawEvaluation = extractMessageText(response?.choices?.[0]?.message)
+    const parsed = extractJsonObject(rawEvaluation)
+    if (!parsed || parsed.technicalScore === undefined || parsed.grammarScore === undefined) {
+      console.warn('Theoretical evaluator returned non-JSON or incomplete scores:', rawEvaluation)
+      return evaluateTheoreticalAnswersLocally(room, questions, answers, 'The remote evaluator returned incomplete scoring data.')
+    }
+
     const rawBaseTechnicalScore = Math.max(0, Math.min(100, Number(parsed?.technicalScore || 0)))
     const baseTechnicalScore = allRequiredAttempted && rawBaseTechnicalScore >= 92
       ? 100
@@ -325,13 +446,7 @@ async function evaluateTheoreticalAnswers(room, questions, answers) {
     }
   } catch (error) {
     console.error('Failed to evaluate theoretical answers:', error)
-    return {
-      technicalScore: 0,
-      grammarScore: 0,
-      baseTechnicalScore: 0,
-      bonusScore: 0,
-      feedback: 'AI evaluation failed. Please try again.',
-    }
+    return evaluateTheoreticalAnswersLocally(room, questions, answers, 'The remote evaluator failed before returning a score.')
   }
 }
 

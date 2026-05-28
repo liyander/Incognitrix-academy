@@ -1,15 +1,31 @@
 import { useEffect, useMemo, useState } from 'react'
+import { getAuthSession } from '../auth'
 import { getCareerPathsData, hydrateCareerPathsData } from '../data/careerPathsData'
 import { getRoomsData } from '../data/roomsData'
 import { apiFetch } from '../services/api'
 import { getLabProgressEvents, getLabProgressMap } from '../services/labProgress'
 
+function parseXpValue(value) {
+  const match = String(value || '').replace(/,/g, '').match(/\d+/)
+  return match ? Number(match[0]) : 0
+}
+
+function formatNumber(value) {
+  return new Intl.NumberFormat('en-US').format(Number(value || 0))
+}
+
 function ProfilePage() {
+  const authSession = getAuthSession()
+  const analysisCacheKey = `incognitrix_profile_analysis_${authSession?.username || 'operator'}`
   const [careerPaths, setCareerPaths] = useState([])
   const [isLoadingPaths, setIsLoadingPaths] = useState(true)
   const [labProgressTick, setLabProgressTick] = useState(0)
   const [aiAnalysis, setAiAnalysis] = useState(null)
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(true)
+  const [profileStats, setProfileStats] = useState({
+    xp: 0,
+    completedRooms: 0,
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -62,15 +78,93 @@ function ProfilePage() {
     }
   }, [])
 
+  const completedRoomSignature = useMemo(() => {
+    void labProgressTick
+    const progressMap = getLabProgressMap()
+    const completedEntries = Object.entries(progressMap)
+      .filter(([, progress]) => Boolean(progress?.completedAt))
+      .map(([roomId, progress]) => `${roomId}:${progress.completedAt}`)
+      .sort()
+
+    return completedEntries.length ? completedEntries.join('|') : 'no-completed-rooms'
+  }, [labProgressTick])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadProfileStats = async () => {
+      const progressMap = getLabProgressMap()
+      const roomsById = new Map(getRoomsData().map((room) => [room.id, room]))
+      const localCompletedRoomIds = Object.entries(progressMap)
+        .filter(([, progress]) => Boolean(progress?.completedAt))
+        .map(([roomId]) => roomId)
+      const localXp = localCompletedRoomIds.reduce(
+        (sum, roomId) => sum + parseXpValue(roomsById.get(roomId)?.xp),
+        0,
+      )
+
+      try {
+        const scoreboard = await apiFetch('/rooms/scoreboard/summary')
+        if (cancelled) {
+          return
+        }
+
+        const currentUser = Array.isArray(scoreboard)
+          ? scoreboard.find(
+              (row) => String(row.username || '').toLowerCase() === String(authSession?.username || '').toLowerCase(),
+            )
+          : null
+
+        setProfileStats({
+          xp: Number(currentUser?.xp ?? localXp),
+          completedRooms: Number(currentUser?.completedRooms ?? localCompletedRoomIds.length),
+        })
+      } catch (error) {
+        console.error('Failed to load profile XP:', error)
+        if (!cancelled) {
+          setProfileStats({
+            xp: localXp,
+            completedRooms: localCompletedRoomIds.length,
+          })
+        }
+      }
+    }
+
+    void loadProfileStats()
+
+    return () => {
+      cancelled = true
+    }
+  }, [authSession?.username, completedRoomSignature])
+
   useEffect(() => {
     let cancelled = false
 
     const loadAnalysis = async () => {
+      try {
+        const cached = JSON.parse(localStorage.getItem(analysisCacheKey) || 'null')
+        if (cached?.signature === completedRoomSignature && cached?.analysis) {
+          setAiAnalysis(cached.analysis)
+          setIsLoadingAnalysis(false)
+          return
+        }
+      } catch {
+        // Ignore unreadable cache and fetch a fresh analysis.
+      }
+
       setIsLoadingAnalysis(true)
       try {
         const response = await apiFetch('/rooms/profile/analysis')
         if (!cancelled) {
           setAiAnalysis(response)
+          localStorage.setItem(
+            analysisCacheKey,
+            JSON.stringify({
+              signature: completedRoomSignature,
+              analysis: response,
+              analyzedAt: new Date().toISOString(),
+            }),
+          )
         }
       } catch (error) {
         console.error('Failed to load profile AI analysis:', error)
@@ -89,7 +183,7 @@ function ProfilePage() {
     return () => {
       cancelled = true
     }
-  }, [labProgressTick])
+  }, [analysisCacheKey, completedRoomSignature])
 
   const moduleProgressItems = useMemo(() => {
     void labProgressTick
@@ -153,8 +247,12 @@ function ProfilePage() {
             <div className="bg-surface-container-lowest p-8 flex flex-col justify-between border-l-4 border-primary">
               <span className="font-label text-[10px] tracking-widest uppercase text-on-surface-variant">Total Experience Points</span>
               <div className="flex flex-col">
-                <span className="font-headline font-bold text-5xl tracking-tighter text-primary">128,450</span>
-                <span className="font-label text-[10px] tracking-widest uppercase text-primary/60 mt-1">XP_ACCUMULATED_SEASON_04</span>
+                <span className="font-headline font-bold text-5xl tracking-tighter text-primary">
+                  {formatNumber(profileStats.xp)}
+                </span>
+                <span className="font-label text-[10px] tracking-widest uppercase text-primary/60 mt-1">
+                  {profileStats.completedRooms} rooms completed
+                </span>
               </div>
             </div>
           </div>
