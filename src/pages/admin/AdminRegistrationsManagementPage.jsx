@@ -13,6 +13,7 @@ function AdminRegistrationsManagementPage() {
   const [isBulkWorking, setIsBulkWorking] = useState(false)
   const [isAdminWorking, setIsAdminWorking] = useState(false)
   const [actionModal, setActionModal] = useState(null)
+  const [adminSuccessModal, setAdminSuccessModal] = useState(null)
   const [adminForm, setAdminForm] = useState({
     username: '',
     registrationNumber: '',
@@ -64,6 +65,10 @@ function AdminRegistrationsManagementPage() {
   const selectedPromotableIds = selectedUserIds.filter((id) => {
     const user = users.find((entry) => entry.id === id)
     return user && user.role !== 'admin'
+  })
+  const selectedRevokableIds = selectedUserIds.filter((id) => {
+    const user = users.find((entry) => entry.id === id)
+    return user && user.role === 'admin'
   })
   const allVisibleSelected =
     selectedVisibleIds.length > 0 && selectedVisibleIds.every((id) => selectedUserIds.includes(id))
@@ -170,6 +175,19 @@ function AdminRegistrationsManagementPage() {
         body: JSON.stringify(adminForm),
       })
       setSuccess(`Admin account created for ${created?.username || adminForm.username}.`)
+      setUsers((current) => {
+        if (!created?.id || current.some((user) => user.id === created.id)) {
+          return current
+        }
+
+        return [created, ...current]
+      })
+      setSearch('')
+      setAdminSuccessModal({
+        email: created?.email || adminForm.email || 'N/A',
+        registrationNumber: created?.registration_number || adminForm.registrationNumber || 'N/A',
+        username: created?.username || adminForm.username,
+      })
       setAdminForm({
         username: '',
         registrationNumber: '',
@@ -214,6 +232,41 @@ function AdminRegistrationsManagementPage() {
       await fetchUsers()
     } catch (promoteError) {
       setError(promoteError?.message || 'Failed to promote user')
+    } finally {
+      setIsAdminWorking(false)
+    }
+  }
+
+  const revokeSelectedAdmins = async () => {
+    if (!selectedRevokableIds.length) return
+    setIsAdminWorking(true)
+    setError('')
+    setSuccess('')
+    try {
+      const result = await apiFetch('/users/admin/registrations/bulk-revoke-admin', {
+        method: 'POST',
+        body: JSON.stringify({ userIds: selectedRevokableIds }),
+      })
+      setSuccess(`Revoked admin privilege from ${result?.revoked || 0} user(s). ${result?.skipped ? `${result.skipped} skipped.` : ''}`)
+      setSelectedUserIds([])
+      await fetchUsers()
+    } catch (revokeError) {
+      setError(revokeError?.message || 'Failed to revoke selected admins')
+    } finally {
+      setIsAdminWorking(false)
+    }
+  }
+
+  const revokeSingleAdmin = async (user) => {
+    setIsAdminWorking(true)
+    setError('')
+    setSuccess('')
+    try {
+      const result = await apiFetch(`/users/admin/registrations/${user.id}/revoke-admin`, { method: 'POST' })
+      setSuccess(result?.revoked ? `Admin privilege revoked from ${user.username || 'user'}.` : `${user.username || 'User'} is already an operator.`)
+      await fetchUsers()
+    } catch (revokeError) {
+      setError(revokeError?.message || 'Failed to revoke admin privilege')
     } finally {
       setIsAdminWorking(false)
     }
@@ -414,27 +467,47 @@ function AdminRegistrationsManagementPage() {
               From Users
             </p>
             <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight">
-              Promote Existing Users
+              Manage Admin Privilege
             </h2>
             <p className="mt-4 text-sm text-on-surface-variant leading-relaxed">
-              Select users from the list below, then promote them into admin accounts without changing their profile data.
+              Select users from the list below, then promote operators or revoke admin privilege without changing profile data.
             </p>
-            <div className="mt-5 bg-surface-container-high p-4">
-              <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
-                Selected promotable users
-              </p>
-              <p className="mt-1 font-headline text-3xl font-black">{selectedPromotableIds.length}</p>
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-surface-container-high p-4">
+                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                  Promotable
+                </p>
+                <p className="mt-1 font-headline text-3xl font-black">{selectedPromotableIds.length}</p>
+              </div>
+              <div className="bg-surface-container-high p-4">
+                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                  Revokable Admins
+                </p>
+                <p className="mt-1 font-headline text-3xl font-black">{selectedRevokableIds.length}</p>
+              </div>
             </div>
-            <button
-              className="mt-5 px-5 py-3 bg-secondary text-on-secondary font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
-              disabled={!selectedPromotableIds.length || isAdminWorking}
-              onClick={() => {
-                void promoteSelectedAdmins()
-              }}
-              type="button"
-            >
-              {isAdminWorking ? 'Promoting...' : 'Promote Selected'}
-            </button>
+            <div className="mt-5 flex flex-col sm:flex-row gap-3">
+              <button
+                className="px-5 py-3 bg-secondary text-on-secondary font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                disabled={!selectedPromotableIds.length || isAdminWorking}
+                onClick={() => {
+                  void promoteSelectedAdmins()
+                }}
+                type="button"
+              >
+                {isAdminWorking ? 'Working...' : 'Promote Selected'}
+              </button>
+              <button
+                className="px-5 py-3 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                disabled={!selectedRevokableIds.length || isAdminWorking}
+                onClick={() => {
+                  void revokeSelectedAdmins()
+                }}
+                type="button"
+              >
+                {isAdminWorking ? 'Working...' : 'Revoke Selected'}
+              </button>
+            </div>
           </div>
         </section>
 
@@ -548,7 +621,18 @@ function AdminRegistrationsManagementPage() {
                         >
                           Make Admin
                         </button>
-                      ) : null}
+                      ) : (
+                        <button
+                          className="px-3 py-2 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-50"
+                          disabled={isAdminWorking}
+                          onClick={() => {
+                            void revokeSingleAdmin(user)
+                          }}
+                          type="button"
+                        >
+                          Revoke Admin
+                        </button>
+                      )}
                       <button
                         className="px-3 py-2 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-50"
                         disabled={isBulkWorking}
@@ -645,6 +729,46 @@ function AdminRegistrationsManagementPage() {
                   {isBulkWorking ? 'Processing...' : actionModal.confirmLabel}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {adminSuccessModal ? (
+        <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="w-full max-w-md bg-surface-container-lowest border border-outline-variant shadow-2xl">
+            <div className="h-1 bg-secondary"></div>
+            <div className="p-7">
+              <div className="flex items-start gap-4">
+                <span className="material-symbols-outlined text-secondary text-4xl">verified_user</span>
+                <div>
+                  <p className="font-label text-[10px] uppercase tracking-[0.25em] font-bold text-secondary">
+                    Admin Added
+                  </p>
+                  <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                    Admin Created Successfully
+                  </h2>
+                </div>
+              </div>
+
+              <div className="mt-6 bg-surface-container-high p-4 border-l-2 border-l-secondary space-y-2">
+                <p className="text-sm text-on-surface-variant">
+                  Username: <span className="font-bold text-on-surface">{adminSuccessModal.username}</span>
+                </p>
+                <p className="text-sm text-on-surface-variant break-all">
+                  Email: <span className="font-bold text-on-surface">{adminSuccessModal.email}</span>
+                </p>
+                <p className="text-sm text-on-surface-variant">
+                  Registration: <span className="font-bold text-on-surface">{adminSuccessModal.registrationNumber}</span>
+                </p>
+              </div>
+
+              <button
+                className="mt-7 w-full px-5 py-3 bg-secondary text-on-secondary font-headline text-xs font-bold uppercase tracking-widest"
+                onClick={() => setAdminSuccessModal(null)}
+                type="button"
+              >
+                Done
+              </button>
             </div>
           </div>
         </div>
