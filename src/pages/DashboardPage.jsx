@@ -394,20 +394,22 @@ function DashboardPage() {
               deployment.
             </p>
           </div>
-          <div className="flex gap-12">
-            <div className="text-right">
-              <span className="font-headline text-[10px] tracking-[0.2em] font-bold text-neutral-400 uppercase block">
+          <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
+            <div className="bg-surface-container-lowest border border-outline-variant/30 px-5 py-4 min-w-36">
+              <span className="font-headline text-[10px] tracking-[0.2em] font-bold text-neutral-400 uppercase block mb-2">
                 Global Rank
               </span>
-              <span className="font-headline text-3xl font-bold text-secondary">#{userStats.rank.toLocaleString()}</span>
+              <span className="font-headline text-3xl font-bold text-secondary leading-none">
+                #{userStats.rank.toLocaleString()}
+              </span>
             </div>
-            <div className="text-right">
-              <span className="font-headline text-[10px] tracking-[0.2em] font-bold text-neutral-400 uppercase block">
+            <div className="bg-surface-container-lowest border border-outline-variant/30 px-5 py-4 min-w-36">
+              <span className="font-headline text-[10px] tracking-[0.2em] font-bold text-neutral-400 uppercase block mb-2">
                 Daily Streak
               </span>
-              <div className="flex items-center justify-end gap-2">
+              <div className="flex items-baseline gap-2 leading-none">
                 <span
-                  className="material-symbols-outlined text-primary text-xl"
+                  className="material-symbols-outlined text-primary text-xl translate-y-0.5"
                   style={{ fontVariationSettings: "'FILL' 1" }}
                 >
                   local_fire_department
@@ -415,7 +417,7 @@ function DashboardPage() {
                 <span className="font-headline text-3xl font-bold text-on-background">
                   {userStats.streak}
                 </span>
-                <span className="font-headline text-lg font-bold tracking-widest text-on-surface-variant uppercase">
+                <span className="font-headline text-sm font-bold tracking-widest text-on-surface-variant uppercase">
                   Days
                 </span>
               </div>
