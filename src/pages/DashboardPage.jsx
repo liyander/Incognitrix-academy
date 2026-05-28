@@ -27,6 +27,10 @@ function DashboardPage() {
   const [labProgressTick, setLabProgressTick] = useState(0)
   const [upcomingCtfEvents, setUpcomingCtfEvents] = useState([])
   const [isSavingRegistration, setIsSavingRegistration] = useState(false)
+  const [dashboardStats, setDashboardStats] = useState({
+    rank: null,
+    streak: 0,
+  })
 
   useEffect(() => {
     const { updatedEvent, updatedStorageKey } = getLabProgressEvents()
@@ -86,6 +90,47 @@ function DashboardPage() {
       window.removeEventListener('storage', onStorage)
     }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadDashboardStats = async () => {
+      try {
+        const [scoreboard, streak] = await Promise.all([
+          apiFetch('/rooms/scoreboard/summary'),
+          apiFetch('/rooms/streaks/me'),
+        ])
+
+        if (cancelled) {
+          return
+        }
+
+        const scoreboardRows = Array.isArray(scoreboard) ? scoreboard : []
+        const currentUser = scoreboardRows.find(
+          (row) => String(row.username || '').toLowerCase() === String(authSession?.username || '').toLowerCase(),
+        )
+
+        setDashboardStats({
+          rank: currentUser?.rank ? Number(currentUser.rank) : null,
+          streak: Number(streak?.currentStreak || 0),
+        })
+      } catch (error) {
+        console.error('Failed to load dashboard stats:', error)
+        if (!cancelled) {
+          setDashboardStats({
+            rank: null,
+            streak: 0,
+          })
+        }
+      }
+    }
+
+    void loadDashboardStats()
+
+    return () => {
+      cancelled = true
+    }
+  }, [authSession?.username, labProgressTick])
 
   useEffect(() => {
     const runAutoNotifications = async () => {
@@ -314,10 +359,9 @@ function DashboardPage() {
     }
   }
 
-  // User stats (from localStorage or defaults)
   const userStats = {
-    rank: parseInt(localStorage.getItem('userRank') || '1284'),
-    streak: parseInt(localStorage.getItem('userStreak') || '14'),
+    rank: dashboardStats.rank,
+    streak: dashboardStats.streak,
     defenseLevel: localStorage.getItem('userDefenseLevel') || 'V_LEVEL_4',
     progress:
       Number.isFinite(labProgressSummary.completionPercentage) &&
@@ -400,7 +444,7 @@ function DashboardPage() {
                 Global Rank
               </span>
               <span className="font-headline text-3xl font-bold text-secondary leading-none">
-                #{userStats.rank.toLocaleString()}
+                {userStats.rank ? `#${userStats.rank.toLocaleString()}` : '--'}
               </span>
             </div>
             <div className="bg-surface-container-lowest border border-outline-variant/30 px-5 py-4 min-w-36">
