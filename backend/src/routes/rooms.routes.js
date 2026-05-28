@@ -98,7 +98,7 @@ function buildFallbackTheoreticalQuestions(room, userId, attemptSalt = '') {
     ],
   ]
 
-  return variants[seed].map((prompt, index) => ({
+  const questions = variants[seed].map((prompt, index) => ({
     id: `u${userId || 0}-q-${index + 1}`,
     prompt,
     rubric: 'Assess conceptual accuracy, specificity, remediation quality, and clarity.',
@@ -109,6 +109,22 @@ function buildFallbackTheoreticalQuestions(room, userId, attemptSalt = '') {
     learnerVariant: `${room.id || topic}-${userId || 0}-${seed}`,
     contentAnchorVersion: 'content-anchored-v2',
   }))
+
+  questions.push({
+    id: `u${userId || 0}-bonus-interview`,
+    prompt: `Optional bonus: answer this as a beginner-friendly security interview question about "${topic}" using only this room's content.`,
+    rubric: 'Optional bonus. Award margin for clear, content-aligned explanation without requiring advanced details.',
+    sourceType: 'interview',
+    company: 'General cybersecurity interview practice',
+    interview: `${topic} fundamentals screening`,
+    sourceInfo: 'Fallback bonus interview-style question based on this room content.',
+    learnerVariant: `${room.id || topic}-${userId || 0}-${seed}-bonus`,
+    contentAnchorVersion: 'content-anchored-v2',
+    optional: true,
+    bonus: true,
+  })
+
+  return questions
 }
 
 function buildQuestionContentContext(room) {
@@ -156,7 +172,7 @@ async function generateTheoreticalQuestions(room, userId, attemptSalt = '') {
         {
           role: 'system',
           content:
-            'Generate assessment questions for a cybersecurity learning room. Return strict JSON only: {"questions":[{"id":"string","prompt":"string","rubric":"string","sourceType":"generated|interview","company":"string","interview":"string","sourceInfo":"string","learnerVariant":"string","contentAnchorVersion":"content-anchored-v2"}]}. Create exactly 3 open-ended theoretical questions. HARD RULE: questions must be answerable using only the supplied room content. Do not ask about tools, algorithms, exploitation details, historical examples, companies, interview trivia, or advanced concepts unless they are explicitly present in the room content. Match the selected room difficulty exactly; for Easy/basic rooms, ask concept, purpose, impact, and simple mitigation questions only. Avoid expert-level wording. Use learnerVariant to vary wording per learner while preserving the same content scope. At most one question may be interview-style, and only if the room content itself supports that question. If sourceType is "interview", company must be a real company name when known; if no credible company is known, use sourceType "generated" instead. Do not include answers.',
+            'Generate assessment questions for a cybersecurity learning room. Return strict JSON only: {"questions":[{"id":"string","prompt":"string","rubric":"string","sourceType":"generated|interview","company":"string","interview":"string","sourceInfo":"string","learnerVariant":"string","contentAnchorVersion":"content-anchored-v2","optional":false,"bonus":false}]}. Create exactly 3 required open-ended theoretical questions plus exactly 1 optional bonus interview question. HARD RULE: every question must be answerable using only the supplied room content. Do not ask about tools, algorithms, exploitation details, historical examples, companies, interview trivia, or advanced concepts unless they are explicitly present in the room content. Match the selected room difficulty exactly; for Easy/basic rooms, ask concept, purpose, impact, and simple mitigation questions only. Avoid expert-level wording. The 3 required questions must use sourceType "generated", optional false, bonus false. The 1 optional bonus question must use sourceType "interview", optional true, bonus true, and must still be content-aligned. For the bonus question, include company and interview context if this resembles a known public company interview pattern; otherwise use company "General cybersecurity interview practice" and explain that it is interview-style practice in sourceInfo. Do not include answers.',
         },
         {
           role: 'user',
@@ -192,10 +208,20 @@ async function generateTheoreticalQuestions(room, userId, attemptSalt = '') {
         sourceInfo: String(question?.sourceInfo || '').trim(),
         learnerVariant: String(question?.learnerVariant || `${room.id || room.slug}-${userId}-${index + 1}`).trim(),
         contentAnchorVersion: 'content-anchored-v2',
+        optional: Boolean(question?.optional || question?.bonus),
+        bonus: Boolean(question?.bonus || question?.optional),
       }))
       .filter((question) => question.id && question.prompt)
 
-    return normalized.length ? normalized.slice(0, 3) : buildFallbackTheoreticalQuestions(room, userId)
+    const requiredQuestions = normalized.filter((question) => !question.bonus).slice(0, 3)
+    const bonusQuestion = normalized.find((question) => question.bonus || question.sourceType === 'interview')
+    const finalQuestions = bonusQuestion
+      ? [...requiredQuestions, { ...bonusQuestion, optional: true, bonus: true, sourceType: 'interview' }]
+      : requiredQuestions
+
+    return requiredQuestions.length === 3
+      ? finalQuestions
+      : buildFallbackTheoreticalQuestions(room, userId, attemptSalt)
   } catch (error) {
     console.error('Failed to generate theoretical questions:', error)
     return buildFallbackTheoreticalQuestions(room, userId, attemptSalt)
@@ -208,7 +234,7 @@ function shouldRefreshTheoreticalQuestions(questions, attempt) {
   }
 
   if (attempt?.evaluated_at || attempt?.answers_json) {
-    return false
+    return !questions.some((question) => question.bonus || question.optional || question.sourceType === 'interview')
   }
 
   return questions.some(
@@ -220,15 +246,25 @@ function shouldRefreshTheoreticalQuestions(questions, attempt) {
 }
 
 async function evaluateTheoreticalAnswers(room, questions, answers) {
+  const requiredQuestions = questions.filter((question) => !question.bonus && !question.optional)
+  const bonusQuestions = questions.filter((question) => question.bonus || question.optional)
+  const bonusAnswered = bonusQuestions.some((question) => String(answers?.[question.id] || '').trim().length >= 20)
+  const requiredAnsweredCount = requiredQuestions.filter((question) => String(answers?.[question.id] || '').trim().length >= 25).length
+  const allRequiredAttempted = requiredQuestions.length > 0 && requiredAnsweredCount === requiredQuestions.length
+
   if (!env.nvidiaApiKey) {
-    const answeredCount = questions.filter((question) => String(answers?.[question.id] || '').trim().length >= 40).length
-    const technicalScore = answeredCount === questions.length ? 100 : Math.round((answeredCount / questions.length) * 80)
+    const answeredCount = requiredQuestions.filter((question) => String(answers?.[question.id] || '').trim().length >= 40).length
+    const baseScore = answeredCount === requiredQuestions.length ? 100 : Math.round((answeredCount / Math.max(1, requiredQuestions.length)) * 80)
+    const bonusScore = bonusAnswered ? 5 : 0
+    const technicalScore = Math.min(100, baseScore + bonusScore)
     const grammarScore = Math.min(100, Math.max(40, Math.round(
       Object.values(answers || {}).join(' ').split(/\s+/).filter(Boolean).length * 2,
     )))
     return {
       technicalScore,
       grammarScore,
+      baseTechnicalScore: baseScore,
+      bonusScore,
       feedback:
         technicalScore === 100
           ? 'Fallback evaluator accepted all responses as sufficiently detailed. Improve next: keep tying each answer to the room terms and examples.'
@@ -252,7 +288,7 @@ async function evaluateTheoreticalAnswers(room, questions, answers) {
         {
           role: 'system',
           content:
-            'Evaluate cybersecurity assessment answers. Return strict JSON only: {"technicalScore":0-100,"grammarScore":0-100,"feedback":"string"}. Grade only against the supplied room content and question rubrics. Do not penalize learners for omitting advanced material that is not in the room content. Be liberal but fair: award high marks when the answer covers the essential room concepts in the learner\'s own words, even if wording is not perfect. Technical score should be 100 when all answers are correct, content-aligned, and cover the essential points; perfection, extra depth, or textbook wording is not required. Grammar score evaluates clarity and professional writing but should not punish minor grammar mistakes. Feedback must end with a concise "Improve next:" section listing exactly 2-4 specific improvements.',
+            'Evaluate cybersecurity assessment answers. Return strict JSON only: {"technicalScore":0-100,"grammarScore":0-100,"bonusScore":0-10,"feedback":"string"}. Grade required questions only against the supplied room content and question rubrics. Optional bonus interview questions must not reduce the score if blank or wrong; they may add 0-10 bonus margin only when answered and content-aligned. Be generous for beginners: if an answer captures the main room idea, impact, and a reasonable mitigation or example, treat it as correct even if wording is simple or not textbook-perfect. Do not penalize learners for omitting advanced material that is not in the room content. Award 90+ when all required answers are mostly correct and content-aligned; reserve low scores for missing, unrelated, or clearly wrong answers. Technical score should be the required-question score before bonus. Grammar score evaluates clarity and professional writing but should not punish minor grammar mistakes. Feedback must mention bonus credit if an optional interview question was answered, and must end with a concise "Improve next:" section listing exactly 2-4 specific improvements.',
         },
         {
           role: 'user',
@@ -264,6 +300,8 @@ async function evaluateTheoreticalAnswers(room, questions, answers) {
               content: buildQuestionContentContext(room),
             },
             questions,
+            requiredQuestions,
+            bonusQuestions,
             answers,
           }),
         },
@@ -271,9 +309,18 @@ async function evaluateTheoreticalAnswers(room, questions, answers) {
     })
 
     const parsed = extractJsonObject(extractMessageText(response?.choices?.[0]?.message))
+    const rawBaseTechnicalScore = Math.max(0, Math.min(100, Number(parsed?.technicalScore || 0)))
+    const baseTechnicalScore = allRequiredAttempted && rawBaseTechnicalScore >= 92
+      ? 100
+      : allRequiredAttempted && rawBaseTechnicalScore >= 85
+        ? rawBaseTechnicalScore + 5
+        : rawBaseTechnicalScore
+    const bonusScore = bonusAnswered ? Math.max(0, Math.min(10, Number(parsed?.bonusScore || 0))) : 0
     return {
-      technicalScore: Math.max(0, Math.min(100, Number(parsed?.technicalScore || 0))),
+      technicalScore: Math.min(100, baseTechnicalScore + bonusScore),
       grammarScore: Math.max(0, Math.min(100, Number(parsed?.grammarScore || 0))),
+      baseTechnicalScore,
+      bonusScore,
       feedback: ensureImprovementFeedback(parsed?.feedback),
     }
   } catch (error) {
@@ -281,6 +328,8 @@ async function evaluateTheoreticalAnswers(room, questions, answers) {
     return {
       technicalScore: 0,
       grammarScore: 0,
+      baseTechnicalScore: 0,
+      bonusScore: 0,
       feedback: 'AI evaluation failed. Please try again.',
     }
   }
@@ -823,12 +872,13 @@ router.get('/:id/questions/status', authenticate, async (req, res) => {
     const attempt = await getOrCreateTheoreticalAttempt(room, req.user.id)
     const questions = safeJsonParse(attempt.questions_json, [])
     const answers = safeJsonParse(attempt.answers_json, {})
+    const requiredQuestions = questions.filter((question) => !question.bonus && !question.optional)
 
     return res.json({
       enabled: true,
       mode: 'theoretical',
-      total: questions.length,
-      correct: Number(attempt.technical_score || 0) === 100 ? questions.length : 0,
+      total: requiredQuestions.length,
+      correct: Number(attempt.technical_score || 0) === 100 ? requiredQuestions.length : 0,
       allCorrect: Boolean(attempt.passed),
       technicalScore: Number(attempt.technical_score || 0),
       grammarScore: Number(attempt.grammar_score || 0),
@@ -843,6 +893,8 @@ router.get('/:id/questions/status', authenticate, async (req, res) => {
         company: question.company || '',
         interview: question.interview || '',
         sourceInfo: question.sourceInfo || '',
+        optional: Boolean(question.optional || question.bonus),
+        bonus: Boolean(question.bonus || question.optional),
         answeredCorrectly: Boolean(attempt.passed),
         answeredAt: answers?.[question.id] && attempt.evaluated_at
           ? new Date(attempt.evaluated_at).toISOString()
@@ -906,6 +958,7 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
     const answers = req.body?.answers && typeof req.body.answers === 'object' ? req.body.answers : {}
     const evaluation = await evaluateTheoreticalAnswers(room, questions, answers)
     const passed = Number(evaluation.technicalScore) === 100
+    const requiredQuestionCount = questions.filter((question) => !question.bonus && !question.optional).length
     const retainedTechnicalScore = passed
       ? 100
       : Math.max(Number(attempt.technical_score || 0), Number(evaluation.technicalScore || 0))
@@ -957,11 +1010,13 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
 
     return res.json({
       mode: 'theoretical',
-      total: questions.length,
-      correct: passed ? questions.length : 0,
+      total: requiredQuestionCount,
+      correct: passed ? requiredQuestionCount : 0,
       allCorrect: passed,
       technicalScore: retainedTechnicalScore,
       grammarScore: retainedGrammarScore,
+      baseTechnicalScore: Number(evaluation.baseTechnicalScore || evaluation.technicalScore || 0),
+      bonusScore: Number(evaluation.bonusScore || 0),
       feedback: feedbackToStore,
       answers: passed ? answers : {},
       questions: nextQuestions.map((question) => ({

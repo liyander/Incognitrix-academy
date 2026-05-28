@@ -42,6 +42,15 @@ function normalizeUserIds(value) {
   )]
 }
 
+function safeJsonParse(raw, fallback) {
+  try {
+    const parsed = JSON.parse(raw || '')
+    return parsed ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
 function isProtectedAdminUser(user) {
   return String(user?.username || '').trim().toLowerCase() === 'admin01'
 }
@@ -422,6 +431,62 @@ router.get('/admin/registrations/:id', authenticate, requireAdmin, async (req, r
   }
 
   return res.json(rows[0])
+})
+
+router.get('/admin/registrations/:id/theoretical-attempts', authenticate, requireAdmin, async (req, res) => {
+  const userId = Number(req.params.id)
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: 'Invalid user id' })
+  }
+
+  const [rows] = await pool.query(
+    `SELECT
+      uta.room_id,
+      uta.questions_json,
+      uta.answers_json,
+      uta.technical_score,
+      uta.grammar_score,
+      uta.feedback,
+      uta.passed,
+      uta.evaluated_at,
+      r.title AS room_title,
+      r.category
+     FROM user_room_theoretical_attempts uta
+     LEFT JOIN rooms r ON r.id = uta.room_id
+     WHERE uta.user_id = ?
+     ORDER BY COALESCE(uta.evaluated_at, uta.updated_at) DESC`,
+    [userId],
+  )
+
+  const attempts = rows.map((row) => {
+    const questions = safeJsonParse(row.questions_json, [])
+    const answers = safeJsonParse(row.answers_json, {})
+    const interviewQuestions = questions
+      .filter((question) => question.bonus || question.optional || question.sourceType === 'interview')
+      .map((question) => ({
+        id: question.id,
+        prompt: question.prompt,
+        company: question.company || 'General cybersecurity interview practice',
+        interview: question.interview || '',
+        sourceInfo: question.sourceInfo || '',
+        answer: answers?.[question.id] || '',
+        answered: Boolean(String(answers?.[question.id] || '').trim()),
+      }))
+
+    return {
+      roomId: row.room_id,
+      roomTitle: row.room_title || row.room_id,
+      category: row.category || '',
+      technicalScore: Number(row.technical_score || 0),
+      grammarScore: Number(row.grammar_score || 0),
+      passed: Boolean(row.passed),
+      feedback: row.feedback || '',
+      evaluatedAt: row.evaluated_at ? new Date(row.evaluated_at).toISOString() : null,
+      interviewQuestions,
+    }
+  })
+
+  return res.json(attempts)
 })
 
 router.put('/admin/registrations/:id', authenticate, requireAdmin, async (req, res) => {

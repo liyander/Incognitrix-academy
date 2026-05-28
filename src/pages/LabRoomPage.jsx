@@ -85,6 +85,7 @@ function LabRoomPage() {
     mode: 'practical',
     technicalScore: 0,
     grammarScore: 0,
+    bonusScore: 0,
     feedback: '',
     questions: [],
   })
@@ -151,6 +152,7 @@ function LabRoomPage() {
             allCorrect: true,
             technicalScore: 0,
             grammarScore: 0,
+            bonusScore: 0,
             feedback: '',
             questions: [],
           })
@@ -169,6 +171,7 @@ function LabRoomPage() {
             allCorrect: true,
             technicalScore: 0,
             grammarScore: 0,
+            bonusScore: 0,
             feedback: '',
             questions: [],
           })
@@ -188,6 +191,7 @@ function LabRoomPage() {
             allCorrect: Boolean(response?.allCorrect),
             technicalScore: Number(response?.technicalScore || 0),
             grammarScore: Number(response?.grammarScore || 0),
+            bonusScore: Number(response?.bonusScore || 0),
             feedback: response?.feedback || '',
             questions: Array.isArray(response?.questions) ? response.questions : [],
           })
@@ -307,9 +311,17 @@ function LabRoomPage() {
   const youtubeEmbedUrl = toYouTubeEmbedUrl(room.content?.youtubeVideoUrl)
   const isPreparingTheoreticalQuestions =
     isLoadingQuestions && questionsEnabled && roomType === 'theoretical'
+  const requiredAssessmentQuestions = questionStatus.questions.filter((question) => !question.bonus && !question.optional)
+  const bonusAssessmentQuestions = questionStatus.questions.filter((question) => question.bonus || question.optional)
+  const isAiEvaluatingAnswers = isSubmittingQuestions && questionStatus.mode === 'theoretical'
 
   const handleMarkComplete = async () => {
     setCompletionError('')
+
+    if (isPreparingTheoreticalQuestions) {
+      setCompletionError('AI is preparing your theoretical questions. Complete the assessment before marking this room complete.')
+      return
+    }
 
     if (questionStatus.enabled && !questionStatus.allCorrect) {
       setCompletionError(
@@ -355,6 +367,7 @@ function LabRoomPage() {
       const passed = Boolean(result?.allCorrect)
       const technicalScore = Number(result?.technicalScore || 0)
       const grammarScore = Number(result?.grammarScore || 0)
+      const bonusScore = Number(result?.bonusScore || 0)
       const correct = Number(result?.correct || 0)
       const total = Number(result?.total || questionStatus.total || 0)
 
@@ -365,6 +378,7 @@ function LabRoomPage() {
         allCorrect: passed,
         technicalScore: technicalScore || prev.technicalScore || 0,
         grammarScore: grammarScore || prev.grammarScore || 0,
+        bonusScore,
         feedback: result?.feedback || prev.feedback || '',
         questions: Array.isArray(result?.questions) && result.questions.length
           ? result.questions
@@ -382,6 +396,7 @@ function LabRoomPage() {
         passed,
         technicalScore,
         grammarScore,
+        bonusScore,
         correct,
         total,
         feedback: result?.feedback || '',
@@ -413,6 +428,35 @@ function LabRoomPage() {
 
   return (
     <main className="pt-16 md:pt-20 min-h-screen">
+      {isAiEvaluatingAnswers ? (
+        <div className="fixed inset-0 z-[95] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="w-full max-w-md bg-surface-container-lowest border border-outline-variant/40 shadow-2xl">
+            <div className="h-1 bg-primary"></div>
+            <div className="p-8 text-center">
+              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center bg-primary/10 text-primary">
+                <span className="material-symbols-outlined text-4xl animate-pulse">
+                  psychology
+                </span>
+              </div>
+              <p className="font-label text-[10px] uppercase tracking-[0.25em] text-primary font-bold">
+                AI Evaluation
+              </p>
+              <h2 className="mt-3 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                Reviewing Your Answers
+              </h2>
+              <p className="mt-4 text-sm leading-relaxed text-on-surface-variant">
+                AI is checking your required answers, optional interview bonus, grammar, and improvement areas.
+              </p>
+              <div className="mt-6 h-1.5 overflow-hidden bg-surface-container-high">
+                <div className="h-full w-2/3 bg-primary animate-pulse"></div>
+              </div>
+              <p className="mt-4 font-headline text-[10px] uppercase tracking-widest text-on-surface-variant">
+                Please keep this room open
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {resultModal ? (
         <div className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4 md:p-6">
           <div className="my-6 w-full max-w-lg max-h-[calc(100vh-3rem)] bg-surface-container-lowest border border-outline-variant/40 shadow-2xl flex flex-col">
@@ -456,6 +500,15 @@ function LabRoomPage() {
                       {resultModal.grammarScore}
                     </p>
                     <p className="text-xs text-on-surface-variant mt-2">Writing quality</p>
+                  </div>
+                  <div className="col-span-2 bg-surface-container-low p-4">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-1">
+                      Interview Bonus
+                    </p>
+                    <p className="font-space text-2xl font-black text-secondary">
+                      +{resultModal.bonusScore || 0}
+                    </p>
+                    <p className="text-xs text-on-surface-variant mt-1">Optional margin, up to 10</p>
                   </div>
                 </div>
               ) : (
@@ -740,7 +793,7 @@ function LabRoomPage() {
                   ) : null}
 
                   <div className="space-y-3">
-                    {questionStatus.questions.map((question, index) => (
+                    {requiredAssessmentQuestions.map((question, index) => (
                       <div key={question.id || `question-${index}`} className="bg-surface-container-high p-3">
                         <p className="text-[11px] font-headline font-bold text-on-surface uppercase tracking-wide mb-2">
                           Q{index + 1}. {question.prompt}
@@ -786,6 +839,47 @@ function LabRoomPage() {
                         )}
                       </div>
                     ))}
+                    {bonusAssessmentQuestions.map((question) => (
+                      <div key={question.id || 'bonus-interview'} className="bg-primary/10 border border-primary/30 p-3">
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-primary">
+                              Optional Interview Bonus
+                            </p>
+                            <p className="mt-1 text-[10px] text-on-surface-variant">
+                              Answering this can add up to 10 bonus points.
+                            </p>
+                          </div>
+                          <span className="font-headline text-[9px] font-bold uppercase tracking-widest bg-primary text-on-primary px-2 py-1">
+                            +10 max
+                          </span>
+                        </div>
+                        <p className="text-[11px] font-headline font-bold text-on-surface uppercase tracking-wide mb-2">
+                          {question.prompt}
+                        </p>
+                        <div className="mb-3 border-l-2 border-primary/60 bg-surface-container-lowest/60 px-3 py-2">
+                          <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-primary">
+                            Interview Source
+                          </p>
+                          <p className="mt-1 text-[10px] font-bold text-on-surface">
+                            Company: {question.company || 'General cybersecurity interview practice'}
+                          </p>
+                          <p className="mt-1 text-[10px] text-on-surface-variant">
+                            {question.interview || 'Interview-style cybersecurity question'}
+                          </p>
+                          {question.sourceInfo ? (
+                            <p className="mt-1 text-[10px] text-on-surface-variant">{question.sourceInfo}</p>
+                          ) : null}
+                        </div>
+                        <textarea
+                          className="w-full bg-surface-container-lowest border border-outline-variant/40 text-sm py-2 px-3 outline-none"
+                          onChange={(e) => handleQuestionAnswerChange(question.id, e.target.value)}
+                          placeholder="Optional bonus answer"
+                          rows="4"
+                          value={questionAnswers[question.id] || ''}
+                        ></textarea>
+                      </div>
+                    ))}
                   </div>
 
                   <button
@@ -823,11 +917,11 @@ function LabRoomPage() {
                   {labStatus !== 'completed' ? (
                     <button
                       className="w-full py-3 bg-secondary text-on-secondary font-headline text-[10px] font-bold tracking-widest uppercase hover:opacity-90 transition-opacity disabled:opacity-60"
-                      disabled={questionStatus.enabled && !questionStatus.allCorrect}
+                      disabled={isPreparingTheoreticalQuestions || (questionStatus.enabled && !questionStatus.allCorrect)}
                       onClick={handleMarkComplete}
                       type="button"
                     >
-                      Mark Complete
+                      {isPreparingTheoreticalQuestions ? 'Preparing Assessment...' : 'Mark Complete'}
                     </button>
                   ) : (
                     <button

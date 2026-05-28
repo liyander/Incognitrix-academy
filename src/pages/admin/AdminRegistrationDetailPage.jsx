@@ -145,6 +145,8 @@ function AdminRegistrationDetailPage() {
   const [error, setError] = useState('')
   const [passwordModal, setPasswordModal] = useState(null)
   const [passwordSuccessModal, setPasswordSuccessModal] = useState(null)
+  const [interviewAttempts, setInterviewAttempts] = useState([])
+  const [selectedInterviewQuestion, setSelectedInterviewQuestion] = useState(null)
   const [changingPassword, setChangingPassword] = useState(false)
   const [passwordForm, setPasswordForm] = useState({
     newPassword: '',
@@ -208,6 +210,32 @@ function AdminRegistrationDetailPage() {
     }
 
     void loadUser()
+  }, [userId])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadInterviewAttempts = async () => {
+      if (!userId) return
+
+      try {
+        const data = await apiFetch(`/users/admin/registrations/${userId}/theoretical-attempts`)
+        if (!cancelled) {
+          setInterviewAttempts(Array.isArray(data) ? data : [])
+        }
+      } catch (attemptError) {
+        console.error('Failed to load interview questions:', attemptError)
+        if (!cancelled) {
+          setInterviewAttempts([])
+        }
+      }
+    }
+
+    void loadInterviewAttempts()
+
+    return () => {
+      cancelled = true
+    }
   }, [userId])
 
   const updateField = (name, value) => {
@@ -568,6 +596,49 @@ function AdminRegistrationDetailPage() {
               />
             </section>
 
+            <section className="bg-surface-container-lowest p-6 md:p-8 space-y-4">
+              <div>
+                <h2 className="font-headline text-xl font-bold uppercase tracking-tight">Interview Bonus Questions</h2>
+                <p className="mt-2 text-sm text-on-surface-variant">
+                  Optional interview questions shown to this player. Click a question to inspect company/source details and the submitted answer.
+                </p>
+              </div>
+              <div className="space-y-3">
+                {interviewAttempts.flatMap((attempt) =>
+                  attempt.interviewQuestions.map((question) => (
+                    <button
+                      className="w-full text-left bg-surface-container-high p-4 border-l-2 border-l-primary hover:bg-surface-container-highest transition-colors"
+                      key={`${attempt.roomId}-${question.id}`}
+                      onClick={() => setSelectedInterviewQuestion({ ...question, attempt })}
+                      type="button"
+                    >
+                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                        <div>
+                          <p className="font-headline text-[10px] uppercase tracking-widest text-primary font-bold">
+                            {attempt.roomTitle}
+                          </p>
+                          <p className="mt-2 text-sm font-bold text-on-surface">
+                            {question.prompt}
+                          </p>
+                          <p className="mt-2 text-xs text-on-surface-variant">
+                            Company: {question.company}
+                          </p>
+                        </div>
+                        <span className={`shrink-0 px-3 py-1 text-[10px] uppercase tracking-widest font-bold ${question.answered ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-lowest text-on-surface-variant'}`}>
+                          {question.answered ? 'Answered' : 'Not Answered'}
+                        </span>
+                      </div>
+                    </button>
+                  )),
+                )}
+                {!interviewAttempts.some((attempt) => attempt.interviewQuestions.length) ? (
+                  <p className="text-sm text-on-surface-variant bg-surface-container-high p-4">
+                    No interview bonus questions have been generated for this player yet.
+                  </p>
+                ) : null}
+              </div>
+            </section>
+
             <section className="bg-surface-container-lowest p-6 md:p-8 space-y-5">
               <div className="flex items-center justify-between gap-3">
                 <h2 className="font-headline text-xl font-bold uppercase tracking-tight">Projects</h2>
@@ -772,6 +843,71 @@ function AdminRegistrationDetailPage() {
               <button
                 className="mt-7 w-full px-5 py-3 bg-secondary text-on-secondary font-headline text-xs font-bold uppercase tracking-widest"
                 onClick={() => setPasswordSuccessModal(null)}
+                type="button"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {selectedInterviewQuestion ? (
+        <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-6">
+          <div className="my-6 w-full max-w-2xl bg-surface-container-lowest border border-outline-variant shadow-2xl">
+            <div className="h-1 bg-primary"></div>
+            <div className="p-7">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-label text-[10px] uppercase tracking-[0.25em] font-bold text-primary">
+                    Interview Bonus Detail
+                  </p>
+                  <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                    {selectedInterviewQuestion.attempt.roomTitle}
+                  </h2>
+                </div>
+                <button
+                  className="inline-flex h-10 w-10 items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
+                  onClick={() => setSelectedInterviewQuestion(null)}
+                  type="button"
+                  aria-label="Close interview question details"
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-surface-container-high p-4">
+                  <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Company</p>
+                  <p className="mt-1 font-bold text-on-surface">{selectedInterviewQuestion.company}</p>
+                </div>
+                <div className="bg-surface-container-high p-4">
+                  <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Interview Context</p>
+                  <p className="mt-1 font-bold text-on-surface">{selectedInterviewQuestion.interview || 'Interview-style practice'}</p>
+                </div>
+              </div>
+
+              {selectedInterviewQuestion.sourceInfo ? (
+                <div className="mt-4 bg-surface-container-high p-4">
+                  <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Source Info</p>
+                  <p className="mt-1 text-sm text-on-surface-variant">{selectedInterviewQuestion.sourceInfo}</p>
+                </div>
+              ) : null}
+
+              <div className="mt-4 bg-surface-container-high p-4">
+                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Question</p>
+                <p className="mt-2 text-sm text-on-surface">{selectedInterviewQuestion.prompt}</p>
+              </div>
+
+              <div className="mt-4 bg-surface-container-high p-4">
+                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Player Answer</p>
+                <p className="mt-2 whitespace-pre-wrap text-sm text-on-surface-variant">
+                  {selectedInterviewQuestion.answer || 'No answer submitted for this optional bonus question.'}
+                </p>
+              </div>
+
+              <button
+                className="mt-7 w-full px-5 py-3 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest"
+                onClick={() => setSelectedInterviewQuestion(null)}
                 type="button"
               >
                 Done
