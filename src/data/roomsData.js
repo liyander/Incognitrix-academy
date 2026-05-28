@@ -34,6 +34,8 @@ function normalizeRoom(room) {
       },
       technicalDeepDive: room.content?.technicalDeepDive || '',
       youtubeVideoUrl: room.content?.youtubeVideoUrl || '',
+      aiQuestionsEnabled: Boolean(room.content?.aiQuestionsEnabled),
+      attachment: room.content?.attachment || null,
       questionsEnabled: Boolean(room.content?.questionsEnabled),
       questions: Array.isArray(room.content?.questions) ? room.content.questions : [],
     },

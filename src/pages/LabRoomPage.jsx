@@ -102,7 +102,9 @@ function LabRoomPage() {
   const contentRootRef = useRef(null)
   const roomId = room?.id || ''
   const roomType = normalizeRoomType(room?.roomType)
-  const questionsEnabled = roomType !== 'practical' || Boolean(room?.content?.questionsEnabled)
+  const questionsEnabled =
+    roomType !== 'practical' ||
+    Boolean(room?.content?.questionsEnabled || room?.content?.aiQuestionsEnabled)
 
   useEffect(() => {
     let cancelled = false
@@ -313,11 +315,13 @@ function LabRoomPage() {
   const vulnerabilityDefinitionMarkup = renderRichContent(vulnerabilityDefinition)
   const vulnerabilityImpactMarkup = renderRichContent(vulnerabilityImpact)
   const youtubeEmbedUrl = toYouTubeEmbedUrl(room.content?.youtubeVideoUrl)
+  const roomAttachment = room.content?.attachment
+  const isAiQuestionMode = questionStatus.mode === 'theoretical' || questionStatus.mode === 'hybrid'
   const isPreparingTheoreticalQuestions =
-    isLoadingQuestions && questionsEnabled && roomType === 'theoretical'
+    isLoadingQuestions && questionsEnabled && (roomType === 'theoretical' || Boolean(room.content?.aiQuestionsEnabled))
   const requiredAssessmentQuestions = questionStatus.questions.filter((question) => !question.bonus && !question.optional)
   const bonusAssessmentQuestions = questionStatus.questions.filter((question) => question.bonus || question.optional)
-  const isAiEvaluatingAnswers = isSubmittingQuestions && questionStatus.mode === 'theoretical'
+  const isAiEvaluatingAnswers = isSubmittingQuestions && isAiQuestionMode
 
   const handleMarkComplete = async () => {
     setCompletionError('')
@@ -329,7 +333,7 @@ function LabRoomPage() {
 
     if (questionStatus.enabled && !questionStatus.allCorrect) {
       setCompletionError(
-        questionStatus.mode === 'theoretical'
+        isAiQuestionMode
           ? 'Score 100 in the technical evaluation before marking complete.'
           : 'Answer all room questions correctly before marking complete.',
       )
@@ -414,11 +418,13 @@ function LabRoomPage() {
         setQuestionFeedback(
           resultMode === 'theoretical'
             ? 'Technical score is 100. This room has been completed.'
+            : resultMode === 'hybrid'
+              ? 'Manual and AI checks passed. You can now complete this room.'
             : 'All answers are correct. You can now complete this room.',
         )
       } else {
         setQuestionFeedback(
-          resultMode === 'theoretical'
+          resultMode === 'theoretical' || resultMode === 'hybrid'
             ? `Technical: ${technicalScore} / Grammar: ${grammarScore}. ${result?.feedback || 'Review and try again.'}`
             : 'Some answers are incorrect. Review and try again.',
         )
@@ -485,7 +491,7 @@ function LabRoomPage() {
                 </button>
               </div>
 
-              {resultModal.mode === 'theoretical' ? (
+              {resultModal.mode === 'theoretical' || resultModal.mode === 'hybrid' ? (
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="bg-surface-container-low p-5">
                     <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-2">
@@ -530,7 +536,7 @@ function LabRoomPage() {
                 {resultModal.feedback ||
                   (resultModal.passed
                     ? 'You met the completion requirement for this room.'
-                    : resultModal.mode === 'theoretical'
+                    : resultModal.mode === 'theoretical' || resultModal.mode === 'hybrid'
                       ? 'Improve the technical accuracy of your answers and submit again.'
                       : 'Review the incorrect answers and submit again.')}
               </p>
@@ -698,6 +704,26 @@ function LabRoomPage() {
                   <p className="font-headline font-bold text-lg">{roomType.toUpperCase()}</p>
                 </div>
               </div>
+              {roomAttachment?.dataUrl ? (
+                <a
+                  className="mb-8 flex items-center justify-between gap-4 bg-surface-container-high p-4 border-l-2 border-l-secondary hover:bg-surface-container-highest transition-colors"
+                  download={roomAttachment.name || 'lab-file'}
+                  href={roomAttachment.dataUrl}
+                >
+                  <span>
+                    <span className="block font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
+                      Lab File
+                    </span>
+                    <span className="mt-1 block text-sm text-on-surface">
+                      {roomAttachment.name || 'Download attachment'}
+                    </span>
+                    <span className="mt-1 block text-[10px] text-on-surface-variant">
+                      {Math.ceil(Number(roomAttachment.size || 0) / 1024)} KB
+                    </span>
+                  </span>
+                  <span className="material-symbols-outlined text-secondary">download</span>
+                </a>
+              ) : null}
               <div className="space-y-4">
                 <h3 className="font-headline text-xs font-black tracking-[0.2em] uppercase text-primary border-b border-primary/20 pb-2">
                   Required Keywords
@@ -769,13 +795,13 @@ function LabRoomPage() {
                       Question Challenge
                     </span>
                     <span className="text-[10px] font-headline font-bold uppercase tracking-widest px-2 py-1 bg-secondary/15 text-secondary">
-                      {questionStatus.mode === 'theoretical'
+                      {isAiQuestionMode
                         ? `Tech ${questionStatus.technicalScore}/100`
                         : `${questionStatus.correct}/${questionStatus.total} Correct`}
                     </span>
                   </div>
 
-                  {questionStatus.mode === 'theoretical' ? (
+                  {isAiQuestionMode ? (
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-surface-container-high p-3">
                         <p className="font-headline text-[9px] uppercase tracking-widest text-on-surface-variant">
@@ -824,7 +850,7 @@ function LabRoomPage() {
                             ) : null}
                           </div>
                         ) : null}
-                        {questionStatus.mode === 'theoretical' ? (
+                        {questionStatus.mode === 'theoretical' || question.questionType === 'ai' ? (
                           <textarea
                             className="w-full bg-surface-container-lowest border border-outline-variant/40 text-sm py-2 px-3 outline-none"
                             onChange={(e) => handleQuestionAnswerChange(question.id, e.target.value)}
@@ -899,10 +925,10 @@ function LabRoomPage() {
                     type="button"
                   >
                     {isSubmittingQuestions
-                      ? questionStatus.mode === 'theoretical'
+                      ? isAiQuestionMode
                         ? 'Evaluating...'
                         : 'Checking Answers...'
-                      : questionStatus.mode === 'theoretical'
+                      : isAiQuestionMode
                         ? 'Submit For AI Evaluation'
                         : 'Submit Answers'}
                   </button>

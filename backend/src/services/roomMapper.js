@@ -31,6 +31,15 @@ export function mapRoomRow(roomRow, tags = [], keywords = []) {
       },
       technicalDeepDive: roomRow.technical_deep_dive || '',
       youtubeVideoUrl: roomRow.youtube_video_url || '',
+      aiQuestionsEnabled: Boolean(roomRow.practical_ai_questions_enabled),
+      attachment: roomRow.attachment_data
+        ? {
+            name: roomRow.attachment_name || 'room-file',
+            type: roomRow.attachment_type || 'application/octet-stream',
+            size: Number(roomRow.attachment_size || 0),
+            dataUrl: roomRow.attachment_data,
+          }
+        : null,
       questionsEnabled: Boolean(roomRow.questions_enabled),
       questions: (() => {
         try {

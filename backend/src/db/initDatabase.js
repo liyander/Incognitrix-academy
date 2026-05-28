@@ -87,6 +87,11 @@ async function ensureDatabase() {
       vulnerability_impact LONGTEXT,
       technical_deep_dive LONGTEXT,
       youtube_video_url TEXT,
+      practical_ai_questions_enabled BOOLEAN DEFAULT false,
+      attachment_name VARCHAR(255),
+      attachment_type VARCHAR(255),
+      attachment_size INT DEFAULT 0,
+      attachment_data LONGTEXT,
       questions_enabled BOOLEAN DEFAULT false,
       questions_json LONGTEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -327,6 +332,11 @@ async function ensureDatabase() {
   await addColumnIfMissing('notifications', 'target_user_id', 'INT NULL')
   await addColumnIfMissing('career_paths', 'certificate_image_data', 'LONGTEXT NULL')
   await addColumnIfMissing('rooms', 'youtube_video_url', 'TEXT NULL')
+  await addColumnIfMissing('rooms', 'practical_ai_questions_enabled', 'BOOLEAN DEFAULT false')
+  await addColumnIfMissing('rooms', 'attachment_name', 'VARCHAR(255) NULL')
+  await addColumnIfMissing('rooms', 'attachment_type', 'VARCHAR(255) NULL')
+  await addColumnIfMissing('rooms', 'attachment_size', 'INT DEFAULT 0')
+  await addColumnIfMissing('rooms', 'attachment_data', 'LONGTEXT NULL')
   await addColumnIfMissing('rooms', 'questions_enabled', 'BOOLEAN DEFAULT false')
   await addColumnIfMissing('rooms', 'questions_json', 'LONGTEXT NULL')
   await addColumnIfMissing('rooms', 'room_type', "VARCHAR(30) NOT NULL DEFAULT 'theoretical'")

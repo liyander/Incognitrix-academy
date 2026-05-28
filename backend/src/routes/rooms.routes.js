@@ -11,6 +11,10 @@ function isTheoreticalRoom(room) {
   return String(room?.roomType || 'theoretical').toLowerCase() !== 'practical'
 }
 
+function hasPracticalAiQuestions(room) {
+  return !isTheoreticalRoom(room) && Boolean(room?.content?.aiQuestionsEnabled)
+}
+
 function extractMessageText(modelMessage) {
   const content = modelMessage?.content
   if (typeof content === 'string') {
@@ -672,6 +676,25 @@ function parseRoomQuestions(room) {
     .filter(Boolean)
 }
 
+function formatAiQuestionForClient(question, passed = false, answers = {}, evaluatedAt = null) {
+  return {
+    id: question.id,
+    prompt: question.prompt,
+    hint: question.rubric || '',
+    questionType: 'ai',
+    sourceType: question.sourceType || 'generated',
+    company: question.company || '',
+    interview: question.interview || '',
+    sourceInfo: question.sourceInfo || '',
+    optional: Boolean(question.optional || question.bonus),
+    bonus: Boolean(question.bonus || question.optional),
+    answeredCorrectly: Boolean(passed),
+    answeredAt: answers?.[question.id] && evaluatedAt
+      ? new Date(evaluatedAt).toISOString()
+      : null,
+  }
+}
+
 async function fetchRoomById(id) {
   const [roomRows] = await pool.query('SELECT * FROM rooms WHERE id = ? OR slug = ? LIMIT 1', [id, id])
   if (!roomRows.length) {
@@ -932,9 +955,9 @@ router.put('/:id/progress', authenticate, async (req, res) => {
           message: 'Score 100 in the theoretical technical evaluation before marking this room complete.',
         })
       }
-    } else if (room?.content?.questionsEnabled) {
+    } else {
       const requiredQuestions = parseRoomQuestions(room)
-      if (requiredQuestions.length > 0) {
+      if (room?.content?.questionsEnabled && requiredQuestions.length > 0) {
         const [progressRows] = await pool.query(
           `SELECT question_id
            FROM user_room_question_progress
@@ -948,6 +971,22 @@ router.put('/:id/progress', authenticate, async (req, res) => {
         if (!allCompleted) {
           return res.status(400).json({
             message: 'Complete all configured questions correctly before marking this room complete.',
+          })
+        }
+      }
+
+      if (hasPracticalAiQuestions(room)) {
+        const [attemptRows] = await pool.query(
+          `SELECT passed
+           FROM user_room_theoretical_attempts
+           WHERE user_id = ? AND room_id = ?
+           LIMIT 1`,
+          [req.user.id, room.id],
+        )
+
+        if (!attemptRows[0]?.passed) {
+          return res.status(400).json({
+            message: 'Score 100 in the practical AI evaluation before marking this room complete.',
           })
         }
       }
@@ -1000,26 +1039,15 @@ router.get('/:id/questions/status', authenticate, async (req, res) => {
       feedback: attempt.feedback || '',
       evaluatedAt: attempt.evaluated_at ? new Date(attempt.evaluated_at).toISOString() : null,
       answers,
-      questions: questions.map((question) => ({
-        id: question.id,
-        prompt: question.prompt,
-        hint: question.rubric || '',
-        sourceType: question.sourceType || 'generated',
-        company: question.company || '',
-        interview: question.interview || '',
-        sourceInfo: question.sourceInfo || '',
-        optional: Boolean(question.optional || question.bonus),
-        bonus: Boolean(question.bonus || question.optional),
-        answeredCorrectly: Boolean(attempt.passed),
-        answeredAt: answers?.[question.id] && attempt.evaluated_at
-          ? new Date(attempt.evaluated_at).toISOString()
-          : null,
-      })),
+      questions: questions.map((question) =>
+        formatAiQuestionForClient(question, Boolean(attempt.passed), answers, attempt.evaluated_at),
+      ),
     })
   }
 
-  const questions = parseRoomQuestions(room)
-  if (!room?.content?.questionsEnabled || questions.length === 0) {
+  const manualQuestions = room?.content?.questionsEnabled ? parseRoomQuestions(room) : []
+  const aiEnabled = hasPracticalAiQuestions(room)
+  if (manualQuestions.length === 0 && !aiEnabled) {
     return res.json({
       enabled: false,
       mode: 'practical',
@@ -1038,26 +1066,53 @@ router.get('/:id/questions/status', authenticate, async (req, res) => {
   )
 
   const progressMap = new Map(rows.map((row) => [String(row.question_id), row]))
-  const questionStatus = questions.map((question) => {
+  const manualQuestionStatus = manualQuestions.map((question) => {
     const progress = progressMap.get(question.id)
     return {
       id: question.id,
       prompt: question.prompt,
       hint: question.hint,
+      questionType: 'manual',
       answeredCorrectly: Boolean(progress?.answered_correctly),
       answeredAt: progress?.answered_at ? new Date(progress.answered_at).toISOString() : null,
     }
   })
 
-  const correct = questionStatus.filter((question) => question.answeredCorrectly).length
+  const manualCorrect = manualQuestionStatus.filter((question) => question.answeredCorrectly).length
+  let aiQuestions = []
+  let aiAnswers = {}
+  let aiAttempt = null
+
+  if (aiEnabled) {
+    aiAttempt = await getOrCreateTheoreticalAttempt(room, req.user.id)
+    aiQuestions = safeJsonParse(aiAttempt.questions_json, [])
+    aiAnswers = safeJsonParse(aiAttempt.answers_json, {})
+  }
+
+  const requiredAiQuestions = aiQuestions.filter((question) => !question.bonus && !question.optional)
+  const aiPassed = !aiEnabled || Boolean(aiAttempt?.passed)
+  const manualPassed = manualQuestions.length === 0 || manualCorrect === manualQuestions.length
+  const aiCorrect = aiPassed && aiEnabled ? requiredAiQuestions.length : 0
 
   return res.json({
     enabled: true,
-    mode: 'practical',
-    total: questions.length,
-    correct,
-    allCorrect: correct === questions.length,
-    questions: questionStatus,
+    mode: aiEnabled ? 'hybrid' : 'practical',
+    total: manualQuestions.length + requiredAiQuestions.length,
+    correct: manualCorrect + aiCorrect,
+    manualTotal: manualQuestions.length,
+    manualCorrect,
+    aiTotal: requiredAiQuestions.length,
+    allCorrect: manualPassed && aiPassed,
+    technicalScore: Number(aiAttempt?.technical_score || 0),
+    grammarScore: Number(aiAttempt?.grammar_score || 0),
+    feedback: aiAttempt?.feedback || '',
+    answers: aiAnswers,
+    questions: [
+      ...manualQuestionStatus,
+      ...aiQuestions.map((question) =>
+        formatAiQuestionForClient(question, Boolean(aiAttempt?.passed), aiAnswers, aiAttempt?.evaluated_at),
+      ),
+    ],
   })
 })
 
@@ -1148,8 +1203,9 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
     })
   }
 
-  const questions = parseRoomQuestions(room)
-  if (!room?.content?.questionsEnabled || questions.length === 0) {
+  const manualQuestions = room?.content?.questionsEnabled ? parseRoomQuestions(room) : []
+  const aiEnabled = hasPracticalAiQuestions(room)
+  if (manualQuestions.length === 0 && !aiEnabled) {
     return res.status(400).json({ message: 'Question mode is disabled for this room.' })
   }
 
@@ -1159,7 +1215,7 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
   try {
     await conn.beginTransaction()
 
-    for (const question of questions) {
+    for (const question of manualQuestions) {
       const providedAnswer = String(answers[question.id] || '').trim()
       const isCorrect =
         providedAnswer.length > 0 &&
@@ -1205,12 +1261,104 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
     rows.filter((row) => Boolean(row.answered_correctly)).map((row) => String(row.question_id)),
   )
 
-  const correct = questions.filter((question) => completedSet.has(question.id)).length
+  const manualCorrect = manualQuestions.filter((question) => completedSet.has(question.id)).length
+  const manualPassed = manualQuestions.length === 0 || manualCorrect === manualQuestions.length
+
+  let aiResult = {
+    passed: true,
+    technicalScore: 0,
+    grammarScore: 0,
+    baseTechnicalScore: 0,
+    bonusScore: 0,
+    feedback: '',
+    questions: [],
+    answers: {},
+    requiredCount: 0,
+  }
+
+  if (aiEnabled) {
+    const attempt = await getOrCreateTheoreticalAttempt(room, req.user.id)
+    const aiQuestions = safeJsonParse(attempt.questions_json, [])
+    const aiAnswers = Object.fromEntries(aiQuestions.map((question) => [question.id, answers[question.id] || '']))
+    const evaluation = await evaluateTheoreticalAnswers(room, aiQuestions, aiAnswers)
+    const passed = Number(evaluation.technicalScore) === 100
+    const retainedTechnicalScore = passed
+      ? 100
+      : Math.max(Number(attempt.technical_score || 0), Number(evaluation.technicalScore || 0))
+    const retainedGrammarScore = passed
+      ? Number(evaluation.grammarScore || 0)
+      : Math.max(Number(attempt.grammar_score || 0), Number(evaluation.grammarScore || 0))
+    const retainedNote = !passed && retainedTechnicalScore > Number(evaluation.technicalScore || 0)
+      ? '\n\nPrevious best AI score retained. New AI questions have been prepared for your next attempt.'
+      : !passed
+        ? '\n\nNew AI questions have been prepared for your next attempt.'
+        : ''
+    const feedbackToStore = `${evaluation.feedback || ''}${retainedNote}`.trim()
+    const nextQuestions = passed
+      ? aiQuestions
+      : await generateTheoreticalQuestions(room, req.user.id, `practical-retry-${Date.now()}-${retainedTechnicalScore}`)
+
+    await pool.query(
+      `UPDATE user_room_theoretical_attempts
+       SET answers_json = ?,
+           questions_json = ?,
+           technical_score = ?,
+           grammar_score = ?,
+           feedback = ?,
+           passed = ?,
+           evaluated_at = NOW()
+       WHERE user_id = ? AND room_id = ?`,
+      [
+        passed ? JSON.stringify(aiAnswers) : null,
+        JSON.stringify(nextQuestions),
+        retainedTechnicalScore,
+        retainedGrammarScore,
+        feedbackToStore,
+        passed,
+        req.user.id,
+        room.id,
+      ],
+    )
+
+    aiResult = {
+      passed,
+      technicalScore: retainedTechnicalScore,
+      grammarScore: retainedGrammarScore,
+      baseTechnicalScore: Number(evaluation.baseTechnicalScore || evaluation.technicalScore || 0),
+      bonusScore: Number(evaluation.bonusScore || 0),
+      feedback: feedbackToStore,
+      questions: nextQuestions,
+      answers: passed ? aiAnswers : {},
+      requiredCount: nextQuestions.filter((question) => !question.bonus && !question.optional).length,
+    }
+  }
 
   return res.json({
-    total: questions.length,
-    correct,
-    allCorrect: correct === questions.length,
+    mode: aiEnabled ? 'hybrid' : 'practical',
+    total: manualQuestions.length + aiResult.requiredCount,
+    correct: manualCorrect + (aiEnabled && aiResult.passed ? aiResult.requiredCount : 0),
+    manualTotal: manualQuestions.length,
+    manualCorrect,
+    allCorrect: manualPassed && aiResult.passed,
+    technicalScore: aiResult.technicalScore,
+    grammarScore: aiResult.grammarScore,
+    baseTechnicalScore: aiResult.baseTechnicalScore,
+    bonusScore: aiResult.bonusScore,
+    feedback: aiResult.feedback,
+    answers: aiResult.answers,
+    questions: [
+      ...manualQuestions.map((question) => ({
+        id: question.id,
+        prompt: question.prompt,
+        hint: question.hint,
+        questionType: 'manual',
+        answeredCorrectly: completedSet.has(question.id),
+        answeredAt: completedSet.has(question.id) ? new Date().toISOString() : null,
+      })),
+      ...aiResult.questions.map((question) =>
+        formatAiQuestionForClient(question, aiResult.passed, aiResult.answers, aiResult.passed ? new Date() : null),
+      ),
+    ],
   })
 })
 
@@ -1239,9 +1387,11 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
         id, slug, category, level, level_tone, dot_tone, title, description, xp,
         room_type, difficulty, estimate_time, environment, category_tag, content_markdown,
         content_html, mission_overview, remediation_protocols,
-        vulnerability_definition, vulnerability_impact, technical_deep_dive
-        , youtube_video_url, questions_enabled, questions_json
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        vulnerability_definition, vulnerability_impact, technical_deep_dive,
+        youtube_video_url, practical_ai_questions_enabled,
+        attachment_name, attachment_type, attachment_size, attachment_data,
+        questions_enabled, questions_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         id,
@@ -1265,6 +1415,11 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
         payload.content?.vulnerabilityBriefing?.impact || '',
         payload.content?.technicalDeepDive || '',
         payload.content?.youtubeVideoUrl || null,
+        Boolean(payload.content?.aiQuestionsEnabled),
+        payload.content?.attachment?.name || null,
+        payload.content?.attachment?.type || null,
+        Number(payload.content?.attachment?.size || 0),
+        payload.content?.attachment?.dataUrl || null,
         Boolean(payload.content?.questionsEnabled),
         JSON.stringify(parseRoomQuestions(payload)),
       ],
@@ -1312,7 +1467,9 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
         room_type = ?, difficulty = ?, estimate_time = ?, environment = ?, category_tag = ?,
         content_markdown = ?, content_html = ?, mission_overview = ?, remediation_protocols = ?,
         vulnerability_definition = ?, vulnerability_impact = ?, technical_deep_dive = ?,
-        youtube_video_url = ?, questions_enabled = ?, questions_json = ?
+        youtube_video_url = ?, practical_ai_questions_enabled = ?,
+        attachment_name = ?, attachment_type = ?, attachment_size = ?, attachment_data = ?,
+        questions_enabled = ?, questions_json = ?
       WHERE id = ?`,
       [
         payload.category ?? existing.category,
@@ -1336,6 +1493,11 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
         payload.content?.vulnerabilityBriefing?.impact ?? existing.content.vulnerabilityBriefing.impact,
         payload.content?.technicalDeepDive ?? existing.content.technicalDeepDive,
         payload.content?.youtubeVideoUrl ?? existing.content.youtubeVideoUrl ?? null,
+        Boolean(payload.content?.aiQuestionsEnabled ?? existing.content.aiQuestionsEnabled),
+        payload.content?.attachment?.name ?? existing.content.attachment?.name ?? null,
+        payload.content?.attachment?.type ?? existing.content.attachment?.type ?? null,
+        Number(payload.content?.attachment?.size ?? existing.content.attachment?.size ?? 0),
+        payload.content?.attachment?.dataUrl ?? existing.content.attachment?.dataUrl ?? null,
         Boolean(payload.content?.questionsEnabled ?? existing.content.questionsEnabled),
         JSON.stringify(
           parseRoomQuestions({

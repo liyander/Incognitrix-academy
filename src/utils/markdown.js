@@ -7,14 +7,65 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;')
 }
 
+const GREEK_SYMBOLS = {
+  alpha: 'α',
+  beta: 'β',
+  gamma: 'γ',
+  delta: 'δ',
+  epsilon: 'ε',
+  theta: 'θ',
+  lambda: 'λ',
+  mu: 'μ',
+  pi: 'π',
+  rho: 'ρ',
+  sigma: 'σ',
+  tau: 'τ',
+  phi: 'φ',
+  omega: 'ω',
+  Delta: 'Δ',
+  Gamma: 'Γ',
+  Lambda: 'Λ',
+  Omega: 'Ω',
+  Pi: 'Π',
+  Sigma: 'Σ',
+}
+
+function renderMathExpression(expression, display = false) {
+  let html = escapeHtml(expression)
+    .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '<span class="inline-flex flex-col align-middle text-center leading-none mx-1"><span class="border-b border-current px-1">$1</span><span class="px-1">$2</span></span>')
+    .replace(/\\sqrt\{([^{}]+)\}/g, '<span class="inline-flex items-start gap-0.5"><span>√</span><span class="border-t border-current px-1">$1</span></span>')
+    .replace(/\\times/g, '×')
+    .replace(/\\cdot/g, '·')
+    .replace(/\\leq/g, '≤')
+    .replace(/\\geq/g, '≥')
+    .replace(/\\neq/g, '≠')
+    .replace(/\\approx/g, '≈')
+    .replace(/\\infty/g, '∞')
+
+  html = html.replace(/\\([A-Za-z]+)/g, (match, name) => GREEK_SYMBOLS[name] || match)
+  html = html.replace(/\^(\{([^{}]+)\}|([A-Za-z0-9+\-=]+))/g, (_match, _group, braced, simple) => `<sup>${braced || simple}</sup>`)
+  html = html.replace(/_(\{([^{}]+)\}|([A-Za-z0-9+\-=]+))/g, (_match, _group, braced, simple) => `<sub>${braced || simple}</sub>`)
+
+  return display
+    ? `<div class="my-4 overflow-x-auto bg-on-surface/5 border border-outline-variant/20 px-4 py-3 text-center font-mono text-base text-on-surface">${html}</div>`
+    : `<span class="inline-block rounded bg-on-surface/5 px-1.5 py-0.5 align-baseline font-mono text-[0.95em] text-on-surface">${html}</span>`
+}
+
 function parseInlineMarkdown(text) {
   let result = escapeHtml(text)
   const codeTokens = []
+  const mathTokens = []
 
   result = result.replace(/`([^`]+)`/g, (_match, code) => {
     const token = `\uE000${codeTokens.length}\uE001`
     codeTokens.push(code)
     return token
+  })
+
+  result = result.replace(/(^|[^\w\\])\$([^\s$](?:[^$\n]*?[^\s$])?)\$/g, (_match, prefix, math) => {
+    const token = `\uE100${mathTokens.length}\uE101`
+    mathTokens.push(math)
+    return `${prefix}${token}`
   })
 
   result = result.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />')
@@ -29,6 +80,11 @@ function parseInlineMarkdown(text) {
   result = result.replace(/\uE000(\d+)\uE001/g, (_match, index) => {
     const code = codeTokens[Number(index)] || ''
     return `<code>${code}</code>`
+  })
+
+  result = result.replace(/\uE100(\d+)\uE101/g, (_match, index) => {
+    const math = mathTokens[Number(index)] || ''
+    return renderMathExpression(math)
   })
 
   return result
@@ -231,6 +287,39 @@ export function parseMarkdownToHtml(markdown) {
       flushParagraph(paragraphLines, output);
       flushList(listItems, output, listType);
       listType = null;
+      continue;
+    }
+
+    if (trimmed.startsWith("$$")) {
+      flushParagraph(paragraphLines, output);
+      flushList(listItems, output, listType);
+      listType = null;
+
+      const blockLines = [];
+      const firstLine = trimmed.replace(/^\$\$\s?/, "");
+      if (firstLine.endsWith("$$") && firstLine.length > 2) {
+        output.push(renderMathExpression(firstLine.replace(/\s?\$\$$/, ""), true));
+        continue;
+      }
+
+      if (firstLine) {
+        blockLines.push(firstLine);
+      }
+
+      while (i + 1 < lines.length) {
+        i += 1;
+        const nextLine = lines[i].trim();
+        if (nextLine.endsWith("$$")) {
+          const finalLine = nextLine.replace(/\s?\$\$$/, "");
+          if (finalLine) {
+            blockLines.push(finalLine);
+          }
+          break;
+        }
+        blockLines.push(lines[i]);
+      }
+
+      output.push(renderMathExpression(blockLines.join("\n"), true));
       continue;
     }
 

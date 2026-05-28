@@ -66,6 +66,8 @@ function AdminRoomEditorPage() {
         },
         technicalDeepDive: '',
         youtubeVideoUrl: '',
+        aiQuestionsEnabled: false,
+        attachment: null,
         questionsEnabled: false,
         questions: [],
       },
@@ -161,6 +163,27 @@ function AdminRoomEditorPage() {
       ...prev,
       content: { ...prev.content, [field]: value },
     }))
+  }
+
+  const handleAttachmentUpload = (file) => {
+    if (!file) {
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      handleContentChange('attachment', {
+        name: file.name,
+        type: file.type || 'application/octet-stream',
+        size: file.size,
+        dataUrl: String(reader.result || ''),
+      })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveAttachment = () => {
+    handleContentChange('attachment', null)
   }
 
   const handleVulnerabilityBriefingChange = (field, value) => {
@@ -652,21 +675,76 @@ function AdminRoomEditorPage() {
               </div>
 
               {normalizeRoomType(formData.roomType) === 'practical' ? (
-                <label className="inline-flex items-center gap-3 mb-6 cursor-pointer">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                  <label className="flex items-start gap-3 bg-surface-container-high p-5 cursor-pointer">
+                    <input
+                      checked={Boolean(formData.content?.questionsEnabled)}
+                      className="mt-1 h-4 w-4"
+                      onChange={(e) => handleContentChange('questionsEnabled', e.target.checked)}
+                      type="checkbox"
+                    />
+                    <span>
+                      <span className="block font-headline text-xs font-bold uppercase tracking-widest text-on-surface">
+                        Enable Manual Questions
+                      </span>
+                      <span className="mt-1 block text-xs text-on-surface-variant">
+                        Learners must answer the configured exact-answer questions before completion.
+                      </span>
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-3 bg-surface-container-high p-5 cursor-pointer">
+                    <input
+                      checked={Boolean(formData.content?.aiQuestionsEnabled)}
+                      className="mt-1 h-4 w-4"
+                      onChange={(e) => handleContentChange('aiQuestionsEnabled', e.target.checked)}
+                      type="checkbox"
+                    />
+                    <span>
+                      <span className="block font-headline text-xs font-bold uppercase tracking-widest text-on-surface">
+                        Add AI Questions
+                      </span>
+                      <span className="mt-1 block text-xs text-on-surface-variant">
+                        AI will generate extra content-aligned questions alongside the practical prompts.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              ) : null}
+
+              {normalizeRoomType(formData.roomType) === 'practical' ? (
+                <div className="mb-8 bg-surface-container-high p-6 border-l-2 border-l-primary">
+                  <p className="font-headline text-xs font-bold uppercase tracking-widest text-primary mb-3">
+                    Practical Room File
+                  </p>
                   <input
-                    checked={Boolean(formData.content?.questionsEnabled)}
-                    className="h-4 w-4"
-                    onChange={(e) => handleContentChange('questionsEnabled', e.target.checked)}
-                    type="checkbox"
+                    className="block w-full text-sm text-on-surface-variant file:mr-4 file:border-0 file:bg-primary file:px-4 file:py-2 file:font-headline file:text-xs file:font-bold file:uppercase file:tracking-widest file:text-on-primary"
+                    onChange={(e) => handleAttachmentUpload(e.target.files?.[0])}
+                    type="file"
                   />
-                  <span className="font-headline text-xs font-bold uppercase tracking-widest text-on-surface">
-                    Enable Question Requirement For Room Completion
-                  </span>
-                </label>
+                  {formData.content?.attachment?.dataUrl ? (
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 bg-surface-container-lowest p-4">
+                      <div>
+                        <p className="font-headline text-xs font-bold uppercase tracking-widest">
+                          {formData.content.attachment.name || 'Attached file'}
+                        </p>
+                        <p className="mt-1 text-xs text-on-surface-variant">
+                          {Math.ceil(Number(formData.content.attachment.size || 0) / 1024)} KB
+                        </p>
+                      </div>
+                      <button
+                        className="px-3 py-2 text-primary hover:text-error transition-colors"
+                        onClick={handleRemoveAttachment}
+                        type="button"
+                      >
+                        <span className="material-symbols-outlined">delete</span>
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
               ) : null}
 
               <p className="text-xs text-on-surface-variant mb-6">
-                Theoretical rooms generate AI questions automatically for each learner. Practical rooms can be marked complete only after all configured questions are answered correctly.
+                Theoretical rooms generate AI questions automatically for each learner. Practical rooms can use exact-answer questions, optional AI evaluation, and a downloadable lab file.
               </p>
 
               {normalizeRoomType(formData.roomType) === 'theoretical' ? (

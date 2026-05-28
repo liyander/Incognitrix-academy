@@ -656,6 +656,15 @@ async function fetchRoomById(identifier) {
       },
       technicalDeepDive: room.technical_deep_dive || '',
       youtubeVideoUrl: room.youtube_video_url || '',
+      aiQuestionsEnabled: Boolean(room.practical_ai_questions_enabled),
+      attachment: room.attachment_data
+        ? {
+            name: room.attachment_name || 'room-file',
+            type: room.attachment_type || 'application/octet-stream',
+            size: Number(room.attachment_size || 0),
+            dataUrl: room.attachment_data,
+          }
+        : null,
       questionsEnabled: Boolean(room.questions_enabled),
       questions: (() => {
         try {

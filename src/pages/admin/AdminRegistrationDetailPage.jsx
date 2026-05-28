@@ -90,6 +90,14 @@ function serializeAchievements(achievements) {
   return JSON.stringify(normalized)
 }
 
+function formatDateTime(value) {
+  if (!value) return 'N/A'
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
+}
+
 function ProfileLabelWithLogo({ logo, text }) {
   return (
     <span className="flex items-center gap-2 font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
@@ -146,6 +154,12 @@ function AdminRegistrationDetailPage() {
   const [passwordModal, setPasswordModal] = useState(null)
   const [passwordSuccessModal, setPasswordSuccessModal] = useState(null)
   const [interviewAttempts, setInterviewAttempts] = useState([])
+  const [completedRooms, setCompletedRooms] = useState({
+    totalCompleted: 0,
+    totalXp: 0,
+    categoryCounts: {},
+    rooms: [],
+  })
   const [selectedInterviewQuestion, setSelectedInterviewQuestion] = useState(null)
   const [changingPassword, setChangingPassword] = useState(false)
   const [passwordForm, setPasswordForm] = useState({
@@ -210,6 +224,42 @@ function AdminRegistrationDetailPage() {
     }
 
     void loadUser()
+  }, [userId])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadCompletedRooms = async () => {
+      if (!userId) return
+
+      try {
+        const data = await apiFetch(`/users/admin/registrations/${userId}/completed-rooms`)
+        if (!cancelled) {
+          setCompletedRooms({
+            totalCompleted: Number(data?.totalCompleted || 0),
+            totalXp: Number(data?.totalXp || 0),
+            categoryCounts: data?.categoryCounts || {},
+            rooms: Array.isArray(data?.rooms) ? data.rooms : [],
+          })
+        }
+      } catch (completedError) {
+        console.error('Failed to load completed rooms:', completedError)
+        if (!cancelled) {
+          setCompletedRooms({
+            totalCompleted: 0,
+            totalXp: 0,
+            categoryCounts: {},
+            rooms: [],
+          })
+        }
+      }
+    }
+
+    void loadCompletedRooms()
+
+    return () => {
+      cancelled = true
+    }
   }, [userId])
 
   useEffect(() => {
@@ -594,6 +644,112 @@ function AdminRegistrationDetailPage() {
                 onChange={(e) => updateField('about_me', e.target.value)}
                 value={form.about_me}
               />
+            </section>
+
+            <section className="bg-surface-container-lowest p-6 md:p-8 space-y-5">
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                <div>
+                  <h2 className="font-headline text-xl font-bold uppercase tracking-tight">
+                    Completed Rooms
+                  </h2>
+                  <p className="mt-2 text-sm text-on-surface-variant">
+                    Rooms this player has completed, including completion time, XP, and AI scores where available.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 min-w-64">
+                  <div className="bg-surface-container-high p-4 border-l-2 border-l-primary">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                      Completed
+                    </p>
+                    <p className="mt-1 font-headline text-3xl font-black">
+                      {completedRooms.totalCompleted}
+                    </p>
+                  </div>
+                  <div className="bg-surface-container-high p-4 border-l-2 border-l-secondary">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                      Earned XP
+                    </p>
+                    <p className="mt-1 font-headline text-3xl font-black">
+                      {completedRooms.totalXp.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {Object.keys(completedRooms.categoryCounts).length ? (
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(completedRooms.categoryCounts).map(([category, count]) => (
+                    <span
+                      className="bg-surface-container-high px-3 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
+                      key={category}
+                    >
+                      {category}: {count}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+
+              {completedRooms.rooms.length ? (
+                <div className="overflow-x-auto border border-outline-variant/30">
+                  <table className="w-full min-w-[760px] text-left">
+                    <thead className="bg-surface-container-high">
+                      <tr>
+                        <th className="px-4 py-3 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                          Room
+                        </th>
+                        <th className="px-4 py-3 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                          Category
+                        </th>
+                        <th className="px-4 py-3 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                          Type
+                        </th>
+                        <th className="px-4 py-3 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                          XP
+                        </th>
+                        <th className="px-4 py-3 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                          AI Score
+                        </th>
+                        <th className="px-4 py-3 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                          Completed
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {completedRooms.rooms.map((room) => (
+                        <tr className="border-t border-outline-variant/20" key={room.roomId}>
+                          <td className="px-4 py-4">
+                            <p className="font-headline text-sm font-bold uppercase tracking-wide text-on-surface">
+                              {room.title}
+                            </p>
+                            <p className="mt-1 text-xs text-on-surface-variant">
+                              {room.difficulty || room.level || 'No difficulty'}
+                            </p>
+                          </td>
+                          <td className="px-4 py-4 text-sm text-on-surface-variant">{room.category}</td>
+                          <td className="px-4 py-4">
+                            <span className="bg-surface-container-high px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest">
+                              {room.roomType}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 text-sm font-bold text-on-surface">{room.xp}</td>
+                          <td className="px-4 py-4 text-sm text-on-surface-variant">
+                            {room.technicalScore || room.grammarScore
+                              ? `${room.technicalScore}/100 tech, ${room.grammarScore}/100 grammar`
+                              : 'N/A'}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-on-surface-variant">
+                            {formatDateTime(room.completedAt)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="bg-surface-container-high p-4 text-sm text-on-surface-variant">
+                  This player has not completed any rooms yet.
+                </p>
+              )}
             </section>
 
             <section className="bg-surface-container-lowest p-6 md:p-8 space-y-4">

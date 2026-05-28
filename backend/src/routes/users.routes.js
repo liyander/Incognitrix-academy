@@ -98,6 +98,11 @@ router.get('/me', authenticate, async (req, res) => {
       about_me,
       projects,
       achievements,
+      (
+        SELECT COUNT(*)
+        FROM user_room_progress urp
+        WHERE urp.user_id = users.id AND urp.completed_at IS NOT NULL
+      ) AS completed_rooms,
       created_at,
       updated_at
      FROM users
@@ -487,6 +492,77 @@ router.get('/admin/registrations/:id/theoretical-attempts', authenticate, requir
   })
 
   return res.json(attempts)
+})
+
+router.get('/admin/registrations/:id/completed-rooms', authenticate, requireAdmin, async (req, res) => {
+  const userId = Number(req.params.id)
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: 'Invalid user id' })
+  }
+
+  const [userRows] = await pool.query('SELECT id FROM users WHERE id = ? LIMIT 1', [userId])
+  if (!userRows.length) {
+    return res.status(404).json({ message: 'User not found' })
+  }
+
+  const [rows] = await pool.query(
+    `SELECT
+       urp.room_id,
+       urp.started_at,
+       urp.completed_at,
+       r.slug,
+       r.title,
+       r.category,
+       r.level,
+       r.difficulty,
+       r.room_type,
+       r.xp,
+       uta.technical_score,
+       uta.grammar_score,
+       uta.passed AS ai_passed,
+       uta.evaluated_at
+     FROM user_room_progress urp
+     INNER JOIN rooms r ON r.id = urp.room_id
+     LEFT JOIN user_room_theoretical_attempts uta
+       ON uta.user_id = urp.user_id AND uta.room_id = urp.room_id
+     WHERE urp.user_id = ? AND urp.completed_at IS NOT NULL
+     ORDER BY urp.completed_at DESC`,
+    [userId],
+  )
+
+  const completedRooms = rows.map((row) => ({
+    roomId: row.room_id,
+    slug: row.slug || row.room_id,
+    title: row.title || row.room_id,
+    category: row.category || 'Uncategorized',
+    level: row.level || row.difficulty || '',
+    difficulty: row.difficulty || row.level || '',
+    roomType: row.room_type || 'theoretical',
+    xp: row.xp || '0 XP',
+    startedAt: row.started_at ? new Date(row.started_at).toISOString() : null,
+    completedAt: row.completed_at ? new Date(row.completed_at).toISOString() : null,
+    technicalScore: Number(row.technical_score || 0),
+    grammarScore: Number(row.grammar_score || 0),
+    aiPassed: Boolean(row.ai_passed),
+    evaluatedAt: row.evaluated_at ? new Date(row.evaluated_at).toISOString() : null,
+  }))
+
+  const categoryCounts = completedRooms.reduce((map, room) => {
+    map[room.category] = (map[room.category] || 0) + 1
+    return map
+  }, {})
+
+  const totalXp = completedRooms.reduce((sum, room) => {
+    const numericXp = Number(String(room.xp || '').replace(/[^0-9]/g, ''))
+    return sum + (Number.isFinite(numericXp) ? numericXp : 0)
+  }, 0)
+
+  return res.json({
+    totalCompleted: completedRooms.length,
+    totalXp,
+    categoryCounts,
+    rooms: completedRooms,
+  })
 })
 
 router.put('/admin/registrations/:id', authenticate, requireAdmin, async (req, res) => {
