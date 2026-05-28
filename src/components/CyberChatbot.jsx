@@ -126,7 +126,7 @@ function looksLikeCodeLine(line) {
     return true
   }
 
-  return /[;{}()[\]=<>]|=>/.test(trimmed) && trimmed.length < 220
+  return /(?:=>|[;{}[\]=<>])/.test(trimmed) && trimmed.length < 220
 }
 
 function normalizeAssistantContent(content) {
