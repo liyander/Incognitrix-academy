@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch } from '../../services/api'
 
+function isPermanentAdmin(user) {
+  return String(user?.username || '').trim().toLowerCase() === 'admin01'
+}
+
 const emptyProject = () => ({
   projectName: '',
   projectDescription: '',
@@ -139,6 +143,13 @@ function AdminRegistrationDetailPage() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [passwordModal, setPasswordModal] = useState(null)
+  const [passwordSuccessModal, setPasswordSuccessModal] = useState(null)
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [passwordForm, setPasswordForm] = useState({
+    newPassword: '',
+    confirmPassword: '',
+  })
   const [form, setForm] = useState({
     username: '',
     registration_number: '',
@@ -147,7 +158,6 @@ function AdminRegistrationDetailPage() {
     email: '',
     role: 'operator',
     is_active: true,
-    password: '',
     hackthebox_profile: '',
     tryhackme_profile: '',
     picoctf_profile: '',
@@ -179,7 +189,6 @@ function AdminRegistrationDetailPage() {
           email: data.email || '',
           role: data.role || 'operator',
           is_active: Boolean(data.is_active),
-          password: '',
           hackthebox_profile: data.hackthebox_profile || '',
           tryhackme_profile: data.tryhackme_profile || '',
           picoctf_profile: data.picoctf_profile || '',
@@ -278,10 +287,6 @@ function AdminRegistrationDetailPage() {
         achievements: serializeAchievements(form.achievements),
       }
 
-      if (form.password.trim()) {
-        payload.password = form.password
-      }
-
       const updated = await apiFetch(`/users/admin/registrations/${userId}`, {
         method: 'PUT',
         body: JSON.stringify(payload),
@@ -305,13 +310,49 @@ function AdminRegistrationDetailPage() {
         about_me: updated.about_me || '',
         projects: parseProjects(updated.projects),
         achievements: parseAchievements(updated.achievements),
-        password: '',
       }))
       setSuccess('Player details updated successfully')
     } catch (saveError) {
       setError(saveError?.message || 'Failed to update player details')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const openPasswordModal = () => {
+    setPasswordForm({ newPassword: '', confirmPassword: '' })
+    setPasswordModal({
+      target: user?.username || user?.registration_number || 'Selected user',
+    })
+  }
+
+  const changePassword = async (event) => {
+    event.preventDefault()
+    if (!userId) return
+
+    setChangingPassword(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+        throw new Error('Passwords do not match')
+      }
+
+      await apiFetch(`/users/admin/registrations/${userId}/password`, {
+        method: 'POST',
+        body: JSON.stringify({ newPassword: passwordForm.newPassword }),
+      })
+
+      setPasswordModal(null)
+      setPasswordForm({ newPassword: '', confirmPassword: '' })
+      setPasswordSuccessModal({
+        target: user?.username || user?.registration_number || 'Selected user',
+      })
+    } catch (passwordError) {
+      setError(passwordError?.message || 'Failed to change password')
+    } finally {
+      setChangingPassword(false)
     }
   }
 
@@ -415,6 +456,7 @@ function AdminRegistrationDetailPage() {
                   <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Role</span>
                   <select
                     className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    disabled={isPermanentAdmin(user)}
                     onChange={(e) => updateField('role', e.target.value)}
                     value={form.role}
                   >
@@ -423,26 +465,33 @@ function AdminRegistrationDetailPage() {
                   </select>
                 </label>
 
-                <label className="block">
-                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Reset Password (optional)</span>
-                  <input
-                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
-                    onChange={(e) => updateField('password', e.target.value)}
-                    type="password"
-                    value={form.password}
-                  />
-                </label>
+                <div className="block">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Password</span>
+                  <button
+                    className="mt-2 w-full bg-primary text-on-primary py-3 px-4 font-headline text-xs font-bold uppercase tracking-widest"
+                    onClick={openPasswordModal}
+                    type="button"
+                  >
+                    Change Password
+                  </button>
+                </div>
               </div>
 
               <label className="flex items-center gap-3">
                 <input
                   checked={form.is_active}
                   className="h-4 w-4 accent-[#b6171e]"
+                  disabled={isPermanentAdmin(user)}
                   onChange={(e) => updateField('is_active', e.target.checked)}
                   type="checkbox"
                 />
                 <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Account Active</span>
               </label>
+              {isPermanentAdmin(user) ? (
+                <p className="text-xs text-secondary font-bold uppercase tracking-widest">
+                  admin01 is a permanent admin. Role and active status are locked.
+                </p>
+              ) : null}
             </section>
 
             <section className="bg-surface-container-lowest p-6 md:p-8 space-y-4">
@@ -647,6 +696,90 @@ function AdminRegistrationDetailPage() {
           </form>
         ) : null}
       </section>
+      {passwordModal ? (
+        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
+          <form className="w-full max-w-md bg-surface-container-lowest border border-outline-variant shadow-2xl" onSubmit={changePassword}>
+            <div className="h-1 bg-primary"></div>
+            <div className="p-7">
+              <p className="font-label text-[10px] uppercase tracking-[0.25em] font-bold text-primary">
+                Admin Password Reset
+              </p>
+              <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                Change Password
+              </h2>
+              <p className="mt-3 text-sm text-on-surface-variant">
+                Set a new password for {passwordModal.target}. Current password is not required for admin resets.
+              </p>
+              <div className="mt-6 space-y-4">
+                <label className="block">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">New Password</span>
+                  <input
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    minLength={8}
+                    onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))}
+                    required
+                    type="password"
+                    value={passwordForm.newPassword}
+                  />
+                </label>
+                <label className="block">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Confirm Password</span>
+                  <input
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    minLength={8}
+                    onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))}
+                    required
+                    type="password"
+                    value={passwordForm.confirmPassword}
+                  />
+                </label>
+              </div>
+              <div className="mt-7 flex flex-col sm:flex-row sm:justify-end gap-3">
+                <button
+                  className="px-5 py-3 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                  disabled={changingPassword}
+                  onClick={() => setPasswordModal(null)}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  className="px-5 py-3 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                  disabled={changingPassword}
+                  type="submit"
+                >
+                  {changingPassword ? 'Changing...' : 'Change Password'}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      ) : null}
+      {passwordSuccessModal ? (
+        <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="w-full max-w-md bg-surface-container-lowest border border-outline-variant shadow-2xl">
+            <div className="h-1 bg-secondary"></div>
+            <div className="p-7">
+              <p className="font-label text-[10px] uppercase tracking-[0.25em] font-bold text-secondary">
+                Password Updated
+              </p>
+              <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                Password Changed Successfully
+              </h2>
+              <p className="mt-4 text-sm text-on-surface-variant">
+                The password for {passwordSuccessModal.target} has been updated.
+              </p>
+              <button
+                className="mt-7 w-full px-5 py-3 bg-secondary text-on-secondary font-headline text-xs font-bold uppercase tracking-widest"
+                onClick={() => setPasswordSuccessModal(null)}
+                type="button"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   )
 }

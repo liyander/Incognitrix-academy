@@ -96,14 +96,37 @@ function buildFallbackTheoreticalQuestions(room, userId) {
     id: `u${userId || 0}-q-${index + 1}`,
     prompt,
     rubric: 'Assess conceptual accuracy, specificity, remediation quality, and clarity.',
-    sourceType: index === 0 && seed >= 3 ? 'interview' : 'generated',
-    company: index === 0 && seed >= 3 ? 'Cybersecurity interview practice' : '',
-    interview: index === 0 && seed >= 3 ? `${topic} role-screening question` : '',
-    sourceInfo: index === 0 && seed >= 3
-      ? 'Fallback interview-style question generated from the room topic.'
-      : '',
+    sourceType: 'generated',
+    company: '',
+    interview: index === 0 && seed >= 3 ? `${topic} role-screening practice` : '',
+    sourceInfo: '',
     learnerVariant: `${room.id || topic}-${userId || 0}-${seed}`,
+    contentAnchorVersion: 'content-anchored-v2',
   }))
+}
+
+function buildQuestionContentContext(room) {
+  return [
+    room.content?.markdown,
+    room.content?.missionOverview,
+    room.description,
+    room.content?.vulnerabilityBriefing?.definition,
+    room.content?.vulnerabilityBriefing?.impact,
+    room.content?.technicalDeepDive,
+    room.content?.remediationProtocols,
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+    .slice(0, 9000)
+}
+
+function ensureImprovementFeedback(feedback) {
+  const text = String(feedback || 'Evaluation completed.').trim()
+  if (/improve next:/i.test(text)) {
+    return text
+  }
+
+  return `${text}\n\nImprove next: 1) Tie each answer directly to the room content. 2) Include the main security impact. 3) Add one concrete mitigation or validation step.`
 }
 
 async function generateTheoreticalQuestions(room, userId) {
@@ -127,7 +150,7 @@ async function generateTheoreticalQuestions(room, userId) {
         {
           role: 'system',
           content:
-            'Generate assessment questions for a cybersecurity learning room. Return strict JSON only: {"questions":[{"id":"string","prompt":"string","rubric":"string","sourceType":"generated|interview","company":"string","interview":"string","sourceInfo":"string","learnerVariant":"string"}]}. Create exactly 3 open-ended theoretical questions. The questions must be personalized by learnerVariant and must not be the same generic wording for every learner. At least one question may be interview-style from known public cybersecurity interview patterns; when sourceType is "interview", include the company name if known, the interview/role context, and a short sourceInfo note. Do not include answers.',
+            'Generate assessment questions for a cybersecurity learning room. Return strict JSON only: {"questions":[{"id":"string","prompt":"string","rubric":"string","sourceType":"generated|interview","company":"string","interview":"string","sourceInfo":"string","learnerVariant":"string","contentAnchorVersion":"content-anchored-v2"}]}. Create exactly 3 open-ended theoretical questions. Stay strictly calibrated to the supplied room content and selected difficulty: do not ask topics more advanced than the room content, and do not ask generic or easier questions below the content. Every question must be answerable from the supplied content. Use the learnerVariant to vary wording/scenario per learner while preserving the same content scope. At most one question may be interview-style, and only if it still maps directly to the room content. If sourceType is "interview", company must be a real company name when known; if no credible company is known, use sourceType "generated" instead. Include short sourceInfo for interview questions. Do not include answers.',
         },
         {
           role: 'user',
@@ -139,8 +162,9 @@ async function generateTheoreticalQuestions(room, userId) {
             title: room.title,
             category: room.category,
             difficulty: room.difficulty || room.level,
-            overview: room.content?.missionOverview || room.description,
-            technicalDeepDive: room.content?.technicalDeepDive,
+            strictScope:
+              'Use only this room content as the syllabus. Avoid unrelated advanced material, niche extensions, or assumptions not present in the room.',
+            content: buildQuestionContentContext(room),
           }),
         },
       ],
@@ -161,6 +185,7 @@ async function generateTheoreticalQuestions(room, userId) {
         interview: String(question?.interview || '').trim(),
         sourceInfo: String(question?.sourceInfo || '').trim(),
         learnerVariant: String(question?.learnerVariant || `${room.id || room.slug}-${userId}-${index + 1}`).trim(),
+        contentAnchorVersion: 'content-anchored-v2',
       }))
       .filter((question) => question.id && question.prompt)
 
@@ -180,7 +205,12 @@ function shouldRefreshTheoreticalQuestions(questions, attempt) {
     return false
   }
 
-  return questions.some((question) => !question.learnerVariant && !question.sourceType)
+  return questions.some(
+    (question) =>
+      !question.learnerVariant ||
+      !question.sourceType ||
+      question.contentAnchorVersion !== 'content-anchored-v2',
+  )
 }
 
 async function evaluateTheoreticalAnswers(room, questions, answers) {
@@ -195,8 +225,8 @@ async function evaluateTheoreticalAnswers(room, questions, answers) {
       grammarScore,
       feedback:
         technicalScore === 100
-          ? 'Fallback evaluator accepted all responses as sufficiently detailed.'
-          : 'Add more complete, technically specific answers for every question.',
+          ? 'Fallback evaluator accepted all responses as sufficiently detailed. Improve next: keep tying each answer to the room terms and examples.'
+          : 'Add more complete, technically specific answers for every question. Improve next: mention the room concept, impact, and at least one mitigation in each answer.',
     }
   }
 
@@ -216,7 +246,7 @@ async function evaluateTheoreticalAnswers(room, questions, answers) {
         {
           role: 'system',
           content:
-            'Evaluate cybersecurity assessment answers. Return strict JSON only: {"technicalScore":0-100,"grammarScore":0-100,"feedback":"string"}. Technical score must be 100 only when all answers are completely correct, specific, and aligned with the room content. Grammar score evaluates clarity, grammar, and professional writing.',
+            'Evaluate cybersecurity assessment answers. Return strict JSON only: {"technicalScore":0-100,"grammarScore":0-100,"feedback":"string"}. Grade only against the supplied room content and question rubrics. Do not penalize learners for omitting advanced material that is not in the room content. Be liberal but fair: award high marks when the answer covers the essential room concepts in the learner\'s own words, even if wording is not perfect. Technical score should be 100 when all answers are correct, content-aligned, and cover the essential points; perfection, extra depth, or textbook wording is not required. Grammar score evaluates clarity and professional writing but should not punish minor grammar mistakes. Feedback must end with a concise "Improve next:" section listing exactly 2-4 specific improvements.',
         },
         {
           role: 'user',
@@ -224,8 +254,8 @@ async function evaluateTheoreticalAnswers(room, questions, answers) {
             room: {
               title: room.title,
               category: room.category,
-              overview: room.content?.missionOverview || room.description,
-              technicalDeepDive: room.content?.technicalDeepDive,
+              difficulty: room.difficulty || room.level,
+              content: buildQuestionContentContext(room),
             },
             questions,
             answers,
@@ -238,7 +268,7 @@ async function evaluateTheoreticalAnswers(room, questions, answers) {
     return {
       technicalScore: Math.max(0, Math.min(100, Number(parsed?.technicalScore || 0))),
       grammarScore: Math.max(0, Math.min(100, Number(parsed?.grammarScore || 0))),
-      feedback: String(parsed?.feedback || 'Evaluation completed.'),
+      feedback: ensureImprovementFeedback(parsed?.feedback),
     }
   } catch (error) {
     console.error('Failed to evaluate theoretical answers:', error)

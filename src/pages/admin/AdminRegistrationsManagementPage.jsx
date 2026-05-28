@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../../services/api'
 
+function isPermanentAdmin(user) {
+  return String(user?.username || '').trim().toLowerCase() === 'admin01'
+}
+
 function AdminRegistrationsManagementPage() {
   const navigate = useNavigate()
   const [users, setUsers] = useState([])
@@ -14,6 +18,7 @@ function AdminRegistrationsManagementPage() {
   const [isAdminWorking, setIsAdminWorking] = useState(false)
   const [actionModal, setActionModal] = useState(null)
   const [adminSuccessModal, setAdminSuccessModal] = useState(null)
+  const [duplicateAdminModal, setDuplicateAdminModal] = useState(null)
   const [adminForm, setAdminForm] = useState({
     username: '',
     registrationNumber: '',
@@ -68,7 +73,7 @@ function AdminRegistrationsManagementPage() {
   })
   const selectedRevokableIds = selectedUserIds.filter((id) => {
     const user = users.find((entry) => entry.id === id)
-    return user && user.role === 'admin'
+    return user && user.role === 'admin' && !isPermanentAdmin(user)
   })
   const allVisibleSelected =
     selectedVisibleIds.length > 0 && selectedVisibleIds.every((id) => selectedUserIds.includes(id))
@@ -164,6 +169,24 @@ function AdminRegistrationsManagementPage() {
     setAdminForm((current) => ({ ...current, [field]: value }))
   }
 
+  const findDuplicateAdminTarget = () => {
+    const username = adminForm.username.trim().toLowerCase()
+    const email = adminForm.email.trim().toLowerCase()
+    const registrationNumber = adminForm.registrationNumber.trim().toLowerCase()
+
+    return users.find((user) => {
+      const userUsername = String(user.username || '').toLowerCase()
+      const userEmail = String(user.email || '').toLowerCase()
+      const userRegistration = String(user.registration_number || '').toLowerCase()
+
+      return (
+        (username && userUsername === username) ||
+        (email && userEmail === email) ||
+        (registrationNumber && userRegistration === registrationNumber)
+      )
+    })
+  }
+
   const createAdmin = async (event) => {
     event.preventDefault()
     setIsAdminWorking(true)
@@ -196,7 +219,28 @@ function AdminRegistrationsManagementPage() {
       })
       await fetchUsers()
     } catch (createError) {
-      setError(createError?.message || 'Failed to create admin account')
+      const duplicateTarget = findDuplicateAdminTarget()
+      if (/already exists/i.test(createError?.message || '') && duplicateTarget) {
+        const searchToken =
+          duplicateTarget.email ||
+          duplicateTarget.registration_number ||
+          duplicateTarget.username ||
+          adminForm.email ||
+          adminForm.username
+
+        setSearch(searchToken)
+        setSelectedUserIds([duplicateTarget.id])
+        setDuplicateAdminModal({
+          email: duplicateTarget.email || 'N/A',
+          id: duplicateTarget.id,
+          isAdmin: duplicateTarget.role === 'admin',
+          registrationNumber: duplicateTarget.registration_number || 'N/A',
+          username: duplicateTarget.username || 'Existing user',
+        })
+        setError('')
+      } else {
+        setError(createError?.message || 'Failed to create admin account')
+      }
     } finally {
       setIsAdminWorking(false)
     }
@@ -383,11 +427,11 @@ function AdminRegistrationsManagementPage() {
 
           <div className="mt-8 max-w-2xl">
             <label className="block">
-              <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Search registration number</span>
+              <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Search users</span>
               <input
                 className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-4 px-5 text-base outline-none"
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Type registration number or username"
+                placeholder="Type username, email, registration number, or role"
                 type="text"
                 value={search}
               />
@@ -481,7 +525,7 @@ function AdminRegistrationsManagementPage() {
               </div>
               <div className="bg-surface-container-high p-4">
                 <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
-                  Revokable Admins
+                  Revocable Admins
                 </p>
                 <p className="mt-1 font-headline text-3xl font-black">{selectedRevokableIds.length}</p>
               </div>
@@ -601,6 +645,11 @@ function AdminRegistrationsManagementPage() {
                       <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold ${user.role === 'admin' ? 'bg-primary/15 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
                         {user.role === 'admin' ? 'Admin' : 'Operator'}
                       </span>
+                      {isPermanentAdmin(user) ? (
+                        <span className="px-3 py-1 text-[10px] uppercase tracking-widest font-bold bg-secondary/15 text-secondary">
+                          Permanent
+                        </span>
+                      ) : null}
                     </div>
                     <button
                       className="px-4 py-2 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest"
@@ -624,13 +673,13 @@ function AdminRegistrationsManagementPage() {
                       ) : (
                         <button
                           className="px-3 py-2 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-50"
-                          disabled={isAdminWorking}
+                          disabled={isAdminWorking || isPermanentAdmin(user)}
                           onClick={() => {
                             void revokeSingleAdmin(user)
                           }}
                           type="button"
                         >
-                          Revoke Admin
+                          {isPermanentAdmin(user) ? 'Permanent Admin' : 'Revoke Admin'}
                         </button>
                       )}
                       <button
@@ -645,7 +694,7 @@ function AdminRegistrationsManagementPage() {
                       </button>
                       <button
                         className="px-3 py-2 bg-error text-on-error font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-50"
-                        disabled={isBulkWorking}
+                        disabled={isBulkWorking || isPermanentAdmin(user)}
                         onClick={() => {
                           openSingleDeleteModal(user)
                         }}
@@ -661,7 +710,16 @@ function AdminRegistrationsManagementPage() {
 
             {!visibleUsers.length ? (
               <div className="bg-surface-container-lowest p-8 text-base text-on-surface-variant">
-                No registration numbers match your search.
+                <p>No users match your search.</p>
+                {search ? (
+                  <button
+                    className="mt-4 px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest"
+                    onClick={() => setSearch('')}
+                    type="button"
+                  >
+                    Clear Search
+                  </button>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -769,6 +827,76 @@ function AdminRegistrationsManagementPage() {
               >
                 Done
               </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {duplicateAdminModal ? (
+        <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="w-full max-w-md bg-surface-container-lowest border border-outline-variant shadow-2xl">
+            <div className="h-1 bg-primary"></div>
+            <div className="p-7">
+              <div className="flex items-start gap-4">
+                <span className="material-symbols-outlined text-primary text-4xl">manage_accounts</span>
+                <div>
+                  <p className="font-label text-[10px] uppercase tracking-[0.25em] font-bold text-primary">
+                    Existing Account
+                  </p>
+                  <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                    User Already Exists
+                  </h2>
+                </div>
+              </div>
+
+              <p className="mt-5 text-sm leading-relaxed text-on-surface-variant">
+                I found a matching account and selected it in the user list. Use the existing account instead of creating a duplicate.
+              </p>
+
+              <div className="mt-5 bg-surface-container-high p-4 border-l-2 border-l-primary space-y-2">
+                <p className="text-sm text-on-surface-variant">
+                  Username: <span className="font-bold text-on-surface">{duplicateAdminModal.username}</span>
+                </p>
+                <p className="text-sm text-on-surface-variant break-all">
+                  Email: <span className="font-bold text-on-surface">{duplicateAdminModal.email}</span>
+                </p>
+                <p className="text-sm text-on-surface-variant">
+                  Registration: <span className="font-bold text-on-surface">{duplicateAdminModal.registrationNumber}</span>
+                </p>
+              </div>
+
+              <div className="mt-7 flex flex-col sm:flex-row gap-3">
+                <button
+                  className="px-5 py-3 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest"
+                  onClick={() => setDuplicateAdminModal(null)}
+                  type="button"
+                >
+                  View Selected
+                </button>
+                {!duplicateAdminModal.isAdmin ? (
+                  <button
+                    className="px-5 py-3 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                    disabled={isAdminWorking}
+                    onClick={() => {
+                      const user = users.find((entry) => entry.id === duplicateAdminModal.id)
+                      if (user) {
+                        void promoteSingleAdmin(user)
+                      }
+                      setDuplicateAdminModal(null)
+                    }}
+                    type="button"
+                  >
+                    Promote Existing User
+                  </button>
+                ) : (
+                  <button
+                    className="px-5 py-3 bg-secondary text-on-secondary font-headline text-xs font-bold uppercase tracking-widest"
+                    onClick={() => setDuplicateAdminModal(null)}
+                    type="button"
+                  >
+                    Already Admin
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

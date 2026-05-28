@@ -144,8 +144,16 @@ function SettingsPage() {
   const authSession = getAuthSession()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [changingPassword, setChangingPassword] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
+  const [passwordSuccessModalOpen, setPasswordSuccessModalOpen] = useState(false)
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  })
   const [form, setForm] = useState({
     username: authSession?.username || '',
     registration_number: authSession?.registrationNumber || '',
@@ -303,6 +311,48 @@ function SettingsPage() {
     }
   }
 
+  const openPasswordModal = () => {
+    setPasswordForm({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    })
+    setPasswordModalOpen(true)
+  }
+
+  const changePassword = async (event) => {
+    event.preventDefault()
+    setChangingPassword(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+        throw new Error('Passwords do not match')
+      }
+
+      await apiFetch('/users/me/password', {
+        method: 'POST',
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+        }),
+      })
+
+      setPasswordModalOpen(false)
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      })
+      setPasswordSuccessModalOpen(true)
+    } catch (passwordError) {
+      setError(passwordError?.message || 'Failed to change password')
+    } finally {
+      setChangingPassword(false)
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen pt-24 px-6 flex items-center justify-center">
@@ -390,6 +440,24 @@ function SettingsPage() {
                 value={form.email}
               />
             </label>
+          </section>
+
+          <section className="bg-surface-container-lowest p-8 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="font-headline text-xl font-bold uppercase tracking-tight">Password</h2>
+                <p className="text-sm text-on-surface-variant mt-2">
+                  Change your account password by confirming your current password first.
+                </p>
+              </div>
+              <button
+                className="px-5 py-3 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest"
+                onClick={openPasswordModal}
+                type="button"
+              >
+                Change Password
+              </button>
+            </div>
           </section>
 
           <section className="bg-surface-container-lowest p-8 space-y-5">
@@ -588,6 +656,100 @@ function SettingsPage() {
           </button>
         </form>
       </section>
+      {passwordModalOpen ? (
+        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
+          <form className="w-full max-w-md bg-surface-container-lowest border border-outline-variant shadow-2xl" onSubmit={changePassword}>
+            <div className="h-1 bg-primary"></div>
+            <div className="p-7">
+              <p className="font-label text-[10px] uppercase tracking-[0.25em] font-bold text-primary">
+                Account Security
+              </p>
+              <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                Change Password
+              </h2>
+              <p className="mt-3 text-sm text-on-surface-variant">
+                Enter your current password and choose a new password with at least 8 characters.
+              </p>
+              <div className="mt-6 space-y-4">
+                <label className="block">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Current Password</span>
+                  <input
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    onChange={(event) => setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))}
+                    required
+                    type="password"
+                    value={passwordForm.currentPassword}
+                  />
+                </label>
+                <label className="block">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">New Password</span>
+                  <input
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    minLength={8}
+                    onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))}
+                    required
+                    type="password"
+                    value={passwordForm.newPassword}
+                  />
+                </label>
+                <label className="block">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Confirm Password</span>
+                  <input
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    minLength={8}
+                    onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))}
+                    required
+                    type="password"
+                    value={passwordForm.confirmPassword}
+                  />
+                </label>
+              </div>
+              <div className="mt-7 flex flex-col sm:flex-row sm:justify-end gap-3">
+                <button
+                  className="px-5 py-3 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                  disabled={changingPassword}
+                  onClick={() => setPasswordModalOpen(false)}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  className="px-5 py-3 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                  disabled={changingPassword}
+                  type="submit"
+                >
+                  {changingPassword ? 'Changing...' : 'Change Password'}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      ) : null}
+      {passwordSuccessModalOpen ? (
+        <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="w-full max-w-md bg-surface-container-lowest border border-outline-variant shadow-2xl">
+            <div className="h-1 bg-secondary"></div>
+            <div className="p-7">
+              <p className="font-label text-[10px] uppercase tracking-[0.25em] font-bold text-secondary">
+                Password Updated
+              </p>
+              <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                Password Changed Successfully
+              </h2>
+              <p className="mt-4 text-sm text-on-surface-variant">
+                Your password has been updated. Use the new password the next time you sign in.
+              </p>
+              <button
+                className="mt-7 w-full px-5 py-3 bg-secondary text-on-secondary font-headline text-xs font-bold uppercase tracking-widest"
+                onClick={() => setPasswordSuccessModalOpen(false)}
+                type="button"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   )
 }

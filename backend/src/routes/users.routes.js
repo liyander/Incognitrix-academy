@@ -42,6 +42,18 @@ function normalizeUserIds(value) {
   )]
 }
 
+function isProtectedAdminUser(user) {
+  return String(user?.username || '').trim().toLowerCase() === 'admin01'
+}
+
+async function getUserById(userId) {
+  const [rows] = await pool.query(
+    'SELECT id, username, role, password_hash FROM users WHERE id = ? LIMIT 1',
+    [userId],
+  )
+  return rows[0] || null
+}
+
 async function resetUserActivity(conn, userIds) {
   if (!userIds.length) {
     return 0
@@ -147,6 +159,34 @@ router.put('/me', authenticate, async (req, res) => {
   return res.json(rows[0])
 })
 
+router.post('/me/password', authenticate, async (req, res) => {
+  const currentPassword = String(req.body?.currentPassword || '')
+  const newPassword = String(req.body?.newPassword || '')
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ message: 'Current password and new password are required' })
+  }
+
+  if (newPassword.trim().length < 8) {
+    return res.status(400).json({ message: 'New password must be at least 8 characters' })
+  }
+
+  const user = await getUserById(req.user.id)
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' })
+  }
+
+  const passwordMatches = await bcrypt.compare(currentPassword, user.password_hash)
+  if (!passwordMatches) {
+    return res.status(403).json({ message: 'Current password is incorrect' })
+  }
+
+  const hash = await bcrypt.hash(newPassword, 10)
+  await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [hash, req.user.id])
+
+  return res.json({ changed: true })
+})
+
 router.get('/admin/registrations', authenticate, requireAdmin, async (_req, res) => {
   const [rows] = await pool.query(
     `SELECT
@@ -246,7 +286,14 @@ router.post('/admin/registrations/bulk-promote-admin', authenticate, requireAdmi
 
 router.post('/admin/registrations/bulk-revoke-admin', authenticate, requireAdmin, async (req, res) => {
   const requestedIds = normalizeUserIds(req.body?.userIds)
-  const userIds = requestedIds.filter((id) => id !== req.user.id)
+  const [protectedRows] = requestedIds.length
+    ? await pool.query(
+        "SELECT id FROM users WHERE id IN (?) AND LOWER(username) = 'admin01'",
+        [requestedIds],
+      )
+    : [[]]
+  const protectedIds = new Set(protectedRows.map((row) => row.id))
+  const userIds = requestedIds.filter((id) => id !== req.user.id && !protectedIds.has(id))
 
   if (!requestedIds.length) {
     return res.status(400).json({ message: 'Select at least one valid user.' })
@@ -298,19 +345,43 @@ router.post('/admin/registrations/:id/revoke-admin', authenticate, requireAdmin,
     return res.status(400).json({ message: 'You cannot revoke your own active admin account.' })
   }
 
+  const user = await getUserById(userId)
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' })
+  }
+
+  if (isProtectedAdminUser(user)) {
+    return res.status(400).json({ message: 'admin01 is a permanent admin and cannot be revoked.' })
+  }
+
   const [result] = await pool.query(
     "UPDATE users SET role = 'operator' WHERE id = ? AND role = 'admin'",
     [userId],
   )
+  return res.json({ revoked: Number(result.affectedRows || 0), userId })
+})
 
-  if (!result.affectedRows) {
-    const [rows] = await pool.query('SELECT id FROM users WHERE id = ? LIMIT 1', [userId])
-    if (!rows.length) {
-      return res.status(404).json({ message: 'User not found' })
-    }
+router.post('/admin/registrations/:id/password', authenticate, requireAdmin, async (req, res) => {
+  const userId = Number(req.params.id)
+  const newPassword = String(req.body?.newPassword || '')
+
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: 'Invalid user id' })
   }
 
-  return res.json({ revoked: Number(result.affectedRows || 0), userId })
+  if (newPassword.trim().length < 8) {
+    return res.status(400).json({ message: 'New password must be at least 8 characters' })
+  }
+
+  const user = await getUserById(userId)
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' })
+  }
+
+  const hash = await bcrypt.hash(newPassword, 10)
+  await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [hash, userId])
+
+  return res.json({ changed: true, userId })
 })
 
 router.get('/admin/registrations/:id', authenticate, requireAdmin, async (req, res) => {
@@ -359,6 +430,11 @@ router.put('/admin/registrations/:id', authenticate, requireAdmin, async (req, r
     return res.status(400).json({ message: 'Invalid user id' })
   }
 
+  const existingUser = await getUserById(userId)
+  if (!existingUser) {
+    return res.status(404).json({ message: 'User not found' })
+  }
+
   const updates = []
   const values = []
 
@@ -382,6 +458,14 @@ router.put('/admin/registrations/:id', authenticate, requireAdmin, async (req, r
 
   for (const field of editableAdminFields) {
     if (Object.prototype.hasOwnProperty.call(req.body || {}, field)) {
+      if (isProtectedAdminUser(existingUser) && field === 'role' && normalizeNullable(req.body[field]) !== 'admin') {
+        return res.status(400).json({ message: 'admin01 is a permanent admin and cannot be demoted.' })
+      }
+
+      if (isProtectedAdminUser(existingUser) && field === 'is_active' && !Boolean(req.body[field])) {
+        return res.status(400).json({ message: 'admin01 cannot be disabled.' })
+      }
+
       if (field === 'is_active') {
         updates.push(`${field} = ?`)
         values.push(Boolean(req.body[field]))
@@ -483,7 +567,14 @@ router.post('/admin/registrations/bulk-reset', authenticate, requireAdmin, async
 
 router.delete('/admin/registrations/bulk-delete', authenticate, requireAdmin, async (req, res) => {
   const requestedIds = normalizeUserIds(req.body?.userIds)
-  const userIds = requestedIds.filter((id) => id !== req.user.id)
+  const [protectedRows] = requestedIds.length
+    ? await pool.query(
+        "SELECT id FROM users WHERE id IN (?) AND LOWER(username) = 'admin01'",
+        [requestedIds],
+      )
+    : [[]]
+  const protectedIds = new Set(protectedRows.map((row) => row.id))
+  const userIds = requestedIds.filter((id) => id !== req.user.id && !protectedIds.has(id))
 
   if (!requestedIds.length) {
     return res.status(400).json({ message: 'Select at least one valid user.' })
@@ -533,6 +624,15 @@ router.delete('/admin/registrations/:id', authenticate, requireAdmin, async (req
 
   if (userId === req.user.id) {
     return res.status(400).json({ message: 'You cannot delete your own active admin account.' })
+  }
+
+  const user = await getUserById(userId)
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' })
+  }
+
+  if (isProtectedAdminUser(user)) {
+    return res.status(400).json({ message: 'admin01 is a permanent admin and cannot be deleted.' })
   }
 
   const [result] = await pool.query('DELETE FROM users WHERE id = ?', [userId])

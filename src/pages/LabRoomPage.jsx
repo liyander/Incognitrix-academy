@@ -89,6 +89,7 @@ function LabRoomPage() {
     questions: [],
   })
   const [questionAnswers, setQuestionAnswers] = useState({})
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false)
   const [isSubmittingQuestions, setIsSubmittingQuestions] = useState(false)
   const [questionFeedback, setQuestionFeedback] = useState('')
   const [resultModal, setResultModal] = useState(null)
@@ -141,6 +142,7 @@ function LabRoomPage() {
     const loadQuestionStatus = async () => {
       if (!roomId) {
         if (!cancelled) {
+          setIsLoadingQuestions(false)
           setQuestionStatus({
             enabled: false,
             mode: 'practical',
@@ -158,6 +160,7 @@ function LabRoomPage() {
 
       if (!questionsEnabled) {
         if (!cancelled) {
+          setIsLoadingQuestions(false)
           setQuestionStatus({
             enabled: false,
             mode: 'practical',
@@ -174,6 +177,7 @@ function LabRoomPage() {
       }
 
       try {
+        setIsLoadingQuestions(true)
         const response = await apiFetch(`/rooms/${encodeURIComponent(roomId)}/questions/status`)
         if (!cancelled) {
           setQuestionStatus({
@@ -194,6 +198,10 @@ function LabRoomPage() {
       } catch (error) {
         if (!cancelled) {
           setQuestionFeedback(error?.message || 'Failed to load question status.')
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingQuestions(false)
         }
       }
     }
@@ -297,6 +305,8 @@ function LabRoomPage() {
   const vulnerabilityDefinitionMarkup = renderRichContent(vulnerabilityDefinition)
   const vulnerabilityImpactMarkup = renderRichContent(vulnerabilityImpact)
   const youtubeEmbedUrl = toYouTubeEmbedUrl(room.content?.youtubeVideoUrl)
+  const isPreparingTheoreticalQuestions =
+    isLoadingQuestions && questionsEnabled && roomType === 'theoretical'
 
   const handleMarkComplete = async () => {
     setCompletionError('')
@@ -662,6 +672,30 @@ function LabRoomPage() {
                 active.
               </p>
 
+              {isPreparingTheoreticalQuestions ? (
+                <div className="bg-surface-container-low p-5 border-l-2 border-l-primary">
+                  <div className="flex items-start gap-4">
+                    <span className="material-symbols-outlined text-primary animate-pulse">
+                      psychology
+                    </span>
+                    <div>
+                      <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
+                        AI Assessment
+                      </p>
+                      <h3 className="mt-2 font-headline text-lg font-black uppercase tracking-tight">
+                        AI is preparing questions for you
+                      </h3>
+                      <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">
+                        Your theoretical assessment is being generated from this room and your learner profile.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 h-1.5 bg-surface-container-high overflow-hidden">
+                    <div className="h-full w-1/2 bg-primary animate-pulse"></div>
+                  </div>
+                </div>
+              ) : null}
+
               {questionStatus.enabled ? (
                 <div className="bg-surface-container-low p-4 border-l-2 border-l-secondary space-y-4">
                   <div className="flex items-center justify-between gap-3">
@@ -710,6 +744,11 @@ function LabRoomPage() {
                             <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-primary">
                               Interview Source
                             </p>
+                            {question.company ? (
+                              <p className="mt-1 text-[10px] font-bold text-on-surface">
+                                Company: {question.company}
+                              </p>
+                            ) : null}
                             <p className="mt-1 text-[10px] text-on-surface-variant">
                               {[question.company, question.interview].filter(Boolean).join(' • ') ||
                                 'Interview-style cybersecurity question'}
