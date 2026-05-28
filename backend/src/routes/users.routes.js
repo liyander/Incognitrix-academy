@@ -33,6 +33,31 @@ function normalizeNullable(value) {
   return trimmed.length ? trimmed : null
 }
 
+function normalizeUserIds(value) {
+  const values = Array.isArray(value) ? value : [value]
+  return [...new Set(
+    values
+      .map((item) => Number(item))
+      .filter((item) => Number.isInteger(item) && item > 0),
+  )]
+}
+
+async function resetUserActivity(conn, userIds) {
+  if (!userIds.length) {
+    return 0
+  }
+
+  await conn.query('DELETE FROM user_room_question_progress WHERE user_id IN (?)', [userIds])
+  await conn.query('DELETE FROM user_room_theoretical_attempts WHERE user_id IN (?)', [userIds])
+  await conn.query('DELETE FROM user_room_progress WHERE user_id IN (?)', [userIds])
+  await conn.query('DELETE FROM user_notes WHERE user_id IN (?)', [userIds])
+  await conn.query('DELETE FROM certificates WHERE user_id IN (?)', [userIds])
+  await conn.query('DELETE FROM ctf_event_registrations WHERE user_id IN (?)', [userIds])
+  await conn.query('DELETE FROM ctf_notification_logs WHERE user_id IN (?)', [userIds])
+
+  return userIds.length
+}
+
 router.get('/me', authenticate, async (req, res) => {
   const [rows] = await pool.query(
     `SELECT
@@ -287,6 +312,98 @@ router.put('/admin/registrations/:id', authenticate, requireAdmin, async (req, r
   }
 
   return res.json(rows[0])
+})
+
+router.post('/admin/registrations/bulk-reset', authenticate, requireAdmin, async (req, res) => {
+  const requestedIds = normalizeUserIds(req.body?.userIds)
+  const userIds = requestedIds.filter((id) => id !== req.user.id)
+
+  if (!requestedIds.length) {
+    return res.status(400).json({ message: 'Select at least one valid user.' })
+  }
+
+  if (!userIds.length) {
+    return res.status(400).json({ message: 'You cannot reset your own active admin account.' })
+  }
+
+  const conn = await pool.getConnection()
+  try {
+    await conn.beginTransaction()
+    const resetCount = await resetUserActivity(conn, userIds)
+    await conn.commit()
+
+    return res.json({
+      reset: resetCount,
+      skipped: requestedIds.length - userIds.length,
+    })
+  } catch (error) {
+    await conn.rollback()
+    throw error
+  } finally {
+    conn.release()
+  }
+})
+
+router.delete('/admin/registrations/bulk-delete', authenticate, requireAdmin, async (req, res) => {
+  const requestedIds = normalizeUserIds(req.body?.userIds)
+  const userIds = requestedIds.filter((id) => id !== req.user.id)
+
+  if (!requestedIds.length) {
+    return res.status(400).json({ message: 'Select at least one valid user.' })
+  }
+
+  if (!userIds.length) {
+    return res.status(400).json({ message: 'You cannot delete your own active admin account.' })
+  }
+
+  const [result] = await pool.query('DELETE FROM users WHERE id IN (?)', [userIds])
+
+  return res.json({
+    deleted: Number(result.affectedRows || 0),
+    skipped: requestedIds.length - userIds.length,
+  })
+})
+
+router.post('/admin/registrations/:id/reset', authenticate, requireAdmin, async (req, res) => {
+  const userId = Number(req.params.id)
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: 'Invalid user id' })
+  }
+
+  if (userId === req.user.id) {
+    return res.status(400).json({ message: 'You cannot reset your own active admin account.' })
+  }
+
+  const conn = await pool.getConnection()
+  try {
+    await conn.beginTransaction()
+    await resetUserActivity(conn, [userId])
+    await conn.commit()
+    return res.json({ reset: 1, userId })
+  } catch (error) {
+    await conn.rollback()
+    throw error
+  } finally {
+    conn.release()
+  }
+})
+
+router.delete('/admin/registrations/:id', authenticate, requireAdmin, async (req, res) => {
+  const userId = Number(req.params.id)
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: 'Invalid user id' })
+  }
+
+  if (userId === req.user.id) {
+    return res.status(400).json({ message: 'You cannot delete your own active admin account.' })
+  }
+
+  const [result] = await pool.query('DELETE FROM users WHERE id = ?', [userId])
+  if (!result.affectedRows) {
+    return res.status(404).json({ message: 'User not found' })
+  }
+
+  return res.json({ deleted: true, userId })
 })
 
 export default router
