@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import OpenAI from 'openai'
 import { env } from '../config/env.js'
+import { pool } from '../db/pool.js'
+import { authenticate } from '../middleware/auth.js'
 
 const router = Router()
 
@@ -486,6 +488,9 @@ const SECURITY_KEYWORDS = [
 const OUT_OF_SCOPE_REPLY =
   'I can only help with cybersecurity-related questions. Try asking about vulnerabilities, CVEs, secure coding, incident response, CTFs, or defensive security practices.'
 
+const ACTIVE_ASSESSMENT_REPLY =
+  'I cannot answer active AI-generated assessment questions while this room attempt is open. Use the room content to write your own response, then submit it for evaluation.'
+
 const SECURITY_PATTERNS = [
   /\b(red team|red-team|offensive security|adversary emulation|assumed breach)\b/,
   /\b(blue team|blue-team|defensive security|security operations|soc|siem|soar|detection)\b/,
@@ -509,6 +514,121 @@ const SECURITY_PATTERNS = [
 
 function normalizeText(value) {
   return String(value || '').toLowerCase().replace(/\s+/g, ' ').trim()
+}
+
+function tokenizeForSimilarity(value) {
+  const stopWords = new Set([
+    'a',
+    'an',
+    'and',
+    'are',
+    'as',
+    'at',
+    'be',
+    'by',
+    'for',
+    'from',
+    'how',
+    'in',
+    'is',
+    'it',
+    'of',
+    'on',
+    'or',
+    'that',
+    'the',
+    'this',
+    'to',
+    'using',
+    'what',
+    'when',
+    'where',
+    'which',
+    'why',
+    'with',
+    'you',
+    'your',
+  ])
+
+  return normalizeText(value)
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((token) => token.length > 2 && !stopWords.has(token))
+}
+
+function hasQuestionOverlap(message, questions) {
+  const messageTokens = new Set(tokenizeForSimilarity(message))
+  if (!messageTokens.size) {
+    return false
+  }
+
+  return questions.some((question) => {
+    const promptTokens = tokenizeForSimilarity(question?.prompt)
+    if (!promptTokens.length) {
+      return false
+    }
+
+    const overlap = promptTokens.filter((token) => messageTokens.has(token)).length
+    return overlap >= 5 || overlap / Math.max(1, Math.min(promptTokens.length, messageTokens.size)) >= 0.38
+  })
+}
+
+function isAssessmentAnswerRequest(message, questions) {
+  const normalized = normalizeText(message)
+  if (!normalized) {
+    return false
+  }
+
+  const answerIntent =
+    /\b(answer|solve|write|draft|respond|complete|give me|tell me what|what should i write|help me answer|assessment|question\s*\d+|q\s*\d+)\b/i
+
+  return hasQuestionOverlap(message, questions) || (answerIntent.test(normalized) && /\b(answer|question|assessment|q\s*\d+)\b/i.test(normalized))
+}
+
+function getRoomLookupFromContext(context) {
+  const route = String(context?.route || '')
+  if (!route.startsWith('/learn/lab/')) {
+    return ''
+  }
+
+  return decodeURIComponent(route.split('/learn/lab/')[1]?.split('/')[0] || '').trim()
+}
+
+async function getActiveAssessmentQuestions(userId, context) {
+  const roomLookup = getRoomLookupFromContext(context)
+  if (!userId || !roomLookup || context?.pageType !== 'room') {
+    return []
+  }
+
+  const [roomRows] = await pool.query(
+    'SELECT id FROM rooms WHERE id = ? OR slug = ? LIMIT 1',
+    [roomLookup, roomLookup],
+  )
+
+  const roomId = roomRows[0]?.id
+  if (!roomId) {
+    return []
+  }
+
+  const [attemptRows] = await pool.query(
+    `SELECT questions_json, passed
+     FROM user_room_theoretical_attempts
+     WHERE user_id = ? AND room_id = ?
+     LIMIT 1`,
+    [userId, roomId],
+  )
+
+  const attempt = attemptRows[0]
+  if (!attempt || Boolean(attempt.passed)) {
+    return []
+  }
+
+  try {
+    const questions = JSON.parse(attempt.questions_json || '[]')
+    return Array.isArray(questions) ? questions.filter((question) => question?.prompt) : []
+  } catch {
+    return []
+  }
 }
 
 function isCybersecurityQuestion(message) {
@@ -692,7 +812,7 @@ function formatAssistantReply(content, mode) {
   return clampText(strippedLists, 360)
 }
 
-router.post('/message', async (req, res, next) => {
+router.post('/message', authenticate, async (req, res, next) => {
   try {
     const message = String(req.body?.message || '').trim()
     const history = trimHistory(req.body?.history)
@@ -706,6 +826,15 @@ router.post('/message', async (req, res, next) => {
       return res.json({
         role: 'assistant',
         content: OUT_OF_SCOPE_REPLY,
+        restricted: true,
+      })
+    }
+
+    const activeAssessmentQuestions = await getActiveAssessmentQuestions(req.user?.id, context)
+    if (activeAssessmentQuestions.length && isAssessmentAnswerRequest(message, activeAssessmentQuestions)) {
+      return res.json({
+        role: 'assistant',
+        content: ACTIVE_ASSESSMENT_REPLY,
         restricted: true,
       })
     }

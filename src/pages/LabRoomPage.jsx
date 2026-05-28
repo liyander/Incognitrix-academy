@@ -27,6 +27,10 @@ function normalizeRoomType(value) {
     : 'theoretical'
 }
 
+function blockClipboardInput(event) {
+  event.preventDefault()
+}
+
 function toYouTubeEmbedUrl(input) {
   const raw = String(input || '').trim()
   if (!raw) return ''
@@ -824,6 +828,8 @@ function LabRoomPage() {
                           <textarea
                             className="w-full bg-surface-container-lowest border border-outline-variant/40 text-sm py-2 px-3 outline-none"
                             onChange={(e) => handleQuestionAnswerChange(question.id, e.target.value)}
+                            onDrop={blockClipboardInput}
+                            onPaste={blockClipboardInput}
                             placeholder="Write a complete answer"
                             rows="5"
                             value={questionAnswers[question.id] || ''}
@@ -832,6 +838,8 @@ function LabRoomPage() {
                           <input
                             className="w-full bg-surface-container-lowest border border-outline-variant/40 text-sm py-2 px-3 outline-none"
                             onChange={(e) => handleQuestionAnswerChange(question.id, e.target.value)}
+                            onDrop={blockClipboardInput}
+                            onPaste={blockClipboardInput}
                             placeholder="Enter your answer"
                             type="text"
                             value={questionAnswers[question.id] || ''}
@@ -874,6 +882,8 @@ function LabRoomPage() {
                         <textarea
                           className="w-full bg-surface-container-lowest border border-outline-variant/40 text-sm py-2 px-3 outline-none"
                           onChange={(e) => handleQuestionAnswerChange(question.id, e.target.value)}
+                          onDrop={blockClipboardInput}
+                          onPaste={blockClipboardInput}
                           placeholder="Optional bonus answer"
                           rows="4"
                           value={questionAnswers[question.id] || ''}
