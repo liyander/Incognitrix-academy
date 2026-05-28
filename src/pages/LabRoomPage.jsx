@@ -405,10 +405,10 @@ function LabRoomPage() {
   return (
     <main className="pt-16 md:pt-20 min-h-screen">
       {resultModal ? (
-        <div className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6">
-          <div className="w-full max-w-lg bg-surface-container-lowest border border-outline-variant/40 shadow-2xl">
+        <div className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4 md:p-6">
+          <div className="my-6 w-full max-w-lg max-h-[calc(100vh-3rem)] bg-surface-container-lowest border border-outline-variant/40 shadow-2xl flex flex-col">
             <div className={`h-1 ${resultModal.passed ? 'bg-secondary' : 'bg-primary'}`}></div>
-            <div className="p-8">
+            <div className="p-8 overflow-y-auto">
               <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
                   <span className="font-label text-[10px] uppercase tracking-[0.25em] text-primary font-bold">
@@ -460,7 +460,7 @@ function LabRoomPage() {
                 </div>
               )}
 
-              <p className="text-sm text-on-surface-variant leading-relaxed mb-6">
+              <p className="text-sm text-on-surface-variant leading-relaxed mb-6 whitespace-pre-wrap break-words">
                 {resultModal.feedback ||
                   (resultModal.passed
                     ? 'You met the completion requirement for this room.'

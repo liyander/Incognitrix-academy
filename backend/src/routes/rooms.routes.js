@@ -61,34 +61,40 @@ function extractJsonObject(raw) {
   return null
 }
 
-function buildFallbackTheoreticalQuestions(room, userId) {
-  const seed = Number(userId || 1) % 5
+function hashText(value) {
+  return String(value || '')
+    .split('')
+    .reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) % 997, 0)
+}
+
+function buildFallbackTheoreticalQuestions(room, userId, attemptSalt = '') {
+  const seed = (Number(userId || 1) + hashText(attemptSalt)) % 5
   const topic = room.title || room.category || 'this security concept'
   const variants = [
     [
-      `Explain the core security risk demonstrated in "${topic}" and why it matters.`,
-      `Describe two practical mitigations for "${topic}" and when you would apply them.`,
-      `Give a concise example scenario where "${topic}" could affect a real system.`,
+      `Using only this room's content, explain the main idea behind "${topic}".`,
+      `From the room content, list two risks or impacts connected to "${topic}".`,
+      `Name one mitigation or careful practice mentioned or implied by this room for "${topic}".`,
     ],
     [
-      `Define "${topic}" in your own words and identify the vulnerable trust boundary.`,
-      `What indicators would help you detect or validate this issue in an authorized lab?`,
-      `Summarize the remediation strategy for "${topic}" as an engineering checklist.`,
+      `Define "${topic}" at the same depth as this room explains it.`,
+      `What evidence or clues from the room content help you understand this issue?`,
+      `Summarize the room's remediation idea for "${topic}" in simple steps.`,
     ],
     [
-      `What assumptions fail in "${topic}" and how can attackers benefit from those failures?`,
-      `Compare prevention and detection controls for "${topic}".`,
-      `Write a short incident note explaining the likely impact of "${topic}".`,
+      `What assumption or mistake does this room warn about in "${topic}"?`,
+      `Explain one prevention idea and one detection or verification idea that match this room.`,
+      `Write a short note explaining the likely impact described by this room.`,
     ],
     [
-      `You are asked about "${topic}" in a security analyst interview. How would you explain the issue to both a developer and a manager?`,
-      `Describe a real-world triage process for "${topic}", including evidence you would collect first.`,
-      `What mistakes do beginners commonly make when handling "${topic}", and how would you avoid them?`,
+      `Explain "${topic}" to a beginner using only concepts covered in this room.`,
+      `Describe a basic triage process for "${topic}" based on this room's examples or explanation.`,
+      `What beginner mistake could happen with "${topic}", and how does the room suggest avoiding it?`,
     ],
     [
-      `Build a short threat model for "${topic}" with assets, attacker capability, and likely impact.`,
-      `Write an interview-style answer explaining how you would verify a fix for "${topic}".`,
-      `Give a concise post-incident recommendation for a team affected by "${topic}".`,
+      `Describe a simple threat scenario for "${topic}" without adding concepts outside this room.`,
+      `How would you verify that the issue in "${topic}" is understood or fixed, based on this room?`,
+      `Give one practical recommendation that follows directly from this room content.`,
     ],
   ]
 
@@ -129,9 +135,9 @@ function ensureImprovementFeedback(feedback) {
   return `${text}\n\nImprove next: 1) Tie each answer directly to the room content. 2) Include the main security impact. 3) Add one concrete mitigation or validation step.`
 }
 
-async function generateTheoreticalQuestions(room, userId) {
+async function generateTheoreticalQuestions(room, userId, attemptSalt = '') {
   if (!env.nvidiaApiKey) {
-    return buildFallbackTheoreticalQuestions(room, userId)
+    return buildFallbackTheoreticalQuestions(room, userId, attemptSalt)
   }
 
   try {
@@ -150,20 +156,20 @@ async function generateTheoreticalQuestions(room, userId) {
         {
           role: 'system',
           content:
-            'Generate assessment questions for a cybersecurity learning room. Return strict JSON only: {"questions":[{"id":"string","prompt":"string","rubric":"string","sourceType":"generated|interview","company":"string","interview":"string","sourceInfo":"string","learnerVariant":"string","contentAnchorVersion":"content-anchored-v2"}]}. Create exactly 3 open-ended theoretical questions. Stay strictly calibrated to the supplied room content and selected difficulty: do not ask topics more advanced than the room content, and do not ask generic or easier questions below the content. Every question must be answerable from the supplied content. Use the learnerVariant to vary wording/scenario per learner while preserving the same content scope. At most one question may be interview-style, and only if it still maps directly to the room content. If sourceType is "interview", company must be a real company name when known; if no credible company is known, use sourceType "generated" instead. Include short sourceInfo for interview questions. Do not include answers.',
+            'Generate assessment questions for a cybersecurity learning room. Return strict JSON only: {"questions":[{"id":"string","prompt":"string","rubric":"string","sourceType":"generated|interview","company":"string","interview":"string","sourceInfo":"string","learnerVariant":"string","contentAnchorVersion":"content-anchored-v2"}]}. Create exactly 3 open-ended theoretical questions. HARD RULE: questions must be answerable using only the supplied room content. Do not ask about tools, algorithms, exploitation details, historical examples, companies, interview trivia, or advanced concepts unless they are explicitly present in the room content. Match the selected room difficulty exactly; for Easy/basic rooms, ask concept, purpose, impact, and simple mitigation questions only. Avoid expert-level wording. Use learnerVariant to vary wording per learner while preserving the same content scope. At most one question may be interview-style, and only if the room content itself supports that question. If sourceType is "interview", company must be a real company name when known; if no credible company is known, use sourceType "generated" instead. Do not include answers.',
         },
         {
           role: 'user',
           content: JSON.stringify({
             learnerSeed: userId,
-            learnerVariant: `${room.id || room.slug}-${userId}-${Date.now().toString(36)}`,
+            learnerVariant: `${room.id || room.slug}-${userId}-${attemptSalt || Date.now().toString(36)}`,
             uniquenessInstruction:
-              'Use the learnerSeed and learnerVariant to vary scenario, wording, constraints, and interview source metadata for this learner.',
+              'Use the learnerSeed and learnerVariant to vary wording only. Do not vary the technical scope beyond the supplied room content.',
             title: room.title,
             category: room.category,
             difficulty: room.difficulty || room.level,
             strictScope:
-              'Use only this room content as the syllabus. Avoid unrelated advanced material, niche extensions, or assumptions not present in the room.',
+              'Use only this room content as the syllabus. If a detail is not in the content, do not ask about it. Prefer direct comprehension and application over advanced extension.',
             content: buildQuestionContentContext(room),
           }),
         },
@@ -192,7 +198,7 @@ async function generateTheoreticalQuestions(room, userId) {
     return normalized.length ? normalized.slice(0, 3) : buildFallbackTheoreticalQuestions(room, userId)
   } catch (error) {
     console.error('Failed to generate theoretical questions:', error)
-    return buildFallbackTheoreticalQuestions(room, userId)
+    return buildFallbackTheoreticalQuestions(room, userId, attemptSalt)
   }
 }
 
@@ -802,7 +808,9 @@ router.get('/:id/questions/status', authenticate, async (req, res) => {
         interview: question.interview || '',
         sourceInfo: question.sourceInfo || '',
         answeredCorrectly: Boolean(attempt.passed),
-        answeredAt: attempt.evaluated_at ? new Date(attempt.evaluated_at).toISOString() : null,
+        answeredAt: answers?.[question.id] && attempt.evaluated_at
+          ? new Date(attempt.evaluated_at).toISOString()
+          : null,
       })),
     })
   }
@@ -862,10 +870,26 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
     const answers = req.body?.answers && typeof req.body.answers === 'object' ? req.body.answers : {}
     const evaluation = await evaluateTheoreticalAnswers(room, questions, answers)
     const passed = Number(evaluation.technicalScore) === 100
+    const retainedTechnicalScore = passed
+      ? 100
+      : Math.max(Number(attempt.technical_score || 0), Number(evaluation.technicalScore || 0))
+    const retainedGrammarScore = passed
+      ? Number(evaluation.grammarScore || 0)
+      : Math.max(Number(attempt.grammar_score || 0), Number(evaluation.grammarScore || 0))
+    const retainedNote = !passed && retainedTechnicalScore > Number(evaluation.technicalScore || 0)
+      ? '\n\nPrevious best score retained. New questions have been prepared for your next attempt.'
+      : !passed
+        ? '\n\nNew questions have been prepared for your next attempt.'
+        : ''
+    const feedbackToStore = `${evaluation.feedback || ''}${retainedNote}`.trim()
+    const nextQuestions = passed
+      ? questions
+      : await generateTheoreticalQuestions(room, req.user.id, `retry-${Date.now()}-${retainedTechnicalScore}`)
 
     await pool.query(
       `UPDATE user_room_theoretical_attempts
        SET answers_json = ?,
+           questions_json = ?,
            technical_score = ?,
            grammar_score = ?,
            feedback = ?,
@@ -873,10 +897,11 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
            evaluated_at = NOW()
        WHERE user_id = ? AND room_id = ?`,
       [
-        JSON.stringify(answers),
-        evaluation.technicalScore,
-        evaluation.grammarScore,
-        evaluation.feedback,
+        passed ? JSON.stringify(answers) : null,
+        JSON.stringify(nextQuestions),
+        retainedTechnicalScore,
+        retainedGrammarScore,
+        feedbackToStore,
         passed,
         req.user.id,
         room.id,
@@ -899,9 +924,9 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
       total: questions.length,
       correct: passed ? questions.length : 0,
       allCorrect: passed,
-      technicalScore: evaluation.technicalScore,
-      grammarScore: evaluation.grammarScore,
-      feedback: evaluation.feedback,
+      technicalScore: retainedTechnicalScore,
+      grammarScore: retainedGrammarScore,
+      feedback: feedbackToStore,
     })
   }
 
