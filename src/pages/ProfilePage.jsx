@@ -59,6 +59,90 @@ function buildDisplayName(profile, fallbackUsername) {
   return fullName || profile?.username || fallbackUsername || 'Operator'
 }
 
+const RANK_TIERS = [
+  { name: 'Recruit Analyst', xp: 0 },
+  { name: 'Junior Operator', xp: 250 },
+  { name: 'Field Analyst', xp: 750 },
+  { name: 'Incident Responder', xp: 1500 },
+  { name: 'Threat Hunter', xp: 3000 },
+  { name: 'Senior Analyst', xp: 5000 },
+  { name: 'Red Team Operator', xp: 8000 },
+  { name: 'Elite Commander', xp: 12000 },
+]
+
+const ACHIEVEMENT_DEFINITIONS = [
+  {
+    id: 'first-breach',
+    name: 'First Breach',
+    icon: 'flag',
+    tone: 'primary',
+    criteria: 'Complete 1 room',
+    isUnlocked: ({ completedRooms }) => completedRooms >= 1,
+  },
+  {
+    id: 'steady-signal',
+    name: 'Steady Signal',
+    icon: 'timeline',
+    tone: 'secondary',
+    criteria: 'Complete 3 rooms',
+    isUnlocked: ({ completedRooms }) => completedRooms >= 3,
+  },
+  {
+    id: 'xp-hunter',
+    name: 'XP Hunter',
+    icon: 'data_thresholding',
+    tone: 'primary',
+    criteria: 'Earn 1,000 XP',
+    isUnlocked: ({ xp }) => xp >= 1000,
+  },
+  {
+    id: 'domain-hopper',
+    name: 'Domain Hopper',
+    icon: 'hub',
+    tone: 'secondary',
+    criteria: 'Complete rooms in 3 categories',
+    isUnlocked: ({ categories }) => categories >= 3,
+  },
+  {
+    id: 'module-master',
+    name: 'Module Master',
+    icon: 'military_tech',
+    tone: 'primary',
+    criteria: 'Master 1 module',
+    isUnlocked: ({ masteredModules }) => masteredModules >= 1,
+  },
+  {
+    id: 'deep-operator',
+    name: 'Deep Operator',
+    icon: 'workspace_premium',
+    tone: 'secondary',
+    criteria: 'Complete 10 rooms or earn 5,000 XP',
+    isUnlocked: ({ completedRooms, xp }) => completedRooms >= 10 || xp >= 5000,
+  },
+]
+
+function getRankProgress(xp) {
+  const currentXp = Number(xp || 0)
+  const currentIndex = RANK_TIERS.reduce(
+    (bestIndex, tier, index) => (currentXp >= tier.xp ? index : bestIndex),
+    0,
+  )
+  const currentRank = RANK_TIERS[currentIndex]
+  const nextRank = RANK_TIERS[currentIndex + 1] || currentRank
+  const span = Math.max(1, nextRank.xp - currentRank.xp)
+  const earnedInTier = Math.max(0, currentXp - currentRank.xp)
+  const progress = currentIndex === RANK_TIERS.length - 1
+    ? 100
+    : Math.min(100, Math.round((earnedInTier / span) * 100))
+
+  return {
+    currentRank: currentRank.name,
+    nextRank: currentIndex === RANK_TIERS.length - 1 ? 'Max Rank' : nextRank.name,
+    progress,
+    xpToNext: Math.max(0, nextRank.xp - currentXp),
+  }
+}
+
 function ProfilePage() {
   const authSession = getAuthSession()
   const analysisCacheKey = `incognitrix_profile_analysis_${authSession?.username || 'operator'}`
@@ -77,6 +161,8 @@ function ProfilePage() {
   const [profileStats, setProfileStats] = useState({
     xp: 0,
     completedRooms: 0,
+    rank: null,
+    totalRankedUsers: 0,
   })
 
   useEffect(() => {
@@ -206,6 +292,8 @@ function ProfilePage() {
         setProfileStats({
           xp: Number(currentUser?.xp ?? localXp),
           completedRooms: Number(currentUser?.completedRooms ?? localCompletedRoomIds.length),
+          rank: currentUser?.rank ? Number(currentUser.rank) : null,
+          totalRankedUsers: Array.isArray(scoreboard) ? scoreboard.length : 0,
         })
       } catch (error) {
         console.error('Failed to load profile XP:', error)
@@ -213,6 +301,8 @@ function ProfilePage() {
           setProfileStats({
             xp: localXp,
             completedRooms: localCompletedRoomIds.length,
+            rank: null,
+            totalRankedUsers: 0,
           })
         }
       }
@@ -342,6 +432,42 @@ function ProfilePage() {
       .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
       .slice(0, 6)
   }, [labProgressTick])
+  const completedCategoryCount = useMemo(
+    () => new Set(labTimelineItems.map((item) => item.category).filter(Boolean)).size,
+    [labTimelineItems],
+  )
+  const masteredModuleCount = moduleProgressItems.filter((item) => item.percentage === 100).length
+  const achievementContext = {
+    xp: profileStats.xp,
+    completedRooms: profileStats.completedRooms,
+    categories: completedCategoryCount,
+    masteredModules: masteredModuleCount,
+  }
+  const achievements = ACHIEVEMENT_DEFINITIONS.map((achievement) => ({
+    ...achievement,
+    unlocked: achievement.isUnlocked(achievementContext),
+  }))
+  const rankProgress = getRankProgress(profileStats.xp)
+  const percentile = profileStats.rank && profileStats.totalRankedUsers
+    ? Math.max(1, Math.round((profileStats.rank / profileStats.totalRankedUsers) * 100))
+    : null
+  const networkState = profileStats.completedRooms === 0
+    ? {
+        label: 'AWAITING_SIGNAL',
+        message: 'Complete your first room to activate performance telemetry.',
+        action: 'START_FIRST_ROOM',
+      }
+    : percentile
+      ? {
+          label: percentile <= 10 ? 'SECURE_NODE' : percentile <= 35 ? 'ACTIVE_NODE' : 'TRAINING_NODE',
+          message: `Your current performance is in the top ${percentile}% of ranked academy operators.`,
+          action: percentile <= 10 ? 'MAINTAIN_CURRENT_TRAJECTORY' : 'COMPLETE_MORE_ROOMS',
+        }
+      : {
+          label: 'LOCAL_NODE',
+          message: `You have completed ${profileStats.completedRooms} room${profileStats.completedRooms === 1 ? '' : 's'} and earned ${formatNumber(profileStats.xp)} XP.`,
+          action: 'SYNC_RANKING_DATA',
+        }
 
   return (
     <>
@@ -561,17 +687,37 @@ function ProfilePage() {
               <div className="flex justify-between items-end mb-8">
                 <div>
                   <h2 className="font-headline font-bold text-xl uppercase tracking-tight">Achievement Vault</h2>
-                  <p className="text-on-surface-variant text-[10px] font-label uppercase tracking-widest mt-1">Authorized Merit Badges</p>
+                  <p className="text-on-surface-variant text-[10px] font-label uppercase tracking-widest mt-1">
+                    Criteria based on XP, completed rooms, categories, and module mastery
+                  </p>
                 </div>
-                <button className="font-label text-[10px] tracking-widest uppercase text-primary border-b-2 border-primary pb-1" type="button">View All Medals</button>
+                <span className="font-label text-[10px] tracking-widest uppercase text-primary border-b-2 border-primary pb-1">
+                  {achievements.filter((item) => item.unlocked).length}/{achievements.length} Unlocked
+                </span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                <div className="aspect-square bg-surface-container-lowest p-6 flex flex-col items-center justify-center text-center gap-3"><span className="material-symbols-outlined text-4xl text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>security</span><span className="font-label text-[10px] font-bold tracking-widest uppercase">Firewall Breaker</span></div>
-                <div className="aspect-square bg-surface-container-lowest p-6 flex flex-col items-center justify-center text-center gap-3"><span className="material-symbols-outlined text-4xl text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>data_thresholding</span><span className="font-label text-[10px] font-bold tracking-widest uppercase">Pattern Seeker</span></div>
-                <div className="aspect-square bg-surface-container-lowest p-6 flex flex-col items-center justify-center text-center gap-3"><span className="material-symbols-outlined text-4xl text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>terminal</span><span className="font-label text-[10px] font-bold tracking-widest uppercase">Script Killa</span></div>
-                <div className="aspect-square bg-surface-container-lowest p-6 flex flex-col items-center justify-center text-center gap-3"><span className="material-symbols-outlined text-4xl text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>hub</span><span className="font-label text-[10px] font-bold tracking-widest uppercase">Node Guardian</span></div>
-                <div className="aspect-square bg-surface-container-lowest p-6 flex flex-col items-center justify-center text-center gap-3 opacity-30 grayscale"><span className="material-symbols-outlined text-4xl">vpn_key</span><span className="font-label text-[10px] font-bold tracking-widest uppercase">LOCKED_FILE</span></div>
-                <div className="aspect-square bg-surface-container-lowest p-6 flex flex-col items-center justify-center text-center gap-3 opacity-30 grayscale"><span className="material-symbols-outlined text-4xl">radar</span><span className="font-label text-[10px] font-bold tracking-widest uppercase">LOCKED_FILE</span></div>
+                {achievements.map((achievement) => (
+                  <div
+                    className={`aspect-square bg-surface-container-lowest p-5 flex flex-col items-center justify-center text-center gap-3 border border-outline-variant/20 transition-opacity ${
+                      achievement.unlocked ? '' : 'opacity-35 grayscale'
+                    }`}
+                    key={achievement.id}
+                    title={achievement.criteria}
+                  >
+                    <span
+                      className={`material-symbols-outlined text-4xl ${achievement.tone === 'secondary' ? 'text-secondary' : 'text-primary'}`}
+                      style={{ fontVariationSettings: achievement.unlocked ? "'FILL' 1" : "'FILL' 0" }}
+                    >
+                      {achievement.unlocked ? achievement.icon : 'lock'}
+                    </span>
+                    <span className="font-label text-[10px] font-bold tracking-widest uppercase">
+                      {achievement.unlocked ? achievement.name : 'Locked File'}
+                    </span>
+                    <span className="text-[9px] leading-relaxed text-on-surface-variant">
+                      {achievement.criteria}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -580,11 +726,17 @@ function ProfilePage() {
               <div className="absolute inset-0 p-8 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
                   <h3 className="font-headline font-bold text-lg uppercase">Network Status</h3>
-                  <span className="bg-green-500/20 text-green-700 px-2 py-1 text-[8px] font-bold tracking-[2px]">SECURE_NODE</span>
+                  <span className="bg-green-500/20 text-green-700 px-2 py-1 text-[8px] font-bold tracking-[2px]">
+                    {networkState.label}
+                  </span>
                 </div>
                 <div className="space-y-2">
-                  <p className="font-body text-sm text-on-surface-variant max-w-xs">Your current performance is in the top 4% of regional intelligence units.</p>
-                  <span className="font-label text-[10px] text-primary tracking-widest uppercase font-bold">Maintain_Current_Trajectory</span>
+                  <p className="font-body text-sm text-on-surface-variant max-w-xs">
+                    {networkState.message}
+                  </p>
+                  <span className="font-label text-[10px] text-primary tracking-widest uppercase font-bold">
+                    {networkState.action}
+                  </span>
                 </div>
               </div>
             </div>
@@ -594,16 +746,21 @@ function ProfilePage() {
                 <span className="material-symbols-outlined text-4xl">military_tech</span>
                 <div className="text-right">
                   <span className="font-label text-[10px] tracking-widest uppercase opacity-70">Next Rank Progression</span>
-                  <p className="font-headline font-bold text-xl uppercase">Elite Commander</p>
+                  <p className="font-headline font-bold text-xl uppercase">{rankProgress.nextRank}</p>
+                  <p className="mt-1 font-label text-[9px] uppercase tracking-widest opacity-70">
+                    Current: {rankProgress.currentRank}
+                  </p>
                 </div>
               </div>
               <div>
                 <div className="flex justify-between font-label text-[10px] tracking-widest uppercase mb-2">
                   <span>Rank Progress</span>
-                  <span>1,550 XP to Next Rank</span>
+                  <span>
+                    {rankProgress.xpToNext > 0 ? `${formatNumber(rankProgress.xpToNext)} XP to Next Rank` : 'Max Rank Reached'}
+                  </span>
                 </div>
                 <div className="h-3 bg-black/10">
-                  <div className="h-full bg-white w-[88%]"></div>
+                  <div className="h-full bg-white" style={{ width: `${rankProgress.progress}%` }}></div>
                 </div>
               </div>
             </div>
