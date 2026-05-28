@@ -14,9 +14,61 @@ function formatNumber(value) {
   return new Intl.NumberFormat('en-US').format(Number(value || 0))
 }
 
+function formatTimelineTime(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return '--:--'
+  }
+
+  return date.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function formatTimelineDate(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown date'
+  }
+
+  const today = new Date()
+  const yesterday = new Date()
+  yesterday.setDate(today.getDate() - 1)
+
+  if (date.toDateString() === today.toDateString()) {
+    return 'Today'
+  }
+
+  if (date.toDateString() === yesterday.toDateString()) {
+    return 'Yesterday'
+  }
+
+  return date.toLocaleDateString([], {
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+function buildDisplayName(profile, fallbackUsername) {
+  const fullName = [profile?.first_name, profile?.last_name]
+    .map((part) => String(part || '').trim())
+    .filter(Boolean)
+    .join(' ')
+
+  return fullName || profile?.username || fallbackUsername || 'Operator'
+}
+
 function ProfilePage() {
   const authSession = getAuthSession()
   const analysisCacheKey = `incognitrix_profile_analysis_${authSession?.username || 'operator'}`
+  const [profileIdentity, setProfileIdentity] = useState({
+    username: authSession?.username || 'operator',
+    displayName: authSession?.username || 'Operator',
+    role: authSession?.role || 'operator',
+    registrationNumber: '',
+    userId: authSession?.id || null,
+  })
   const [careerPaths, setCareerPaths] = useState([])
   const [isLoadingPaths, setIsLoadingPaths] = useState(true)
   const [labProgressTick, setLabProgressTick] = useState(0)
@@ -26,6 +78,42 @@ function ProfilePage() {
     xp: 0,
     completedRooms: 0,
   })
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadProfileIdentity = async () => {
+      try {
+        const response = await apiFetch('/users/me')
+        if (!cancelled) {
+          setProfileIdentity({
+            username: response?.username || authSession?.username || 'operator',
+            displayName: buildDisplayName(response, authSession?.username),
+            role: response?.role || authSession?.role || 'operator',
+            registrationNumber: response?.registration_number || '',
+            userId: response?.id || authSession?.id || null,
+          })
+        }
+      } catch (error) {
+        console.error('Failed to load profile identity:', error)
+        if (!cancelled) {
+          setProfileIdentity({
+            username: authSession?.username || 'operator',
+            displayName: authSession?.username || 'Operator',
+            role: authSession?.role || 'operator',
+            registrationNumber: '',
+            userId: authSession?.id || null,
+          })
+        }
+      }
+    }
+
+    void loadProfileIdentity()
+
+    return () => {
+      cancelled = true
+    }
+  }, [authSession?.id, authSession?.role, authSession?.username])
 
   useEffect(() => {
     let cancelled = false
@@ -231,6 +319,29 @@ function ProfilePage() {
 
   const firstColumnItems = moduleProgressItems.filter((_, index) => index % 2 === 0)
   const secondColumnItems = moduleProgressItems.filter((_, index) => index % 2 !== 0)
+  const operatorId = profileIdentity.registrationNumber || (profileIdentity.userId ? `USER_${profileIdentity.userId}` : profileIdentity.username)
+  const roleLabel = aiAnalysis?.suitableRole || (profileIdentity.role === 'admin' ? 'Admin Operator' : 'Cybersecurity Learner')
+  const labTimelineItems = useMemo(() => {
+    void labProgressTick
+    const roomsById = new Map(getRoomsData().map((room) => [room.id, room]))
+    const progressMap = getLabProgressMap()
+
+    return Object.entries(progressMap)
+      .filter(([, progress]) => Boolean(progress?.completedAt))
+      .map(([roomId, progress]) => {
+        const room = roomsById.get(roomId)
+        return {
+          id: roomId,
+          title: room?.title || roomId,
+          category: room?.category || room?.categoryTag || 'Lab',
+          difficulty: room?.difficulty || room?.level || 'Room',
+          xp: parseXpValue(room?.xp),
+          completedAt: progress.completedAt,
+        }
+      })
+      .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+      .slice(0, 6)
+  }, [labProgressTick])
 
   return (
     <>
@@ -238,10 +349,16 @@ function ProfilePage() {
         <div className="max-w-7xl mx-auto px-12 py-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
             <div className="md:col-span-2 flex flex-col justify-end">
-              <h1 className="font-headline font-bold text-6xl tracking-tighter mb-2">OPERATOR_01</h1>
+              <h1 className="font-headline font-bold text-5xl md:text-6xl tracking-tighter mb-2 break-words">
+                {profileIdentity.displayName}
+              </h1>
               <div className="flex gap-4 items-center">
-                <span className="bg-primary-container text-on-primary-container px-3 py-1 font-label text-[10px] tracking-widest uppercase">Senior Analyst</span>
-                <span className="text-on-surface-variant font-label text-[10px] tracking-widest uppercase">ID: 0x8842_UNIT_09</span>
+                <span className="bg-primary-container text-on-primary-container px-3 py-1 font-label text-[10px] tracking-widest uppercase">
+                  {roleLabel}
+                </span>
+                <span className="text-on-surface-variant font-label text-[10px] tracking-widest uppercase">
+                  ID: {operatorId}
+                </span>
               </div>
             </div>
             <div className="bg-surface-container-lowest p-8 flex flex-col justify-between border-l-4 border-primary">
@@ -379,18 +496,64 @@ function ProfilePage() {
               </div>
             </div>
 
-            <div className="col-span-12 lg:col-span-4 bg-inverse-surface p-8 text-surface relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-surface-tint blur-[80px] opacity-20"></div>
+            <div className="col-span-12 lg:col-span-4 bg-surface-container-lowest p-8 text-on-surface relative overflow-hidden border border-outline-variant/40 border-l-4 border-l-secondary shadow-sm">
+              <div className="absolute top-0 right-0 h-32 w-32 bg-secondary/10 blur-[80px]"></div>
               <div className="flex justify-between items-center mb-8 relative z-10">
-                <h2 className="font-headline font-bold text-sm uppercase tracking-widest">Event_Log</h2>
-                <span className="text-[10px] font-label text-primary-fixed-dim">LIVE_FEED</span>
+                <div>
+                  <h2 className="font-headline font-bold text-sm uppercase tracking-widest">Lab Completion Timeline</h2>
+                  <p className="mt-1 text-[10px] font-label uppercase tracking-widest text-on-surface-variant">
+                    Latest completed rooms
+                  </p>
+                </div>
+                <span className="inline-flex items-center gap-1 bg-secondary/15 px-2.5 py-1 text-[9px] font-label font-bold uppercase tracking-widest text-secondary">
+                  <span className="h-1.5 w-1.5 rounded-full bg-secondary"></span>
+                  Live
+                </span>
               </div>
-              <div className="space-y-6 font-headline text-xs relative z-10">
-                <div className="flex gap-4 items-start border-l border-white/10 pl-4"><span className="text-primary-fixed-dim shrink-0">14:02:44</span><span className="text-surface/80">User neutralized simulated DDoS attack on Lab_Node_09</span></div>
-                <div className="flex gap-4 items-start border-l border-white/10 pl-4"><span className="text-primary-fixed-dim shrink-0">12:15:20</span><span className="text-surface/80">Completed \"Advanced Buffer Overflow\" module with 100% accuracy</span></div>
-                <div className="flex gap-4 items-start border-l border-white/10 pl-4"><span className="text-primary-fixed-dim shrink-0">11:04:12</span><span className="text-surface/80">New achievement unlocked: \"Deep Packet Explorer\"</span></div>
-                <div className="flex gap-4 items-start border-l border-white/10 pl-4"><span className="text-primary-fixed-dim shrink-0">09:30:55</span><span className="text-surface/80">Operator credentials authenticated via biometric proxy</span></div>
-                <div className="flex gap-4 items-start border-l border-white/10 pl-4"><span className="text-primary-fixed-dim shrink-0">08:00:01</span><span className="text-surface/80">Daily training sequence initiated...</span></div>
+              <div className="space-y-4 relative z-10">
+                {labTimelineItems.length > 0 ? (
+                  labTimelineItems.map((item) => (
+                    <div
+                      className="group grid grid-cols-[4.5rem_1fr] gap-4 border-l-2 border-outline-variant/50 pl-4 transition-colors hover:border-secondary"
+                      key={`${item.id}-${item.completedAt}`}
+                    >
+                      <div className="font-headline text-right">
+                        <p className="text-sm font-black text-secondary">{formatTimelineTime(item.completedAt)}</p>
+                        <p className="mt-1 text-[9px] uppercase tracking-widest text-on-surface-variant">
+                          {formatTimelineDate(item.completedAt)}
+                        </p>
+                      </div>
+                      <div className="min-w-0 bg-surface-container-high px-4 py-3">
+                        <p className="font-headline text-xs font-black uppercase tracking-wide text-on-surface truncate">
+                          {item.title}
+                        </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[9px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
+                          <span>{item.category}</span>
+                          <span className="h-1 w-1 rounded-full bg-outline"></span>
+                          <span>{item.difficulty}</span>
+                          {item.xp > 0 ? (
+                            <>
+                              <span className="h-1 w-1 rounded-full bg-outline"></span>
+                              <span className="text-primary">+{item.xp} XP</span>
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="bg-surface-container-high p-6 text-center">
+                    <span className="material-symbols-outlined text-3xl text-on-surface-variant">
+                      timeline
+                    </span>
+                    <p className="mt-3 font-headline text-xs font-bold uppercase tracking-widest text-on-surface">
+                      No completed labs yet
+                    </p>
+                    <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">
+                      Complete a room to start building your operator timeline.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
