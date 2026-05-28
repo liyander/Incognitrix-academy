@@ -154,23 +154,29 @@ function roleForCategory(category) {
 }
 
 function isRoleSuitabilityQuestion(text) {
-  return /\b(suitable|fit|best|recommend|who\s+would|which\s+player|which\s+user)\b[\s\S]*\b(role|soc|analyst|security|forensic|web|cloud|reverse|crypto)\b/i.test(text)
+  return /\b(suitable|fit|best|recommend|who\s+would|which\s+player|which\s+user|insights?|analysis|analy[sz]e)\b[\s\S]*\b(role|soc|analyst|security|forensic|web|penetration|pentest|pen\s*test|cloud|reverse|crypto)\b/i.test(text) ||
+    /\b(each|every|all)\s+(person|player|user|operator)\b[\s\S]*\b(role|soc|analyst|web|penetration|pentest|pen\s*test|security)\b/i.test(text)
 }
 
 function isPlayerStatsQuestion(text) {
   return /\b(players?|users?|operators?)\b[\s\S]*\b(stats?|statistics|performance|scores?|progress|soc)\b/i.test(text) ||
-    /\b(stats?|statistics|performance|scores?)\b[\s\S]*\b(players?|users?|operators?|soc)\b/i.test(text)
+    /\b(stats?|statistics|performance|scores?)\b[\s\S]*\b(players?|users?|operators?|soc)\b/i.test(text) ||
+    /\binsights?\b[\s\S]*\b(each|every|all)\s+(person|player|user|operator)\b/i.test(text)
 }
 
 function extractRoleFilter(text) {
   const lowered = String(text || '').toLowerCase()
   if (/\bsoc\b|blue|defen[sc]e|incident|monitor|siem/.test(lowered)) return 'soc'
   if (/forensic/.test(lowered)) return 'forensics'
-  if (/web|application/.test(lowered)) return 'web'
+  if (/web|application|penetration|pentest|pen\s*test/.test(lowered)) return 'web'
   if (/crypto/.test(lowered)) return 'crypto'
   if (/reverse|malware/.test(lowered)) return 'reverse'
   if (/cloud/.test(lowered)) return 'cloud'
   return ''
+}
+
+function hasExplicitContentCreationIntent(text) {
+  return /\b(add|create|generate|make|build)\b[\s\S]*\b(room|module|career\s*path|path|lab)\b/i.test(text)
 }
 
 function categoryMatchesRoleFilter(category, roleFilter) {
@@ -417,7 +423,8 @@ async function buildRoleSuitabilityAnswer(text) {
     `Best role fit${roleFilter ? ` for ${roleFilter.toUpperCase()}` : ''}:`,
     ...ranked.map((player, index) =>
       `${index + 1}. ${player.username} - ${roleFilter ? roleForCategory(roleFilter) : player.recommendedRole}; ` +
-      `${player.scopedCompleted} relevant completion(s), technical avg ${player.scopedTechnical}.`,
+      `${player.scopedCompleted} relevant completion(s), technical avg ${player.scopedTechnical}. ` +
+      `Strength signal: ${player.topCategory}.`,
     ),
   ].join('\n')
 }
@@ -1799,6 +1806,16 @@ router.post('/chat', async (req, res, next) => {
 
     const insights = await fetchInsights()
 
+    const directResponse = await tryHandleDirectAdminQuery(message, insights)
+    if (directResponse) {
+      await persistHistory(req.user.id, activeSession.id, message, directResponse.content)
+      return res.json({
+        ...directResponse,
+        sessionId: activeSession.id,
+        insights,
+      })
+    }
+
     const directActionResponse = await tryHandleDirectActionIntent({
       message,
       userId: req.user.id,
@@ -1807,16 +1824,6 @@ router.post('/chat', async (req, res, next) => {
       await persistHistory(req.user.id, activeSession.id, message, directActionResponse.content)
       return res.json({
         ...directActionResponse,
-        sessionId: activeSession.id,
-        insights,
-      })
-    }
-
-    const directResponse = await tryHandleDirectAdminQuery(message, insights)
-    if (directResponse) {
-      await persistHistory(req.user.id, activeSession.id, message, directResponse.content)
-      return res.json({
-        ...directResponse,
         sessionId: activeSession.id,
         insights,
       })
@@ -1858,7 +1865,10 @@ router.post('/chat', async (req, res, next) => {
         ? extracted
         : buildFallbackPlan(raw, message, insights)
 
-    const actionResult = await executeAction(plan.action)
+    const guardedAction = hasExplicitContentCreationIntent(message)
+      ? plan.action
+      : { type: 'none', payload: {} }
+    const actionResult = await executeAction(guardedAction)
 
     const reply = String(plan.assistantReply || 'Action processed.').trim()
     const resultSuffix =
