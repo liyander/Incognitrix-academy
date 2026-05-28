@@ -366,7 +366,16 @@ function LabRoomPage() {
         technicalScore: technicalScore || prev.technicalScore || 0,
         grammarScore: grammarScore || prev.grammarScore || 0,
         feedback: result?.feedback || prev.feedback || '',
+        questions: Array.isArray(result?.questions) && result.questions.length
+          ? result.questions
+          : prev.questions,
       }))
+
+      if (result?.answers && typeof result.answers === 'object') {
+        setQuestionAnswers(result.answers)
+      } else if (!passed && Array.isArray(result?.questions) && result.questions.length) {
+        setQuestionAnswers({})
+      }
 
       setResultModal({
         mode: resultMode,

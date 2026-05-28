@@ -396,6 +396,42 @@ async function getOrCreateTheoreticalAttempt(room, userId) {
 
   if (rows.length) {
     const questions = safeJsonParse(rows[0].questions_json, [])
+    const existingAnswers = safeJsonParse(rows[0].answers_json, {})
+    const hasRetainedFailedAnswers =
+      !rows[0].passed &&
+      rows[0].evaluated_at &&
+      existingAnswers &&
+      typeof existingAnswers === 'object' &&
+      Object.keys(existingAnswers).length > 0
+
+    if (hasRetainedFailedAnswers) {
+      const regeneratedQuestions = await generateTheoreticalQuestions(
+        room,
+        userId,
+        `cleanup-${rows[0].evaluated_at}-${rows[0].technical_score || 0}`,
+      )
+      await pool.query(
+        `UPDATE user_room_theoretical_attempts
+         SET questions_json = ?,
+             answers_json = NULL,
+             feedback = ?
+         WHERE user_id = ? AND room_id = ?`,
+        [
+          JSON.stringify(regeneratedQuestions),
+          `${rows[0].feedback || ''}\n\nPrevious answers were cleared. New questions have been prepared for your next attempt.`.trim(),
+          userId,
+          room.id,
+        ],
+      )
+
+      return {
+        ...rows[0],
+        questions_json: JSON.stringify(regeneratedQuestions),
+        answers_json: null,
+        feedback: `${rows[0].feedback || ''}\n\nPrevious answers were cleared. New questions have been prepared for your next attempt.`.trim(),
+      }
+    }
+
     if (!shouldRefreshTheoreticalQuestions(questions, rows[0])) {
       return rows[0]
     }
@@ -927,6 +963,18 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
       technicalScore: retainedTechnicalScore,
       grammarScore: retainedGrammarScore,
       feedback: feedbackToStore,
+      answers: passed ? answers : {},
+      questions: nextQuestions.map((question) => ({
+        id: question.id,
+        prompt: question.prompt,
+        hint: question.rubric || '',
+        sourceType: question.sourceType || 'generated',
+        company: question.company || '',
+        interview: question.interview || '',
+        sourceInfo: question.sourceInfo || '',
+        answeredCorrectly: passed,
+        answeredAt: passed ? new Date().toISOString() : null,
+      })),
     })
   }
 
