@@ -295,7 +295,7 @@ function DashboardPage() {
       return
     }
 
-    const nextState = !Boolean(nextEvent.is_registered)
+    const nextState = !nextEvent.is_registered
 
     try {
       setIsSavingRegistration(true)
@@ -405,14 +405,19 @@ function DashboardPage() {
               <span className="font-headline text-[10px] tracking-[0.2em] font-bold text-neutral-400 uppercase block">
                 Daily Streak
               </span>
-              <div className="flex items-center justify-end gap-1">
+              <div className="flex items-center justify-end gap-2">
                 <span
                   className="material-symbols-outlined text-primary text-xl"
                   style={{ fontVariationSettings: "'FILL' 1" }}
                 >
                   local_fire_department
                 </span>
-                <span className="font-headline text-3xl font-bold text-on-background">{userStats.streak}_DAYS</span>
+                <span className="font-headline text-3xl font-bold text-on-background">
+                  {userStats.streak}
+                </span>
+                <span className="font-headline text-lg font-bold tracking-widest text-on-surface-variant uppercase">
+                  Days
+                </span>
               </div>
             </div>
           </div>

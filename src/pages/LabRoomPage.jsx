@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import { getRoomsData } from '../data/roomsData'
 import { apiFetch } from '../services/api'
@@ -93,6 +93,7 @@ function LabRoomPage() {
   const [questionFeedback, setQuestionFeedback] = useState('')
   const [resultModal, setResultModal] = useState(null)
   const [completionError, setCompletionError] = useState('')
+  const contentRootRef = useRef(null)
   const roomId = room?.id || ''
   const roomType = normalizeRoomType(room?.roomType)
   const questionsEnabled = roomType !== 'practical' || Boolean(room?.content?.questionsEnabled)
@@ -203,6 +204,57 @@ function LabRoomPage() {
       cancelled = true
     }
   }, [roomId, questionsEnabled])
+
+  useEffect(() => {
+    const root = contentRootRef.current
+    if (!root) {
+      return undefined
+    }
+
+    const cleanupHandlers = []
+    const codeBlocks = root.querySelectorAll('pre')
+
+    codeBlocks.forEach((block) => {
+      if (block.querySelector('[data-copy-code]')) {
+        return
+      }
+
+      block.classList.add('relative', 'group')
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.dataset.copyCode = 'true'
+      button.className =
+        'absolute right-3 top-3 bg-surface-container-lowest border border-outline-variant/40 px-3 py-1.5 font-headline text-[9px] font-bold uppercase tracking-widest text-on-surface-variant opacity-0 transition-opacity group-hover:opacity-100 hover:text-primary'
+      button.textContent = 'Copy'
+
+      const handleClick = async () => {
+        const code = block.querySelector('code')?.textContent || block.textContent || ''
+        try {
+          await navigator.clipboard.writeText(code)
+          button.textContent = 'Copied'
+          window.setTimeout(() => {
+            button.textContent = 'Copy'
+          }, 1200)
+        } catch {
+          button.textContent = 'Failed'
+          window.setTimeout(() => {
+            button.textContent = 'Copy'
+          }, 1200)
+        }
+      }
+
+      button.addEventListener('click', handleClick)
+      block.appendChild(button)
+      cleanupHandlers.push(() => {
+        button.removeEventListener('click', handleClick)
+        button.remove()
+      })
+    })
+
+    return () => {
+      cleanupHandlers.forEach((cleanup) => cleanup())
+    }
+  }, [roomId, room?.content])
 
   if (isLoadingRoom) {
     return (
@@ -418,7 +470,7 @@ function LabRoomPage() {
           </div>
         </div>
       ) : null}
-      <div className="max-w-[96rem] mx-auto p-8 lg:p-12">
+      <div ref={contentRootRef} className="max-w-[96rem] mx-auto p-8 lg:p-12">
         <header className="mb-12 border-l-4 border-primary pl-8">
           <div className="flex flex-wrap gap-2 mb-4">
             {roomTags.map((tag) => (

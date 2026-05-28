@@ -138,6 +138,158 @@ async function fetchUsersPreview(limit = 25) {
   return rows
 }
 
+function normalizeCategory(value) {
+  return String(value || 'General').trim() || 'General'
+}
+
+function roleForCategory(category) {
+  const normalized = normalizeCategory(category).toLowerCase()
+  if (/\bsoc\b|blue|defen[sc]e|incident|monitor|siem|log/.test(normalized)) return 'SOC Analyst'
+  if (/forensic|memory|disk|windows|evidence/.test(normalized)) return 'Digital Forensics Analyst'
+  if (/web|app|api|injection|xss|csrf/.test(normalized)) return 'Web Application Security Tester'
+  if (/crypto|rsa|cipher|hash/.test(normalized)) return 'Cryptography Analyst'
+  if (/reverse|reversing|malware|binary/.test(normalized)) return 'Reverse Engineering Analyst'
+  if (/cloud|iam|kubernetes|container/.test(normalized)) return 'Cloud Security Analyst'
+  return `${normalizeCategory(category)} Security Analyst`
+}
+
+function isRoleSuitabilityQuestion(text) {
+  return /\b(suitable|fit|best|recommend|who\s+would|which\s+player|which\s+user)\b[\s\S]*\b(role|soc|analyst|security|forensic|web|cloud|reverse|crypto)\b/i.test(text)
+}
+
+function isPlayerStatsQuestion(text) {
+  return /\b(players?|users?|operators?)\b[\s\S]*\b(stats?|statistics|performance|scores?|progress|soc)\b/i.test(text) ||
+    /\b(stats?|statistics|performance|scores?)\b[\s\S]*\b(players?|users?|operators?|soc)\b/i.test(text)
+}
+
+function extractRoleFilter(text) {
+  const lowered = String(text || '').toLowerCase()
+  if (/\bsoc\b|blue|defen[sc]e|incident|monitor|siem/.test(lowered)) return 'soc'
+  if (/forensic/.test(lowered)) return 'forensics'
+  if (/web|application/.test(lowered)) return 'web'
+  if (/crypto/.test(lowered)) return 'crypto'
+  if (/reverse|malware/.test(lowered)) return 'reverse'
+  if (/cloud/.test(lowered)) return 'cloud'
+  return ''
+}
+
+function categoryMatchesRoleFilter(category, roleFilter) {
+  const normalized = normalizeCategory(category).toLowerCase()
+  if (!roleFilter) return true
+  if (roleFilter === 'soc') return /\bsoc\b|blue|defen[sc]e|incident|monitor|siem|log|cve|forensic/.test(normalized)
+  if (roleFilter === 'forensics') return /forensic|memory|disk|windows|evidence/.test(normalized)
+  if (roleFilter === 'web') return /web|app|api|injection|xss|csrf/.test(normalized)
+  if (roleFilter === 'crypto') return /crypto|rsa|cipher|hash/.test(normalized)
+  if (roleFilter === 'reverse') return /reverse|reversing|malware|binary/.test(normalized)
+  if (roleFilter === 'cloud') return /cloud|iam|kubernetes|container/.test(normalized)
+  return true
+}
+
+async function fetchPlayerPerformanceProfiles() {
+  const [rows] = await pool.query(
+    `SELECT
+       u.id,
+       u.username,
+       u.email,
+       u.role,
+       r.id AS room_id,
+       r.title AS room_title,
+       r.category,
+       r.room_type,
+       urp.completed_at,
+       uta.technical_score,
+       uta.grammar_score
+     FROM users u
+     LEFT JOIN user_room_progress urp
+       ON urp.user_id = u.id AND urp.completed_at IS NOT NULL
+     LEFT JOIN rooms r ON r.id = urp.room_id
+     LEFT JOIN user_room_theoretical_attempts uta
+       ON uta.user_id = u.id AND uta.room_id = urp.room_id
+     WHERE u.role = 'operator'
+     ORDER BY u.username ASC, urp.completed_at DESC`,
+  )
+
+  const players = new Map()
+
+  for (const row of rows) {
+    if (!players.has(row.id)) {
+      players.set(row.id, {
+        id: row.id,
+        username: row.username || `user-${row.id}`,
+        email: row.email || '',
+        completedRooms: 0,
+        technicalScores: [],
+        grammarScores: [],
+        categories: new Map(),
+      })
+    }
+
+    const player = players.get(row.id)
+    if (!row.room_id) {
+      continue
+    }
+
+    player.completedRooms += 1
+    const category = normalizeCategory(row.category)
+    const currentCategory = player.categories.get(category) || {
+      category,
+      completedRooms: 0,
+      technicalScores: [],
+      grammarScores: [],
+      rooms: [],
+    }
+
+    currentCategory.completedRooms += 1
+    currentCategory.rooms.push(row.room_title)
+
+    if (Number(row.technical_score || 0) > 0) {
+      player.technicalScores.push(Number(row.technical_score))
+      currentCategory.technicalScores.push(Number(row.technical_score))
+    }
+    if (Number(row.grammar_score || 0) > 0) {
+      player.grammarScores.push(Number(row.grammar_score))
+      currentCategory.grammarScores.push(Number(row.grammar_score))
+    }
+
+    player.categories.set(category, currentCategory)
+  }
+
+  return [...players.values()].map((player) => {
+    const categories = [...player.categories.values()].map((category) => ({
+      ...category,
+      averageTechnical: category.technicalScores.length
+        ? Math.round(category.technicalScores.reduce((sum, score) => sum + score, 0) / category.technicalScores.length)
+        : 0,
+      averageGrammar: category.grammarScores.length
+        ? Math.round(category.grammarScores.reduce((sum, score) => sum + score, 0) / category.grammarScores.length)
+        : 0,
+      rooms: category.rooms.slice(0, 5),
+    }))
+
+    const topCategory = categories
+      .slice()
+      .sort(
+        (a, b) =>
+          b.completedRooms - a.completedRooms ||
+          b.averageTechnical - a.averageTechnical ||
+          a.category.localeCompare(b.category),
+      )[0]
+
+    return {
+      ...player,
+      averageTechnical: player.technicalScores.length
+        ? Math.round(player.technicalScores.reduce((sum, score) => sum + score, 0) / player.technicalScores.length)
+        : 0,
+      averageGrammar: player.grammarScores.length
+        ? Math.round(player.grammarScores.reduce((sum, score) => sum + score, 0) / player.grammarScores.length)
+        : 0,
+      topCategory: topCategory?.category || 'No completed rooms',
+      recommendedRole: topCategory ? roleForCategory(topCategory.category) : 'Needs more data',
+      categories,
+    }
+  })
+}
+
 function isUserCountQuestion(text) {
   return /\b(how\s+many|number\s+of|count\s+of|total)\b[\s\S]*\b(users?|operators?)\b/i.test(text)
 }
@@ -188,6 +340,88 @@ function isUserListQuestion(text) {
   )
 }
 
+async function buildPlayerStatsAnswer(text) {
+  const roleFilter = extractRoleFilter(text)
+  const players = await fetchPlayerPerformanceProfiles()
+  const lines = []
+
+  for (const player of players) {
+    const filteredCategories = player.categories.filter((category) =>
+      categoryMatchesRoleFilter(category.category, roleFilter),
+    )
+    const scopedCompleted = filteredCategories.reduce((sum, category) => sum + category.completedRooms, 0)
+    const scopedTechnicalScores = filteredCategories.flatMap((category) => category.technicalScores)
+    const scopedGrammarScores = filteredCategories.flatMap((category) => category.grammarScores)
+    const avgTechnical = scopedTechnicalScores.length
+      ? Math.round(scopedTechnicalScores.reduce((sum, score) => sum + score, 0) / scopedTechnicalScores.length)
+      : 0
+    const avgGrammar = scopedGrammarScores.length
+      ? Math.round(scopedGrammarScores.reduce((sum, score) => sum + score, 0) / scopedGrammarScores.length)
+      : 0
+
+    if (roleFilter && scopedCompleted === 0) {
+      continue
+    }
+
+    lines.push(
+      `- ${player.username}: ${roleFilter ? scopedCompleted : player.completedRooms} completed room(s), ` +
+        `technical avg ${roleFilter ? avgTechnical : player.averageTechnical}, ` +
+        `grammar avg ${roleFilter ? avgGrammar : player.averageGrammar}, ` +
+        `recommended role: ${player.recommendedRole}`,
+    )
+  }
+
+  return lines.length
+    ? `${roleFilter ? roleFilter.toUpperCase() : 'Player'} stats:\n${lines.join('\n')}`
+    : `No player stats found${roleFilter ? ` for ${roleFilter.toUpperCase()}` : ''}.`
+}
+
+async function buildRoleSuitabilityAnswer(text) {
+  const roleFilter = extractRoleFilter(text)
+  const players = await fetchPlayerPerformanceProfiles()
+  const ranked = players
+    .map((player) => {
+      const matchingCategories = player.categories.filter((category) =>
+        categoryMatchesRoleFilter(category.category, roleFilter),
+      )
+      const completed = roleFilter
+        ? matchingCategories.reduce((sum, category) => sum + category.completedRooms, 0)
+        : player.completedRooms
+      const technicalScores = roleFilter
+        ? matchingCategories.flatMap((category) => category.technicalScores)
+        : player.technicalScores
+      const averageTechnical = technicalScores.length
+        ? Math.round(technicalScores.reduce((sum, score) => sum + score, 0) / technicalScores.length)
+        : player.averageTechnical
+
+      return {
+        ...player,
+        scopedCompleted: completed,
+        scopedTechnical: averageTechnical,
+      }
+    })
+    .filter((player) => player.scopedCompleted > 0)
+    .sort(
+      (a, b) =>
+        b.scopedCompleted - a.scopedCompleted ||
+        b.scopedTechnical - a.scopedTechnical ||
+        a.username.localeCompare(b.username),
+    )
+    .slice(0, 8)
+
+  if (!ranked.length) {
+    return `No suitable player data found${roleFilter ? ` for ${roleFilter.toUpperCase()}` : ''}.`
+  }
+
+  return [
+    `Best role fit${roleFilter ? ` for ${roleFilter.toUpperCase()}` : ''}:`,
+    ...ranked.map((player, index) =>
+      `${index + 1}. ${player.username} - ${roleFilter ? roleForCategory(roleFilter) : player.recommendedRole}; ` +
+      `${player.scopedCompleted} relevant completion(s), technical avg ${player.scopedTechnical}.`,
+    ),
+  ].join('\n')
+}
+
 async function tryHandleDirectAdminQuery(message, insights) {
   const text = String(message || '').trim()
   if (!text) {
@@ -211,6 +445,22 @@ async function tryHandleDirectAdminQuery(message, insights) {
         'Top risks right now:',
         ...risks.map((risk, index) => `${index + 1}. ${risk}`),
       ].join('\n'),
+      action: { type: 'none', status: 'ignored', message: 'No action requested.' },
+    }
+  }
+
+  if (isRoleSuitabilityQuestion(text)) {
+    return {
+      role: 'assistant',
+      content: await buildRoleSuitabilityAnswer(text),
+      action: { type: 'none', status: 'ignored', message: 'No action requested.' },
+    }
+  }
+
+  if (isPlayerStatsQuestion(text)) {
+    return {
+      role: 'assistant',
+      content: await buildPlayerStatsAnswer(text),
       action: { type: 'none', status: 'ignored', message: 'No action requested.' },
     }
   }

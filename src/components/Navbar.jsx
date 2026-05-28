@@ -196,11 +196,11 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
 
   return (
     <header
-      className={`fixed top-0 right-0 left-0 ${isSidebarOpen ? 'md:left-64' : 'md:left-0'} z-50 glass-nav flex items-center justify-between gap-3 px-4 md:px-6 py-3 transition-all duration-300 overflow-visible`}
+      className={`fixed top-0 right-0 left-0 ${isSidebarOpen ? 'md:left-64' : 'md:left-0'} z-50 glass-nav flex items-center justify-between gap-3 px-5 md:px-8 py-4 transition-all duration-300 overflow-visible`}
     >
       <div className="flex min-w-0 items-center gap-3 xl:gap-6">
         <button
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center border border-outline-variant bg-surface-container-low text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center border border-outline-variant bg-surface-container-low text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
           onClick={onToggleSidebar}
           type="button"
           aria-label="Toggle sidebar"
@@ -210,14 +210,14 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
           </span>
         </button>
         <div className="flex min-w-0 flex-col">
-          <h1 className="truncate text-lg md:text-xl font-headline font-bold tracking-tighter text-neutral-900 leading-none">
+          <h1 className="truncate text-xl md:text-2xl font-headline font-bold tracking-tighter text-neutral-900 leading-none">
             INCOGNITRIX
           </h1>
-          <span className="hidden sm:block truncate font-headline text-[10px] tracking-[0.2em] text-neutral-400 uppercase mt-1">
+          <span className="hidden sm:block truncate font-headline text-[11px] tracking-[0.2em] text-neutral-400 uppercase mt-1">
             Cybersecurity Academy
           </span>
         </div>
-        <nav className="hidden xl:flex items-center gap-5 font-headline tracking-tight text-sm uppercase whitespace-nowrap">
+        <nav className="hidden xl:flex items-center gap-6 font-headline tracking-tight text-[15px] uppercase whitespace-nowrap">
           {config.routes.learningPaths ? (
             <NavLink className={navItemClass} to="/learn/paths">
               Learning Paths
