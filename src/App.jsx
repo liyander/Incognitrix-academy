@@ -212,6 +212,7 @@ function App() {
   if (!authSession) {
     return (
       <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/verify-certificate" element={<CertificateVerificationPage />} />
         <Route path="/verify-certificate/:certificateId" element={<CertificateVerificationPage />} />
         <Route
