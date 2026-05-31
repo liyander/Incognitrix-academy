@@ -31,6 +31,7 @@ import LoginPage from './pages/LoginPage'
 import ModulesPage from './pages/ModulesPage'
 import ModuleDetailPage from './pages/ModuleDetailPage'
 import NotesPage from './pages/NotesPage'
+import NotFoundPage from './pages/NotFoundPage'
 import ProfilePage from './pages/ProfilePage'
 import ScoreboardPage from './pages/ScoreboardPage'
 import SettingsPage from './pages/SettingsPage'
@@ -203,7 +204,7 @@ function App() {
       <Routes>
         <Route path="/verify-certificate" element={<CertificateVerificationPage />} />
         <Route path="/verify-certificate/:certificateId" element={<CertificateVerificationPage />} />
-        <Route path="*" element={<Navigate to="/verify-certificate" replace />} />
+        <Route path="*" element={<NotFoundPage variant="public" />} />
       </Routes>
     )
   }
@@ -217,11 +218,11 @@ function App() {
           path="/login"
           element={<LoginPage onLoginSuccess={setAuthSession} />}
         />
-        <Route
-          path="/register"
-          element={<RegistrationPage onRegisterSuccess={setAuthSession} />}
-        />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route
+            path="/register"
+            element={<RegistrationPage onRegisterSuccess={setAuthSession} />}
+          />
+        <Route path="*" element={<NotFoundPage variant="public" />} />
       </Routes>
     )
   }
@@ -261,7 +262,7 @@ function App() {
           <Route path="/admin/registrations/:userId" element={<AdminRegistrationDetailPage />} />
           <Route path="/admin/upcoming-ctf" element={<AdminUpcomingCtfManagementPage />} />
           <Route path="/admin/ai-control" element={<AdminAiControlPage />} />
-          <Route path="*" element={<Navigate to="/admin" replace />} />
+          <Route path="*" element={<NotFoundPage variant="admin" />} />
         </Routes>
       </>
     )
@@ -428,7 +429,7 @@ function App() {
           <Route path="/admin" element={<Navigate to="/" replace />} />
           <Route
             path="*"
-            element={<Navigate to={firstEnabledRoute(platformConfig)} replace />}
+            element={<NotFoundPage config={platformConfig} variant="operator" />}
           />
         </Routes>
       </main>
