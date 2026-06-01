@@ -2,6 +2,9 @@ import { Router } from 'express'
 import OpenAI from 'openai'
 import { execFile } from 'node:child_process'
 import net from 'node:net'
+import fs from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
 import { promisify } from 'node:util'
 import { pool } from '../db/pool.js'
 import { env } from '../config/env.js'
@@ -62,7 +65,7 @@ async function findFreePort() {
 
 async function inspectDockerContainer(containerName) {
   try {
-    const { stdout } = await execFileAsync('docker', [
+    const { stdout } = await dockerExec([
       'inspect',
       '--format',
       '{{.Id}}|{{.State.Running}}',
@@ -81,7 +84,7 @@ async function inspectDockerContainer(containerName) {
 
 async function stopDockerContainer(containerName) {
   try {
-    await execFileAsync('docker', ['rm', '-f', containerName], { timeout: 30000 })
+    await dockerExec(['rm', '-f', containerName], { timeout: 30000 })
   } catch {
     // Already stopped or Docker is unavailable.
   }
@@ -103,8 +106,8 @@ async function stopStaleDockerInstance(instance, config) {
   return true
 }
 
-function buildDockerAccess(config, hostPort, requestHost = '') {
-  const host = requestHost || env.publicHost || '127.0.0.1'
+function buildDockerAccess(config, hostPort, requestHost = '', dockerConnection = {}) {
+  const host = dockerConnection.displayHost || requestHost || env.publicHost || '127.0.0.1'
   if (config.protocol === 'tcp') {
     return {
       host,
@@ -117,6 +120,69 @@ function buildDockerAccess(config, hostPort, requestHost = '') {
     host,
     port: hostPort,
     url: `${config.protocol}://${host}:${hostPort}`,
+  }
+}
+
+async function getStoredDockerConfig() {
+  const [rows] = await pool.query('SELECT * FROM docker_config WHERE id = 1 LIMIT 1')
+  const row = rows[0] || {}
+  return {
+    hostname: row.hostname || '',
+    displayHost: row.display_host || '',
+    tlsEnabled: Boolean(row.tls_enabled),
+    caCert: row.ca_cert || '',
+    clientCert: row.client_cert || '',
+    clientKey: row.client_key || '',
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
+  }
+}
+
+async function buildDockerCliPrefix() {
+  const config = await getStoredDockerConfig()
+  const args = []
+  const cleanupPaths = []
+
+  if (config.hostname) {
+    args.push('-H', config.hostname)
+  }
+
+  if (config.tlsEnabled) {
+    args.push('--tlsverify')
+    const certDir = await fs.mkdtemp(path.join(os.tmpdir(), 'incognitrix-docker-'))
+    cleanupPaths.push(certDir)
+
+    if (config.caCert) {
+      const certPath = path.join(certDir, 'ca.pem')
+      await fs.writeFile(certPath, config.caCert)
+      args.push('--tlscacert', certPath)
+    }
+    if (config.clientCert) {
+      const certPath = path.join(certDir, 'cert.pem')
+      await fs.writeFile(certPath, config.clientCert)
+      args.push('--tlscert', certPath)
+    }
+    if (config.clientKey) {
+      const keyPath = path.join(certDir, 'key.pem')
+      await fs.writeFile(keyPath, config.clientKey)
+      args.push('--tlskey', keyPath)
+    }
+  }
+
+  return {
+    args,
+    config,
+    cleanup: async () => {
+      await Promise.all(cleanupPaths.map((item) => fs.rm(item, { recursive: true, force: true })))
+    },
+  }
+}
+
+async function dockerExec(args, options = {}) {
+  const prefix = await buildDockerCliPrefix()
+  try {
+    return await execFileAsync('docker', [...prefix.args, ...args], options)
+  } finally {
+    await prefix.cleanup()
   }
 }
 
@@ -1481,8 +1547,8 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
 async function getDockerAdminStatus() {
   try {
     const [{ stdout: infoOutput }, { stdout: imagesOutput }] = await Promise.all([
-      execFileAsync('docker', ['info', '--format', '{{json .}}'], { timeout: 15000 }),
-      execFileAsync('docker', [
+      dockerExec(['info', '--format', '{{json .}}'], { timeout: 15000 }),
+      dockerExec([
         'images',
         '--format',
         '{{json .}}',
@@ -1532,7 +1598,103 @@ async function getDockerAdminStatus() {
 }
 
 router.get('/docker-config/status', authenticate, requireAdmin, async (_req, res) => {
-  return res.json(await getDockerAdminStatus())
+  const status = await getDockerAdminStatus()
+  const config = await getStoredDockerConfig()
+  return res.json({
+    ...status,
+    config: {
+      hostname: config.hostname,
+      displayHost: config.displayHost,
+      tlsEnabled: config.tlsEnabled,
+      hasCaCert: Boolean(config.caCert),
+      hasClientCert: Boolean(config.clientCert),
+      hasClientKey: Boolean(config.clientKey),
+      updatedAt: config.updatedAt,
+    },
+  })
+})
+
+router.put('/docker-config', authenticate, requireAdmin, async (req, res) => {
+  const hostname = String(req.body?.hostname || '').trim()
+  const displayHost = String(req.body?.displayHost || '').trim()
+  const tlsEnabled = Boolean(req.body?.tlsEnabled)
+  const caCert = String(req.body?.caCert || '').trim()
+  const clientCert = String(req.body?.clientCert || '').trim()
+  const clientKey = String(req.body?.clientKey || '').trim()
+
+  await pool.query(
+    `INSERT INTO docker_config (
+       id, hostname, display_host, tls_enabled, ca_cert, client_cert, client_key
+     ) VALUES (1, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       hostname = VALUES(hostname),
+       display_host = VALUES(display_host),
+       tls_enabled = VALUES(tls_enabled),
+       ca_cert = VALUES(ca_cert),
+       client_cert = VALUES(client_cert),
+       client_key = VALUES(client_key)`,
+    [hostname || null, displayHost || null, tlsEnabled, caCert || null, clientCert || null, clientKey || null],
+  )
+
+  const config = await getStoredDockerConfig()
+  return res.json({
+    hostname: config.hostname,
+    displayHost: config.displayHost,
+    tlsEnabled: config.tlsEnabled,
+    hasCaCert: Boolean(config.caCert),
+    hasClientCert: Boolean(config.clientCert),
+    hasClientKey: Boolean(config.clientKey),
+    updatedAt: config.updatedAt,
+  })
+})
+
+router.get('/docker-config/containers', authenticate, requireAdmin, async (_req, res) => {
+  try {
+    const { stdout } = await dockerExec([
+      'ps',
+      '-a',
+      '--filter',
+      'name=incognitrix_',
+      '--format',
+      '{{json .}}',
+    ], { timeout: 15000 })
+
+    const containers = String(stdout || '')
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => safeJsonParse(line, null))
+      .filter(Boolean)
+      .map((container) => ({
+        id: container.ID || '',
+        image: container.Image || '',
+        command: container.Command || '',
+        status: container.Status || '',
+        names: container.Names || '',
+        ports: container.Ports || '',
+        createdAt: container.CreatedAt || '',
+      }))
+
+    return res.json({ containers })
+  } catch (error) {
+    return res.status(503).json({ message: error?.message || 'Unable to list Docker containers.' })
+  }
+})
+
+router.delete('/docker-config/containers/:name', authenticate, requireAdmin, async (req, res) => {
+  const name = String(req.params.name || '').trim()
+  if (!/^incognitrix_[a-zA-Z0-9_.-]+$/.test(name)) {
+    return res.status(400).json({ message: 'Invalid Incognitrix container name.' })
+  }
+
+  await stopDockerContainer(name)
+  await pool.query(
+    `UPDATE user_room_docker_instances
+     SET status = 'stopped'
+     WHERE container_name = ?`,
+    [name],
+  )
+  return res.json({ stopped: true, name })
 })
 
 router.get('/:id/docker/status', authenticate, async (req, res) => {
@@ -1542,6 +1704,7 @@ router.get('/:id/docker/status', authenticate, async (req, res) => {
   }
 
   const config = getDockerConfig(room)
+  const dockerConnection = await getStoredDockerConfig()
   const validationError = validateDockerConfig(config)
   if (validationError) {
     return res.json({
@@ -1604,7 +1767,7 @@ router.get('/:id/docker/status', authenticate, async (req, res) => {
     hostPort: Number(instance.host_port || 0),
     protocol: config.protocol,
     timeoutMinutes: config.timeoutMinutes,
-    access: buildDockerAccess(config, Number(instance.host_port || 0), req.hostname),
+    access: buildDockerAccess(config, Number(instance.host_port || 0), req.hostname, dockerConnection),
     instructions: config.instructions,
     createdAt: instance.created_at ? new Date(instance.created_at).toISOString() : null,
     updatedAt: instance.updated_at ? new Date(instance.updated_at).toISOString() : null,
@@ -1618,6 +1781,7 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
   }
 
   const config = getDockerConfig(room)
+  const dockerConnection = await getStoredDockerConfig()
   const validationError = validateDockerConfig(config)
   if (validationError) {
     return res.status(400).json({ message: validationError })
@@ -1650,7 +1814,7 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
       hostPort,
       protocol: config.protocol,
       timeoutMinutes: config.timeoutMinutes,
-      access: buildDockerAccess(config, hostPort, req.hostname),
+      access: buildDockerAccess(config, hostPort, req.hostname, dockerConnection),
       instructions: config.instructions,
     })
   }
@@ -1660,7 +1824,7 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
   }
 
   const hostPort = await findFreePort()
-  const { stdout } = await execFileAsync('docker', [
+  const { stdout } = await dockerExec([
     'run',
     '-d',
     '--name',
@@ -1693,7 +1857,7 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
     hostPort,
     protocol: config.protocol,
     timeoutMinutes: config.timeoutMinutes,
-    access: buildDockerAccess(config, hostPort, req.hostname),
+    access: buildDockerAccess(config, hostPort, req.hostname, dockerConnection),
     instructions: config.instructions,
   })
 })

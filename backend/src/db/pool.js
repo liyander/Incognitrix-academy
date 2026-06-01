@@ -269,6 +269,18 @@ export async function initializeDatabaseIfNeeded() {
           FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
         )
       `)
+      await conn.query(`
+        CREATE TABLE IF NOT EXISTS docker_config (
+          id INT PRIMARY KEY,
+          hostname VARCHAR(255),
+          display_host VARCHAR(255),
+          tls_enabled BOOLEAN DEFAULT false,
+          ca_cert LONGTEXT,
+          client_cert LONGTEXT,
+          client_key LONGTEXT,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+      `)
       await addColumnIfMissing('rooms', 'questions_enabled', 'BOOLEAN DEFAULT false')
       await addColumnIfMissing('rooms', 'questions_json', 'LONGTEXT NULL')
       await addColumnIfMissing('rooms', 'room_type', "VARCHAR(30) NOT NULL DEFAULT 'theoretical'")
@@ -446,6 +458,17 @@ export async function initializeDatabaseIfNeeded() {
         UNIQUE KEY uniq_user_room_docker (user_id, room_id),
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS docker_config (
+        id INT PRIMARY KEY,
+        hostname VARCHAR(255),
+        display_host VARCHAR(255),
+        tls_enabled BOOLEAN DEFAULT false,
+        ca_cert LONGTEXT,
+        client_cert LONGTEXT,
+        client_key LONGTEXT,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       );
 
       CREATE TABLE IF NOT EXISTS career_paths (
