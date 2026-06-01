@@ -36,6 +36,13 @@ function normalizeRoom(room) {
       youtubeVideoUrl: room.content?.youtubeVideoUrl || '',
       aiQuestionsEnabled: Boolean(room.content?.aiQuestionsEnabled),
       attachment: room.content?.attachment || null,
+      docker: {
+        enabled: Boolean(room.content?.docker?.enabled),
+        image: room.content?.docker?.image || '',
+        containerPort: room.content?.docker?.containerPort || '',
+        protocol: room.content?.docker?.protocol || 'http',
+        instructions: room.content?.docker?.instructions || '',
+      },
       questionsEnabled: Boolean(room.content?.questionsEnabled),
       questions: Array.isArray(room.content?.questions) ? room.content.questions : [],
     },

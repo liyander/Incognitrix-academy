@@ -68,6 +68,13 @@ function AdminRoomEditorPage() {
         youtubeVideoUrl: '',
         aiQuestionsEnabled: false,
         attachment: null,
+        docker: {
+          enabled: false,
+          image: '',
+          containerPort: '',
+          protocol: 'http',
+          instructions: '',
+        },
         questionsEnabled: false,
         questions: [],
       },
@@ -184,6 +191,19 @@ function AdminRoomEditorPage() {
 
   const handleRemoveAttachment = () => {
     handleContentChange('attachment', null)
+  }
+
+  const handleDockerChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        docker: {
+          ...(prev.content?.docker || {}),
+          [field]: value,
+        },
+      },
+    }))
   }
 
   const handleVulnerabilityBriefingChange = (field, value) => {
@@ -743,8 +763,84 @@ function AdminRoomEditorPage() {
                 </div>
               ) : null}
 
+              {normalizeRoomType(formData.roomType) === 'practical' ? (
+                <div className="mb-8 bg-surface-container-high p-6 border-l-2 border-l-secondary">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      checked={Boolean(formData.content?.docker?.enabled)}
+                      className="mt-1 h-4 w-4"
+                      onChange={(e) => handleDockerChange('enabled', e.target.checked)}
+                      type="checkbox"
+                    />
+                    <span>
+                      <span className="block font-headline text-xs font-bold uppercase tracking-widest text-secondary">
+                        Enable Docker Service
+                      </span>
+                      <span className="mt-1 block text-xs text-on-surface-variant">
+                        Players can spawn a personal container and access the running service from the lab page.
+                      </span>
+                    </span>
+                  </label>
+
+                  <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <label className="block md:col-span-2">
+                      <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                        Docker Image
+                      </span>
+                      <input
+                        className="mt-2 w-full bg-surface-container-lowest border border-outline-variant/40 font-body text-sm py-2.5 px-3 outline-none"
+                        onChange={(e) => handleDockerChange('image', e.target.value)}
+                        placeholder="registry/image:tag"
+                        type="text"
+                        value={formData.content?.docker?.image || ''}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                        Container Port
+                      </span>
+                      <input
+                        className="mt-2 w-full bg-surface-container-lowest border border-outline-variant/40 font-body text-sm py-2.5 px-3 outline-none"
+                        min="1"
+                        max="65535"
+                        onChange={(e) => handleDockerChange('containerPort', e.target.value)}
+                        placeholder="80"
+                        type="number"
+                        value={formData.content?.docker?.containerPort || ''}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                        Protocol
+                      </span>
+                      <select
+                        className="mt-2 w-full bg-surface-container-lowest border border-outline-variant/40 font-body text-sm py-2.5 px-3 outline-none"
+                        onChange={(e) => handleDockerChange('protocol', e.target.value)}
+                        value={formData.content?.docker?.protocol || 'http'}
+                      >
+                        <option value="http">http</option>
+                        <option value="https">https</option>
+                        <option value="tcp">tcp</option>
+                      </select>
+                    </label>
+                    <label className="block md:col-span-2">
+                      <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                        Player Instructions
+                      </span>
+                      <textarea
+                        className="mt-2 w-full bg-surface-container-lowest border border-outline-variant/40 font-body text-sm py-2.5 px-3 outline-none"
+                        onChange={(e) => handleDockerChange('instructions', e.target.value)}
+                        placeholder="Describe what the spawned service exposes and how to use it."
+                        rows="3"
+                        value={formData.content?.docker?.instructions || ''}
+                      ></textarea>
+                    </label>
+                  </div>
+                </div>
+              ) : null}
+
               <p className="text-xs text-on-surface-variant mb-6">
-                Theoretical rooms generate AI questions automatically for each learner. Practical rooms can use exact-answer questions, optional AI evaluation, and a downloadable lab file.
+                Theoretical rooms generate AI questions automatically for each learner. Practical rooms can use exact-answer questions, optional AI evaluation, uploaded files, and Docker-backed services.
               </p>
 
               {normalizeRoomType(formData.roomType) === 'theoretical' ? (

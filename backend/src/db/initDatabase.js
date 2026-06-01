@@ -92,6 +92,11 @@ async function ensureDatabase() {
       attachment_type VARCHAR(255),
       attachment_size INT DEFAULT 0,
       attachment_data LONGTEXT,
+      docker_enabled BOOLEAN DEFAULT false,
+      docker_image VARCHAR(512),
+      docker_container_port INT DEFAULT 0,
+      docker_protocol VARCHAR(20) DEFAULT 'http',
+      docker_instructions LONGTEXT,
       questions_enabled BOOLEAN DEFAULT false,
       questions_json LONGTEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -160,6 +165,21 @@ async function ensureDatabase() {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       UNIQUE KEY uniq_theoretical_user_room (user_id, room_id),
       INDEX idx_theoretical_room_score (room_id, technical_score, grammar_score),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS user_room_docker_instances (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      room_id VARCHAR(191) NOT NULL,
+      container_id VARCHAR(191) NOT NULL,
+      container_name VARCHAR(191) NOT NULL,
+      host_port INT NOT NULL,
+      status VARCHAR(40) DEFAULT 'running',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_user_room_docker (user_id, room_id),
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
     );
@@ -337,6 +357,27 @@ async function ensureDatabase() {
   await addColumnIfMissing('rooms', 'attachment_type', 'VARCHAR(255) NULL')
   await addColumnIfMissing('rooms', 'attachment_size', 'INT DEFAULT 0')
   await addColumnIfMissing('rooms', 'attachment_data', 'LONGTEXT NULL')
+  await addColumnIfMissing('rooms', 'docker_enabled', 'BOOLEAN DEFAULT false')
+  await addColumnIfMissing('rooms', 'docker_image', 'VARCHAR(512) NULL')
+  await addColumnIfMissing('rooms', 'docker_container_port', 'INT DEFAULT 0')
+  await addColumnIfMissing('rooms', 'docker_protocol', "VARCHAR(20) DEFAULT 'http'")
+  await addColumnIfMissing('rooms', 'docker_instructions', 'LONGTEXT NULL')
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS user_room_docker_instances (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      room_id VARCHAR(191) NOT NULL,
+      container_id VARCHAR(191) NOT NULL,
+      container_name VARCHAR(191) NOT NULL,
+      host_port INT NOT NULL,
+      status VARCHAR(40) DEFAULT 'running',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_user_room_docker (user_id, room_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+    )
+  `)
   await addColumnIfMissing('rooms', 'questions_enabled', 'BOOLEAN DEFAULT false')
   await addColumnIfMissing('rooms', 'questions_json', 'LONGTEXT NULL')
   await addColumnIfMissing('rooms', 'room_type', "VARCHAR(30) NOT NULL DEFAULT 'theoretical'")

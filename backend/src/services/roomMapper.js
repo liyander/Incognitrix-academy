@@ -40,6 +40,13 @@ export function mapRoomRow(roomRow, tags = [], keywords = []) {
             dataUrl: roomRow.attachment_data,
           }
         : null,
+      docker: {
+        enabled: Boolean(roomRow.docker_enabled),
+        image: roomRow.docker_image || '',
+        containerPort: Number(roomRow.docker_container_port || 0) || '',
+        protocol: roomRow.docker_protocol || 'http',
+        instructions: roomRow.docker_instructions || '',
+      },
       questionsEnabled: Boolean(roomRow.questions_enabled),
       questions: (() => {
         try {

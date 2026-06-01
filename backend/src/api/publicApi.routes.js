@@ -665,6 +665,13 @@ async function fetchRoomById(identifier) {
             dataUrl: room.attachment_data,
           }
         : null,
+      docker: {
+        enabled: Boolean(room.docker_enabled),
+        image: room.docker_image || '',
+        containerPort: Number(room.docker_container_port || 0) || '',
+        protocol: room.docker_protocol || 'http',
+        instructions: room.docker_instructions || '',
+      },
       questionsEnabled: Boolean(room.questions_enabled),
       questions: (() => {
         try {

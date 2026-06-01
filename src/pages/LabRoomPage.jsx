@@ -99,6 +99,14 @@ function LabRoomPage() {
   const [questionFeedback, setQuestionFeedback] = useState('')
   const [resultModal, setResultModal] = useState(null)
   const [completionError, setCompletionError] = useState('')
+  const [dockerStatus, setDockerStatus] = useState({
+    enabled: false,
+    running: false,
+    access: null,
+    instructions: '',
+  })
+  const [isDockerWorking, setIsDockerWorking] = useState(false)
+  const [dockerError, setDockerError] = useState('')
   const contentRootRef = useRef(null)
   const roomId = room?.id || ''
   const roomType = normalizeRoomType(room?.roomType)
@@ -222,6 +230,50 @@ function LabRoomPage() {
       cancelled = true
     }
   }, [roomId, questionsEnabled])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadDockerStatus = async () => {
+      if (!roomId || !room?.content?.docker?.enabled) {
+        if (!cancelled) {
+          setDockerStatus({
+            enabled: false,
+            running: false,
+            access: null,
+            instructions: '',
+          })
+          setDockerError('')
+        }
+        return
+      }
+
+      try {
+        const response = await apiFetch(`/rooms/${encodeURIComponent(roomId)}/docker/status`)
+        if (!cancelled) {
+          setDockerStatus({
+            enabled: Boolean(response?.enabled),
+            running: Boolean(response?.running),
+            access: response?.access || null,
+            image: response?.image || room.content.docker.image || '',
+            containerPort: response?.containerPort || room.content.docker.containerPort || '',
+            instructions: response?.instructions || room.content.docker.instructions || '',
+          })
+          setDockerError('')
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setDockerError(error?.message || 'Unable to load Docker service status.')
+        }
+      }
+    }
+
+    void loadDockerStatus()
+
+    return () => {
+      cancelled = true
+    }
+  }, [roomId, room?.content?.docker?.enabled])
 
   useEffect(() => {
     const root = contentRootRef.current
@@ -360,6 +412,47 @@ function LabRoomPage() {
       ...prev,
       [questionId]: value,
     }))
+  }
+
+  const handleSpawnDocker = async () => {
+    setDockerError('')
+    setIsDockerWorking(true)
+    try {
+      const response = await apiFetch(`/rooms/${encodeURIComponent(room.id)}/docker/spawn`, {
+        method: 'POST',
+      })
+      setDockerStatus({
+        enabled: Boolean(response?.enabled),
+        running: Boolean(response?.running),
+        access: response?.access || null,
+        image: response?.image || room.content?.docker?.image || '',
+        containerPort: response?.containerPort || room.content?.docker?.containerPort || '',
+        instructions: response?.instructions || room.content?.docker?.instructions || '',
+      })
+    } catch (error) {
+      setDockerError(error?.message || 'Unable to spawn Docker service.')
+    } finally {
+      setIsDockerWorking(false)
+    }
+  }
+
+  const handleStopDocker = async () => {
+    setDockerError('')
+    setIsDockerWorking(true)
+    try {
+      await apiFetch(`/rooms/${encodeURIComponent(room.id)}/docker/stop`, {
+        method: 'POST',
+      })
+      setDockerStatus((current) => ({
+        ...current,
+        running: false,
+        access: null,
+      }))
+    } catch (error) {
+      setDockerError(error?.message || 'Unable to stop Docker service.')
+    } finally {
+      setIsDockerWorking(false)
+    }
   }
 
   const handleSubmitQuestions = async () => {
@@ -763,6 +856,68 @@ function LabRoomPage() {
                 Ready for deployment? Ensure secure connection protocols are
                 active.
               </p>
+
+              {room.content?.docker?.enabled ? (
+                <div className="bg-surface-container-low p-5 border-l-2 border-l-secondary">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
+                        Docker Service
+                      </p>
+                      <h3 className="mt-2 font-headline text-lg font-black uppercase tracking-tight">
+                        {dockerStatus.running ? 'Service Running' : 'Spawn Target'}
+                      </h3>
+                      <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">
+                        Image: {dockerStatus.image || room.content.docker.image || 'Not configured'}
+                      </p>
+                    </div>
+                    <span className={`px-2 py-1 font-headline text-[9px] font-bold uppercase tracking-widest ${dockerStatus.running ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'}`}>
+                      {dockerStatus.running ? 'Online' : 'Offline'}
+                    </span>
+                  </div>
+
+                  {dockerStatus.instructions ? (
+                    <p className="mt-4 text-xs leading-relaxed text-on-surface-variant whitespace-pre-wrap">
+                      {dockerStatus.instructions}
+                    </p>
+                  ) : null}
+
+                  {dockerStatus.running && dockerStatus.access?.url ? (
+                    <a
+                      className="mt-4 flex items-center justify-between gap-3 bg-surface-container-high p-3 text-sm font-bold text-on-surface hover:text-primary transition-colors"
+                      href={dockerStatus.access.url.startsWith('http') ? dockerStatus.access.url : undefined}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <span className="break-all">{dockerStatus.access.url}</span>
+                      <span className="material-symbols-outlined">open_in_new</span>
+                    </a>
+                  ) : null}
+
+                  {dockerError ? (
+                    <p className="mt-3 text-xs text-error">{dockerError}</p>
+                  ) : null}
+
+                  <div className="mt-4 flex gap-3">
+                    <button
+                      className="flex-1 bg-secondary text-on-secondary px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-60"
+                      disabled={isDockerWorking || dockerStatus.running}
+                      onClick={handleSpawnDocker}
+                      type="button"
+                    >
+                      {isDockerWorking && !dockerStatus.running ? 'Spawning...' : 'Spawn Docker'}
+                    </button>
+                    <button
+                      className="flex-1 bg-surface-container-high text-on-surface px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-60"
+                      disabled={isDockerWorking || !dockerStatus.running}
+                      onClick={handleStopDocker}
+                      type="button"
+                    >
+                      Stop
+                    </button>
+                  </div>
+                </div>
+              ) : null}
 
               {isPreparingTheoreticalQuestions ? (
                 <div className="bg-surface-container-low p-5 border-l-2 border-l-primary">

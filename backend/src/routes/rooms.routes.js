@@ -1,11 +1,15 @@
 import { Router } from 'express'
 import OpenAI from 'openai'
+import { execFile } from 'node:child_process'
+import net from 'node:net'
+import { promisify } from 'node:util'
 import { pool } from '../db/pool.js'
 import { env } from '../config/env.js'
 import { authenticate, requireAdmin } from '../middleware/auth.js'
 import { mapRoomRow } from '../services/roomMapper.js'
 
 const router = Router()
+const execFileAsync = promisify(execFile)
 
 function isTheoreticalRoom(room) {
   return String(room?.roomType || 'theoretical').toLowerCase() !== 'practical'
@@ -13,6 +17,82 @@ function isTheoreticalRoom(room) {
 
 function hasPracticalAiQuestions(room) {
   return !isTheoreticalRoom(room) && Boolean(room?.content?.aiQuestionsEnabled)
+}
+
+function getDockerConfig(room) {
+  const docker = room?.content?.docker || {}
+  return {
+    enabled: !isTheoreticalRoom(room) && Boolean(docker.enabled),
+    image: String(docker.image || '').trim(),
+    containerPort: Number(docker.containerPort || 0),
+    protocol: ['http', 'https', 'tcp'].includes(String(docker.protocol || '').toLowerCase())
+      ? String(docker.protocol).toLowerCase()
+      : 'http',
+    instructions: String(docker.instructions || ''),
+  }
+}
+
+function validateDockerConfig(config) {
+  if (!config.enabled) return 'Docker is not enabled for this room.'
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._/:@-]{0,511}$/.test(config.image)) {
+    return 'Docker image is missing or contains unsupported characters.'
+  }
+  if (!Number.isInteger(config.containerPort) || config.containerPort < 1 || config.containerPort > 65535) {
+    return 'Docker container port must be between 1 and 65535.'
+  }
+  return ''
+}
+
+function buildDockerContainerName(userId, roomId) {
+  return `incognitrix_${userId}_${String(roomId || '').replace(/[^a-zA-Z0-9_.-]/g, '_')}`.slice(0, 120)
+}
+
+async function findFreePort() {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer()
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address()
+      const port = typeof address === 'object' ? address.port : 0
+      server.close(() => resolve(port))
+    })
+  })
+}
+
+async function inspectDockerContainer(containerName) {
+  try {
+    const { stdout } = await execFileAsync('docker', [
+      'inspect',
+      '--format',
+      '{{.Id}}|{{.State.Running}}',
+      containerName,
+    ])
+    const [containerId, running] = String(stdout || '').trim().split('|')
+    return {
+      exists: Boolean(containerId),
+      containerId,
+      running: running === 'true',
+    }
+  } catch {
+    return { exists: false, containerId: '', running: false }
+  }
+}
+
+function buildDockerAccess(config, hostPort, requestHost = '') {
+  const host = requestHost || env.publicHost || '127.0.0.1'
+  if (config.protocol === 'tcp') {
+    return {
+      host,
+      port: hostPort,
+      url: `${host}:${hostPort}`,
+    }
+  }
+
+  return {
+    host,
+    port: hostPort,
+    url: `${config.protocol}://${host}:${hostPort}`,
+  }
 }
 
 function extractMessageText(modelMessage) {
@@ -1362,6 +1442,170 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
   })
 })
 
+router.get('/:id/docker/status', authenticate, async (req, res) => {
+  const room = await fetchRoomById(req.params.id)
+  if (!room) {
+    return res.status(404).json({ message: 'Room not found' })
+  }
+
+  const config = getDockerConfig(room)
+  const validationError = validateDockerConfig(config)
+  if (validationError) {
+    return res.json({
+      enabled: false,
+      running: false,
+      message: validationError,
+    })
+  }
+
+  const [rows] = await pool.query(
+    `SELECT container_id, container_name, host_port, status, created_at, updated_at
+     FROM user_room_docker_instances
+     WHERE user_id = ? AND room_id = ?
+     LIMIT 1`,
+    [req.user.id, room.id],
+  )
+  const instance = rows[0]
+  if (!instance) {
+    return res.json({
+      enabled: true,
+      running: false,
+      image: config.image,
+      containerPort: config.containerPort,
+      protocol: config.protocol,
+      instructions: config.instructions,
+    })
+  }
+
+  const inspected = await inspectDockerContainer(instance.container_name)
+  if (!inspected.running) {
+    await pool.query(
+      `UPDATE user_room_docker_instances
+       SET status = ?
+       WHERE user_id = ? AND room_id = ?`,
+      [inspected.exists ? 'stopped' : 'missing', req.user.id, room.id],
+    )
+  }
+
+  return res.json({
+    enabled: true,
+    running: inspected.running,
+    image: config.image,
+    containerId: instance.container_id,
+    containerName: instance.container_name,
+    containerPort: config.containerPort,
+    hostPort: Number(instance.host_port || 0),
+    protocol: config.protocol,
+    access: buildDockerAccess(config, Number(instance.host_port || 0), req.hostname),
+    instructions: config.instructions,
+    createdAt: instance.created_at ? new Date(instance.created_at).toISOString() : null,
+    updatedAt: instance.updated_at ? new Date(instance.updated_at).toISOString() : null,
+  })
+})
+
+router.post('/:id/docker/spawn', authenticate, async (req, res) => {
+  const room = await fetchRoomById(req.params.id)
+  if (!room) {
+    return res.status(404).json({ message: 'Room not found' })
+  }
+
+  const config = getDockerConfig(room)
+  const validationError = validateDockerConfig(config)
+  if (validationError) {
+    return res.status(400).json({ message: validationError })
+  }
+
+  const containerName = buildDockerContainerName(req.user.id, room.id)
+  const existing = await inspectDockerContainer(containerName)
+  const [instanceRows] = await pool.query(
+    `SELECT host_port
+     FROM user_room_docker_instances
+     WHERE user_id = ? AND room_id = ?
+     LIMIT 1`,
+    [req.user.id, room.id],
+  )
+
+  if (existing.running && instanceRows[0]?.host_port) {
+    const hostPort = Number(instanceRows[0].host_port)
+    return res.json({
+      enabled: true,
+      running: true,
+      image: config.image,
+      containerId: existing.containerId,
+      containerName,
+      containerPort: config.containerPort,
+      hostPort,
+      protocol: config.protocol,
+      access: buildDockerAccess(config, hostPort, req.hostname),
+      instructions: config.instructions,
+    })
+  }
+
+  if (existing.exists) {
+    await execFileAsync('docker', ['rm', '-f', containerName])
+  }
+
+  const hostPort = await findFreePort()
+  const { stdout } = await execFileAsync('docker', [
+    'run',
+    '-d',
+    '--name',
+    containerName,
+    '-p',
+    `${hostPort}:${config.containerPort}`,
+    config.image,
+  ], { timeout: 60000 })
+  const containerId = String(stdout || '').trim()
+
+  await pool.query(
+    `INSERT INTO user_room_docker_instances (
+       user_id, room_id, container_id, container_name, host_port, status
+     ) VALUES (?, ?, ?, ?, ?, 'running')
+     ON DUPLICATE KEY UPDATE
+       container_id = VALUES(container_id),
+       container_name = VALUES(container_name),
+       host_port = VALUES(host_port),
+       status = 'running'`,
+    [req.user.id, room.id, containerId, containerName, hostPort],
+  )
+
+  return res.status(201).json({
+    enabled: true,
+    running: true,
+    image: config.image,
+    containerId,
+    containerName,
+    containerPort: config.containerPort,
+    hostPort,
+    protocol: config.protocol,
+    access: buildDockerAccess(config, hostPort, req.hostname),
+    instructions: config.instructions,
+  })
+})
+
+router.post('/:id/docker/stop', authenticate, async (req, res) => {
+  const room = await fetchRoomById(req.params.id)
+  if (!room) {
+    return res.status(404).json({ message: 'Room not found' })
+  }
+
+  const containerName = buildDockerContainerName(req.user.id, room.id)
+  try {
+    await execFileAsync('docker', ['rm', '-f', containerName], { timeout: 30000 })
+  } catch {
+    // Container may already be gone.
+  }
+
+  await pool.query(
+    `UPDATE user_room_docker_instances
+     SET status = 'stopped'
+     WHERE user_id = ? AND room_id = ?`,
+    [req.user.id, room.id],
+  )
+
+  return res.json({ running: false })
+})
+
 router.get('/:id', async (req, res) => {
   const room = await fetchRoomById(req.params.id)
   if (!room) {
@@ -1390,8 +1634,9 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
         vulnerability_definition, vulnerability_impact, technical_deep_dive,
         youtube_video_url, practical_ai_questions_enabled,
         attachment_name, attachment_type, attachment_size, attachment_data,
+        docker_enabled, docker_image, docker_container_port, docker_protocol, docker_instructions,
         questions_enabled, questions_json
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         id,
@@ -1420,6 +1665,11 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
         payload.content?.attachment?.type || null,
         Number(payload.content?.attachment?.size || 0),
         payload.content?.attachment?.dataUrl || null,
+        Boolean(payload.content?.docker?.enabled),
+        payload.content?.docker?.image || null,
+        Number(payload.content?.docker?.containerPort || 0),
+        payload.content?.docker?.protocol || 'http',
+        payload.content?.docker?.instructions || '',
         Boolean(payload.content?.questionsEnabled),
         JSON.stringify(parseRoomQuestions(payload)),
       ],
@@ -1469,6 +1719,7 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
         vulnerability_definition = ?, vulnerability_impact = ?, technical_deep_dive = ?,
         youtube_video_url = ?, practical_ai_questions_enabled = ?,
         attachment_name = ?, attachment_type = ?, attachment_size = ?, attachment_data = ?,
+        docker_enabled = ?, docker_image = ?, docker_container_port = ?, docker_protocol = ?, docker_instructions = ?,
         questions_enabled = ?, questions_json = ?
       WHERE id = ?`,
       [
@@ -1498,6 +1749,11 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
         payload.content?.attachment?.type ?? existing.content.attachment?.type ?? null,
         Number(payload.content?.attachment?.size ?? existing.content.attachment?.size ?? 0),
         payload.content?.attachment?.dataUrl ?? existing.content.attachment?.dataUrl ?? null,
+        Boolean(payload.content?.docker?.enabled ?? existing.content.docker?.enabled),
+        payload.content?.docker?.image ?? existing.content.docker?.image ?? null,
+        Number(payload.content?.docker?.containerPort ?? existing.content.docker?.containerPort ?? 0),
+        payload.content?.docker?.protocol ?? existing.content.docker?.protocol ?? 'http',
+        payload.content?.docker?.instructions ?? existing.content.docker?.instructions ?? '',
         Boolean(payload.content?.questionsEnabled ?? existing.content.questionsEnabled),
         JSON.stringify(
           parseRoomQuestions({
