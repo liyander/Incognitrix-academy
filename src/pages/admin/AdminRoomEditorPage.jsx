@@ -114,7 +114,7 @@ function AdminRoomEditorPage() {
 
     const loadDockerImages = async () => {
       try {
-        const response = await apiFetch('/rooms/admin/docker/status')
+        const response = await apiFetch('/rooms/docker-config/status')
         if (!cancelled) {
           setDockerImages(Array.isArray(response?.images) ? response.images : [])
         }

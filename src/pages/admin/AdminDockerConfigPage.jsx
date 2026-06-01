@@ -14,7 +14,7 @@ function AdminDockerConfigPage() {
   const loadDockerStatus = async () => {
     setLoading(true)
     try {
-      const response = await apiFetch('/rooms/admin/docker/status')
+      const response = await apiFetch('/rooms/docker-config/status')
       setStatus({
         connected: Boolean(response?.connected),
         serverVersion: response?.serverVersion || '',
