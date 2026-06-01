@@ -278,6 +278,32 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
               </a>
             </div>
 
+            <div className="bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+              <a className="block" href="/admin/docker-machines">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-secondary" style={{ fontSize: '32px' }}>
+                      dns
+                    </span>
+                    <div>
+                      <h3 className="font-headline text-lg font-bold uppercase">
+                        Running Machines
+                      </h3>
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
+                        Active Lab Containers
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-on-surface-variant">
+                    chevron_right
+                  </span>
+                </div>
+                <p className="text-sm text-on-surface-variant">
+                  View live Docker machines spawned by players, refresh runtime state, and stop active lab sessions.
+                </p>
+              </a>
+            </div>
+
             {/* Admin AI */}
             <div className="bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
               <a className="block" href="/admin/ai-control">

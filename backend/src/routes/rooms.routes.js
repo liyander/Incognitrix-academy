@@ -3,7 +3,6 @@ import OpenAI from 'openai'
 import { execFile } from 'node:child_process'
 import http from 'node:http'
 import https from 'node:https'
-import net from 'node:net'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -53,18 +52,6 @@ function buildDockerContainerName(userId, roomId) {
   return `incognitrix_${userId}_${String(roomId || '').replace(/[^a-zA-Z0-9_.-]/g, '_')}`.slice(0, 120)
 }
 
-async function findFreePort() {
-  return new Promise((resolve, reject) => {
-    const server = net.createServer()
-    server.once('error', reject)
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address()
-      const port = typeof address === 'object' ? address.port : 0
-      server.close(() => resolve(port))
-    })
-  })
-}
-
 async function inspectDockerContainer(containerName) {
   try {
     const details = await dockerApiRequest(`/containers/${encodeURIComponent(containerName)}/json`)
@@ -73,9 +60,10 @@ async function inspectDockerContainer(containerName) {
       exists: Boolean(containerId),
       containerId,
       running: Boolean(details?.State?.Running),
+      ports: details?.NetworkSettings?.Ports || {},
     }
   } catch {
-    return { exists: false, containerId: '', running: false }
+    return { exists: false, containerId: '', running: false, ports: {} }
   }
 }
 
@@ -269,15 +257,6 @@ async function dockerApiContainers(all = true) {
   return Array.isArray(containers) ? containers : []
 }
 
-async function getUnavailableDockerPorts() {
-  const containers = await dockerApiContainers(true)
-  return containers.flatMap((container) =>
-    Array.isArray(container.Ports)
-      ? container.Ports.map((port) => Number(port.PublicPort)).filter(Boolean)
-      : [],
-  )
-}
-
 async function getDockerImageExposedPorts(image, fallbackPort) {
   try {
     const details = await dockerApiRequest(`/images/${encodeURIComponent(image)}/json`)
@@ -289,13 +268,18 @@ async function getDockerImageExposedPorts(image, fallbackPort) {
   return [`${fallbackPort}/tcp`]
 }
 
-function chooseDockerPort(blockedPorts) {
-  const blocked = new Set(blockedPorts.map(Number))
-  for (let attempt = 0; attempt < 6000; attempt += 1) {
-    const candidate = 30000 + Math.floor(Math.random() * 30000)
-    if (!blocked.has(candidate)) return candidate
+function getPublishedDockerHostPort(inspected, containerPort) {
+  const ports = inspected?.ports || {}
+  const preferredPort = ports[`${containerPort}/tcp`]
+  const preferredHostPort = Array.isArray(preferredPort) ? Number(preferredPort[0]?.HostPort || 0) : 0
+  if (preferredHostPort) return preferredHostPort
+
+  for (const binding of Object.values(ports)) {
+    const hostPort = Array.isArray(binding) ? Number(binding[0]?.HostPort || 0) : 0
+    if (hostPort) return hostPort
   }
-  throw new Error('Unable to allocate an available Docker host port.')
+
+  return 0
 }
 
 function extractMessageText(modelMessage) {
@@ -1778,12 +1762,12 @@ router.get('/docker-config/containers', authenticate, requireAdmin, async (_req,
 })
 
 router.delete('/docker-config/containers/:name', authenticate, requireAdmin, async (req, res) => {
-  const name = String(req.params.name || '').trim()
+  const name = String(req.params.name || '').split(',')[0].trim()
   if (!/^incognitrix_[a-zA-Z0-9_.-]+$/.test(name)) {
     return res.status(400).json({ message: 'Invalid Incognitrix container name.' })
   }
 
-  const containerName = name.split(',')[0].trim()
+  const containerName = name
   await stopDockerContainer(containerName)
   await pool.query(
     `UPDATE user_room_docker_instances
@@ -1792,6 +1776,92 @@ router.delete('/docker-config/containers/:name', authenticate, requireAdmin, asy
     [containerName],
   )
   return res.json({ stopped: true, name: containerName })
+})
+
+router.get('/docker-machines/me', authenticate, async (req, res) => {
+  const [rows] = await pool.query(
+    `SELECT
+       i.id,
+       i.container_id,
+       i.container_name,
+       i.host_port,
+       i.status,
+       i.created_at,
+       i.updated_at,
+       r.id AS room_id,
+       r.slug,
+       r.title,
+       r.category,
+       r.room_type,
+       r.docker_enabled,
+       r.docker_image,
+       r.docker_container_port,
+       r.docker_protocol,
+       r.docker_timeout_minutes,
+       r.docker_instructions
+     FROM user_room_docker_instances i
+     INNER JOIN rooms r ON r.id = i.room_id
+     WHERE i.user_id = ? AND i.status = 'running'
+     ORDER BY i.updated_at DESC`,
+    [req.user.id],
+  )
+
+  const dockerConnection = await getStoredDockerConfig()
+  const machines = []
+
+  for (const row of rows) {
+    const room = {
+      id: row.room_id,
+      slug: row.slug,
+      title: row.title,
+      category: row.category,
+      roomType: row.room_type,
+      content: {
+        docker: {
+          enabled: Boolean(row.docker_enabled),
+          image: row.docker_image,
+          containerPort: Number(row.docker_container_port || 0),
+          protocol: row.docker_protocol,
+          timeoutMinutes: Number(row.docker_timeout_minutes || 120),
+          instructions: row.docker_instructions || '',
+        },
+      },
+    }
+    const config = getDockerConfig(room)
+    if (validateDockerConfig(config)) continue
+
+    const expired = await stopStaleDockerInstance(row, config)
+    if (expired) continue
+
+    const inspected = await inspectDockerContainer(row.container_name)
+    if (!inspected.running) {
+      await pool.query(
+        `UPDATE user_room_docker_instances
+         SET status = ?
+         WHERE id = ?`,
+        [inspected.exists ? 'stopped' : 'missing', row.id],
+      )
+      continue
+    }
+
+    machines.push({
+      roomId: row.room_id,
+      slug: row.slug,
+      title: row.title,
+      category: row.category,
+      image: config.image,
+      containerId: row.container_id,
+      containerName: row.container_name,
+      containerPort: config.containerPort,
+      hostPort: Number(row.host_port || 0),
+      protocol: config.protocol,
+      access: buildDockerAccess(config, Number(row.host_port || 0), req.hostname, dockerConnection),
+      createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+      updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
+    })
+  }
+
+  return res.json({ machines })
 })
 
 router.get('/:id/docker/status', authenticate, async (req, res) => {
@@ -1920,13 +1990,11 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
     await stopDockerContainer(containerName)
   }
 
-  const unavailablePorts = await getUnavailableDockerPorts()
-  const hostPort = chooseDockerPort(unavailablePorts)
   const exposedPorts = await getDockerImageExposedPorts(config.image, config.containerPort)
   const portBindings = Object.fromEntries(
-    exposedPorts.map((portName, index) => [
+    exposedPorts.map((portName) => [
       portName,
-      [{ HostPort: String(index === 0 ? hostPort : chooseDockerPort([...unavailablePorts, hostPort])) }],
+      [{ HostPort: '' }],
     ]),
   )
   const created = await dockerApiRequest(`/containers/create?name=${encodeURIComponent(containerName)}`, {
@@ -1944,6 +2012,12 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
     throw new Error(created?.message || 'Docker did not return a container id.')
   }
   await dockerApiRequest(`/containers/${encodeURIComponent(containerId)}/start`, { method: 'POST' })
+  const inspected = await inspectDockerContainer(containerId)
+  const hostPort = getPublishedDockerHostPort(inspected, config.containerPort)
+  if (!hostPort) {
+    await stopDockerContainer(containerId)
+    throw new Error('Docker did not publish a host port for this lab container.')
+  }
 
   await pool.query(
     `INSERT INTO user_room_docker_instances (

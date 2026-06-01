@@ -6,6 +6,7 @@ import { apiFetch } from '../services/api'
 function Sidebar({ config, isSidebarOpen, onClose }) {
   const authSession = getAuthSession()
   const [username, setUsername] = useState(authSession?.username || 'operator')
+  const [activeMachines, setActiveMachines] = useState([])
 
   useEffect(() => {
     let cancelled = false
@@ -29,6 +30,31 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
       cancelled = true
     }
   }, [authSession?.username])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadMachines = async () => {
+      try {
+        const response = await apiFetch('/rooms/docker-machines/me')
+        if (!cancelled) {
+          setActiveMachines(Array.isArray(response?.machines) ? response.machines : [])
+        }
+      } catch {
+        if (!cancelled) {
+          setActiveMachines([])
+        }
+      }
+    }
+
+    void loadMachines()
+    const intervalId = window.setInterval(loadMachines, 15000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(intervalId)
+    }
+  }, [])
 
   const navLinkClass = ({ isActive }) =>
     `flex items-center gap-3 px-5 sm:px-6 py-3 font-headline text-[11px] font-bold tracking-widest uppercase transition-all duration-150 ease-in-out border-l-4 min-w-0 [&_.material-symbols-outlined]:shrink-0 [&_.nav-label]:truncate ${
@@ -122,6 +148,47 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
             <span className="material-symbols-outlined shrink-0">science</span>
             <span className="truncate">Labs</span>
           </a>
+          {activeMachines.length ? (
+            <div className="mx-5 sm:mx-6 my-3 bg-surface-container-high border-l-4 border-secondary p-3">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-secondary text-base">dns</span>
+                <p className="font-headline text-[10px] font-bold tracking-[0.2em] uppercase text-secondary">
+                  Active Machines
+                </p>
+              </div>
+              <div className="mt-3 space-y-2">
+                {activeMachines.slice(0, 3).map((machine) => (
+                  <div className="bg-surface-container-lowest p-2" key={machine.containerName || machine.roomId}>
+                    <NavLink
+                      className="block font-headline text-[10px] font-bold uppercase tracking-wider text-on-surface hover:text-primary truncate"
+                      onClick={onClose}
+                      title={machine.title}
+                      to={`/learn/lab/${machine.slug || machine.roomId}`}
+                    >
+                      {machine.title || machine.roomId}
+                    </NavLink>
+                    {machine.access?.url ? (
+                      <a
+                        className="mt-1 flex items-center gap-1 text-[10px] text-secondary hover:text-on-surface min-w-0"
+                        href={machine.access.url}
+                        rel="noreferrer"
+                        target="_blank"
+                        title={machine.access.url}
+                      >
+                        <span className="material-symbols-outlined text-xs">open_in_new</span>
+                        <span className="truncate">{machine.access.url}</span>
+                      </a>
+                    ) : null}
+                  </div>
+                ))}
+                {activeMachines.length > 3 ? (
+                  <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                    +{activeMachines.length - 3} more active
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </nav>
         {config.features.newMissionButton ? (
           <div className="px-5 sm:px-6 py-3 shrink-0">
