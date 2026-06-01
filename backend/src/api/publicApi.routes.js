@@ -670,6 +670,7 @@ async function fetchRoomById(identifier) {
         image: room.docker_image || '',
         containerPort: Number(room.docker_container_port || 0) || '',
         protocol: room.docker_protocol || 'http',
+        timeoutMinutes: Number(room.docker_timeout_minutes || 120),
         instructions: room.docker_instructions || '',
       },
       questionsEnabled: Boolean(room.questions_enabled),

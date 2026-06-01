@@ -258,6 +258,7 @@ function LabRoomPage() {
             image: response?.image || room.content.docker.image || '',
             containerPort: response?.containerPort || room.content.docker.containerPort || '',
             instructions: response?.instructions || room.content.docker.instructions || '',
+            timeoutMinutes: response?.timeoutMinutes || room.content.docker.timeoutMinutes || 120,
           })
           setDockerError('')
         }
@@ -428,9 +429,34 @@ function LabRoomPage() {
         image: response?.image || room.content?.docker?.image || '',
         containerPort: response?.containerPort || room.content?.docker?.containerPort || '',
         instructions: response?.instructions || room.content?.docker?.instructions || '',
+        timeoutMinutes: response?.timeoutMinutes || room.content?.docker?.timeoutMinutes || 120,
       })
     } catch (error) {
       setDockerError(error?.message || 'Unable to spawn Docker service.')
+    } finally {
+      setIsDockerWorking(false)
+    }
+  }
+
+  const handleRevertDocker = async () => {
+    setDockerError('')
+    setIsDockerWorking(true)
+    try {
+      const response = await apiFetch(`/rooms/${encodeURIComponent(room.id)}/docker/spawn`, {
+        method: 'POST',
+        body: JSON.stringify({ revert: true }),
+      })
+      setDockerStatus({
+        enabled: Boolean(response?.enabled),
+        running: Boolean(response?.running),
+        access: response?.access || null,
+        image: response?.image || room.content?.docker?.image || '',
+        containerPort: response?.containerPort || room.content?.docker?.containerPort || '',
+        instructions: response?.instructions || room.content?.docker?.instructions || '',
+        timeoutMinutes: response?.timeoutMinutes || room.content?.docker?.timeoutMinutes || 120,
+      })
+    } catch (error) {
+      setDockerError(error?.message || 'Unable to revert Docker service.')
     } finally {
       setIsDockerWorking(false)
     }
@@ -870,6 +896,9 @@ function LabRoomPage() {
                       <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">
                         Image: {dockerStatus.image || room.content.docker.image || 'Not configured'}
                       </p>
+                      <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
+                        Auto cleanup: {dockerStatus.timeoutMinutes || room.content.docker.timeoutMinutes || 120} minutes
+                      </p>
                     </div>
                     <span className={`px-2 py-1 font-headline text-[9px] font-bold uppercase tracking-widest ${dockerStatus.running ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'}`}>
                       {dockerStatus.running ? 'Online' : 'Offline'}
@@ -914,6 +943,14 @@ function LabRoomPage() {
                       type="button"
                     >
                       Stop
+                    </button>
+                    <button
+                      className="flex-1 bg-primary text-on-primary px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-60"
+                      disabled={isDockerWorking}
+                      onClick={handleRevertDocker}
+                      type="button"
+                    >
+                      Revert
                     </button>
                   </div>
                 </div>

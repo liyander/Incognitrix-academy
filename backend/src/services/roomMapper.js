@@ -45,6 +45,7 @@ export function mapRoomRow(roomRow, tags = [], keywords = []) {
         image: roomRow.docker_image || '',
         containerPort: Number(roomRow.docker_container_port || 0) || '',
         protocol: roomRow.docker_protocol || 'http',
+        timeoutMinutes: Number(roomRow.docker_timeout_minutes || 120),
         instructions: roomRow.docker_instructions || '',
       },
       questionsEnabled: Boolean(roomRow.questions_enabled),

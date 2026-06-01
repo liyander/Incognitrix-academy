@@ -234,6 +234,8 @@ function App() {
         {themeToggleButton}
         <CyberChatbot />
         <Routes>
+          <Route path="/login" element={<Navigate to="/admin" replace />} />
+          <Route path="/register" element={<Navigate to="/admin" replace />} />
           <Route
             path="/admin"
             element={

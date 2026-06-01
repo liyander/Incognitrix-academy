@@ -73,6 +73,7 @@ function AdminRoomEditorPage() {
           image: '',
           containerPort: '',
           protocol: 'http',
+          timeoutMinutes: 120,
           instructions: '',
         },
         questionsEnabled: false,
@@ -822,6 +823,20 @@ function AdminRoomEditorPage() {
                         <option value="https">https</option>
                         <option value="tcp">tcp</option>
                       </select>
+                    </label>
+                    <label className="block">
+                      <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                        Timeout Minutes
+                      </span>
+                      <input
+                        className="mt-2 w-full bg-surface-container-lowest border border-outline-variant/40 font-body text-sm py-2.5 px-3 outline-none"
+                        min="5"
+                        max="720"
+                        onChange={(e) => handleDockerChange('timeoutMinutes', e.target.value)}
+                        placeholder="120"
+                        type="number"
+                        value={formData.content?.docker?.timeoutMinutes || 120}
+                      />
                     </label>
                     <label className="block md:col-span-2">
                       <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">

@@ -41,6 +41,7 @@ function normalizeRoom(room) {
         image: room.content?.docker?.image || '',
         containerPort: room.content?.docker?.containerPort || '',
         protocol: room.content?.docker?.protocol || 'http',
+        timeoutMinutes: Number(room.content?.docker?.timeoutMinutes || 120),
         instructions: room.content?.docker?.instructions || '',
       },
       questionsEnabled: Boolean(room.content?.questionsEnabled),

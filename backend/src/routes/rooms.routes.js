@@ -28,6 +28,7 @@ function getDockerConfig(room) {
     protocol: ['http', 'https', 'tcp'].includes(String(docker.protocol || '').toLowerCase())
       ? String(docker.protocol).toLowerCase()
       : 'http',
+    timeoutMinutes: Math.max(5, Math.min(720, Number(docker.timeoutMinutes || 120))),
     instructions: String(docker.instructions || ''),
   }
 }
@@ -76,6 +77,30 @@ async function inspectDockerContainer(containerName) {
   } catch {
     return { exists: false, containerId: '', running: false }
   }
+}
+
+async function stopDockerContainer(containerName) {
+  try {
+    await execFileAsync('docker', ['rm', '-f', containerName], { timeout: 30000 })
+  } catch {
+    // Already stopped or Docker is unavailable.
+  }
+}
+
+async function stopStaleDockerInstance(instance, config) {
+  if (!instance?.created_at) return false
+  const createdAt = new Date(instance.created_at).getTime()
+  const maxAgeMs = Number(config.timeoutMinutes || 120) * 60 * 1000
+  if (Date.now() - createdAt < maxAgeMs) return false
+
+  await stopDockerContainer(instance.container_name)
+  await pool.query(
+    `UPDATE user_room_docker_instances
+     SET status = 'expired'
+     WHERE id = ?`,
+    [instance.id],
+  )
+  return true
 }
 
 function buildDockerAccess(config, hostPort, requestHost = '') {
@@ -1080,6 +1105,17 @@ router.put('/:id/progress', authenticate, async (req, res) => {
          completed_at = VALUES(completed_at)`,
         [req.user.id, room.id],
     )
+
+    if (getDockerConfig(room).enabled) {
+      const containerName = buildDockerContainerName(req.user.id, room.id)
+      await stopDockerContainer(containerName)
+      await pool.query(
+        `UPDATE user_room_docker_instances
+         SET status = 'solved'
+         WHERE user_id = ? AND room_id = ?`,
+        [req.user.id, room.id],
+      )
+    }
   }
 
   const [rows] = await pool.query(
@@ -1459,7 +1495,7 @@ router.get('/:id/docker/status', authenticate, async (req, res) => {
   }
 
   const [rows] = await pool.query(
-    `SELECT container_id, container_name, host_port, status, created_at, updated_at
+    `SELECT id, container_id, container_name, host_port, status, created_at, updated_at
      FROM user_room_docker_instances
      WHERE user_id = ? AND room_id = ?
      LIMIT 1`,
@@ -1473,6 +1509,20 @@ router.get('/:id/docker/status', authenticate, async (req, res) => {
       image: config.image,
       containerPort: config.containerPort,
       protocol: config.protocol,
+      instructions: config.instructions,
+    })
+  }
+
+  const expired = await stopStaleDockerInstance(instance, config)
+  if (expired) {
+    return res.json({
+      enabled: true,
+      running: false,
+      expired: true,
+      image: config.image,
+      containerPort: config.containerPort,
+      protocol: config.protocol,
+      timeoutMinutes: config.timeoutMinutes,
       instructions: config.instructions,
     })
   }
@@ -1496,6 +1546,7 @@ router.get('/:id/docker/status', authenticate, async (req, res) => {
     containerPort: config.containerPort,
     hostPort: Number(instance.host_port || 0),
     protocol: config.protocol,
+    timeoutMinutes: config.timeoutMinutes,
     access: buildDockerAccess(config, Number(instance.host_port || 0), req.hostname),
     instructions: config.instructions,
     createdAt: instance.created_at ? new Date(instance.created_at).toISOString() : null,
@@ -1516,16 +1567,21 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
   }
 
   const containerName = buildDockerContainerName(req.user.id, room.id)
+  const forceRevert = Boolean(req.body?.revert)
   const existing = await inspectDockerContainer(containerName)
   const [instanceRows] = await pool.query(
-    `SELECT host_port
+    `SELECT id, container_name, host_port, created_at
      FROM user_room_docker_instances
      WHERE user_id = ? AND room_id = ?
      LIMIT 1`,
     [req.user.id, room.id],
   )
 
-  if (existing.running && instanceRows[0]?.host_port) {
+  if (instanceRows[0]) {
+    await stopStaleDockerInstance(instanceRows[0], config)
+  }
+
+  if (existing.running && instanceRows[0]?.host_port && !forceRevert) {
     const hostPort = Number(instanceRows[0].host_port)
     return res.json({
       enabled: true,
@@ -1536,13 +1592,14 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
       containerPort: config.containerPort,
       hostPort,
       protocol: config.protocol,
+      timeoutMinutes: config.timeoutMinutes,
       access: buildDockerAccess(config, hostPort, req.hostname),
       instructions: config.instructions,
     })
   }
 
   if (existing.exists) {
-    await execFileAsync('docker', ['rm', '-f', containerName])
+    await stopDockerContainer(containerName)
   }
 
   const hostPort = await findFreePort()
@@ -1578,6 +1635,7 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
     containerPort: config.containerPort,
     hostPort,
     protocol: config.protocol,
+    timeoutMinutes: config.timeoutMinutes,
     access: buildDockerAccess(config, hostPort, req.hostname),
     instructions: config.instructions,
   })
@@ -1590,11 +1648,7 @@ router.post('/:id/docker/stop', authenticate, async (req, res) => {
   }
 
   const containerName = buildDockerContainerName(req.user.id, room.id)
-  try {
-    await execFileAsync('docker', ['rm', '-f', containerName], { timeout: 30000 })
-  } catch {
-    // Container may already be gone.
-  }
+  await stopDockerContainer(containerName)
 
   await pool.query(
     `UPDATE user_room_docker_instances
@@ -1634,9 +1688,9 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
         vulnerability_definition, vulnerability_impact, technical_deep_dive,
         youtube_video_url, practical_ai_questions_enabled,
         attachment_name, attachment_type, attachment_size, attachment_data,
-        docker_enabled, docker_image, docker_container_port, docker_protocol, docker_instructions,
+        docker_enabled, docker_image, docker_container_port, docker_protocol, docker_timeout_minutes, docker_instructions,
         questions_enabled, questions_json
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         id,
@@ -1669,6 +1723,7 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
         payload.content?.docker?.image || null,
         Number(payload.content?.docker?.containerPort || 0),
         payload.content?.docker?.protocol || 'http',
+        Number(payload.content?.docker?.timeoutMinutes || 120),
         payload.content?.docker?.instructions || '',
         Boolean(payload.content?.questionsEnabled),
         JSON.stringify(parseRoomQuestions(payload)),
@@ -1719,7 +1774,7 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
         vulnerability_definition = ?, vulnerability_impact = ?, technical_deep_dive = ?,
         youtube_video_url = ?, practical_ai_questions_enabled = ?,
         attachment_name = ?, attachment_type = ?, attachment_size = ?, attachment_data = ?,
-        docker_enabled = ?, docker_image = ?, docker_container_port = ?, docker_protocol = ?, docker_instructions = ?,
+        docker_enabled = ?, docker_image = ?, docker_container_port = ?, docker_protocol = ?, docker_timeout_minutes = ?, docker_instructions = ?,
         questions_enabled = ?, questions_json = ?
       WHERE id = ?`,
       [
@@ -1753,6 +1808,7 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
         payload.content?.docker?.image ?? existing.content.docker?.image ?? null,
         Number(payload.content?.docker?.containerPort ?? existing.content.docker?.containerPort ?? 0),
         payload.content?.docker?.protocol ?? existing.content.docker?.protocol ?? 'http',
+        Number(payload.content?.docker?.timeoutMinutes ?? existing.content.docker?.timeoutMinutes ?? 120),
         payload.content?.docker?.instructions ?? existing.content.docker?.instructions ?? '',
         Boolean(payload.content?.questionsEnabled ?? existing.content.questionsEnabled),
         JSON.stringify(
