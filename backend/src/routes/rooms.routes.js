@@ -1660,6 +1660,59 @@ router.post('/:id/docker/stop', authenticate, async (req, res) => {
   return res.json({ running: false })
 })
 
+router.get('/admin/docker/status', authenticate, requireAdmin, async (_req, res) => {
+  try {
+    const [{ stdout: infoOutput }, { stdout: imagesOutput }] = await Promise.all([
+      execFileAsync('docker', ['info', '--format', '{{json .}}'], { timeout: 15000 }),
+      execFileAsync('docker', [
+        'images',
+        '--format',
+        '{{json .}}',
+      ], { timeout: 15000 }),
+    ])
+
+    const info = safeJsonParse(infoOutput, {})
+    const images = String(imagesOutput || '')
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => safeJsonParse(line, null))
+      .filter(Boolean)
+      .map((image) => {
+        const repository = image.Repository || ''
+        const tag = image.Tag || ''
+        const imageName = tag && tag !== '<none>' ? `${repository}:${tag}` : repository
+        return {
+          id: image.ID || image.ImageID || '',
+          repository,
+          tag,
+          name: imageName,
+          size: image.Size || '',
+          createdSince: image.CreatedSince || '',
+        }
+      })
+      .filter((image) => image.name && !image.name.includes('<none>'))
+
+    return res.json({
+      connected: true,
+      serverVersion: info.ServerVersion || '',
+      operatingSystem: info.OperatingSystem || '',
+      architecture: info.Architecture || '',
+      containers: Number(info.Containers || 0),
+      images,
+    })
+  } catch (error) {
+    return res.json({
+      connected: false,
+      message:
+        error?.code === 'ENOENT'
+          ? 'Docker CLI was not found on the backend host.'
+          : error?.message || 'Unable to connect to Docker.',
+      images: [],
+    })
+  }
+})
+
 router.get('/:id', async (req, res) => {
   const room = await fetchRoomById(req.params.id)
   if (!room) {

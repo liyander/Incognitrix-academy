@@ -12,6 +12,7 @@ import AdminPanelPage from './pages/AdminPanelPage'
 import AdminRoomsManagementPage from './pages/admin/AdminRoomsManagementPage'
 import AdminRoomEditorPage from './pages/admin/AdminRoomEditorPage'
 import AdminCategoriesPage from './pages/admin/AdminCategoriesPage'
+import AdminDockerConfigPage from './pages/admin/AdminDockerConfigPage'
 import AdminCareerPathsManagementPage from './pages/admin/AdminCareerPathsManagementPage'
 import AdminCareerPathEditorPage from './pages/admin/AdminCareerPathEditorPage'
 import AdminNotificationsManagementPage from './pages/admin/AdminNotificationsManagementPage'
@@ -253,6 +254,7 @@ function App() {
           <Route path="/admin/rooms" element={<AdminRoomsManagementPage />} />
           <Route path="/admin/rooms/new" element={<AdminRoomEditorPage />} />
           <Route path="/admin/rooms/:roomId" element={<AdminRoomEditorPage />} />
+          <Route path="/admin/docker" element={<AdminDockerConfigPage />} />
           <Route path="/admin/categories" element={<AdminCategoriesPage />} />
           <Route path="/admin/cves" element={<AdminCvesManagementPage />} />
           <Route path="/admin/cves/new" element={<AdminCveEditorPage />} />

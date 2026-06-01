@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { fetchRoomCategories, getRoomCategories } from '../../data/categoriesData'
 import { addRoom, getRoomById, updateRoom } from '../../data/roomsData'
+import { apiFetch } from '../../services/api'
 
 function slugify(value) {
   return value
@@ -89,6 +90,7 @@ function AdminRoomEditorPage() {
     (room?.requiredKeywords || []).join(', ')
   )
   const [roomCategories, setRoomCategories] = useState(() => getRoomCategories([formData.category]))
+  const [dockerImages, setDockerImages] = useState([])
 
   useEffect(() => {
     let cancelled = false
@@ -106,6 +108,29 @@ function AdminRoomEditorPage() {
       cancelled = true
     }
   }, [formData.category])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadDockerImages = async () => {
+      try {
+        const response = await apiFetch('/rooms/admin/docker/status')
+        if (!cancelled) {
+          setDockerImages(Array.isArray(response?.images) ? response.images : [])
+        }
+      } catch {
+        if (!cancelled) {
+          setDockerImages([])
+        }
+      }
+    }
+
+    void loadDockerImages()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   if (!isNewRoom && !room) {
     return (
@@ -789,12 +814,32 @@ function AdminRoomEditorPage() {
                         Docker Image
                       </span>
                       <input
+                        list="available-docker-images"
                         className="mt-2 w-full bg-surface-container-lowest border border-outline-variant/40 font-body text-sm py-2.5 px-3 outline-none"
                         onChange={(e) => handleDockerChange('image', e.target.value)}
                         placeholder="registry/image:tag"
                         type="text"
                         value={formData.content?.docker?.image || ''}
                       />
+                      <datalist id="available-docker-images">
+                        {dockerImages.map((image) => (
+                          <option key={`${image.id}-${image.name}`} value={image.name} />
+                        ))}
+                      </datalist>
+                      <div className="mt-2 flex flex-wrap items-center gap-3">
+                        <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">
+                          {dockerImages.length
+                            ? `${dockerImages.length} image${dockerImages.length === 1 ? '' : 's'} detected`
+                            : 'No images detected from Docker config'}
+                        </p>
+                        <button
+                          className="text-[10px] uppercase tracking-widest font-bold text-secondary hover:text-primary"
+                          onClick={() => navigate('/admin/docker')}
+                          type="button"
+                        >
+                          Docker Config
+                        </button>
+                      </div>
                     </label>
                     <label className="block">
                       <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
