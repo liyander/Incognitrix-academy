@@ -257,6 +257,33 @@ async function dockerApiContainers(all = true) {
   return Array.isArray(containers) ? containers : []
 }
 
+async function getUnavailableDockerPorts() {
+  const containers = await dockerApiContainers(true)
+  const dockerPorts = containers.flatMap((container) =>
+    Array.isArray(container.Ports)
+      ? container.Ports.map((port) => Number(port.PublicPort)).filter(Boolean)
+      : [],
+  )
+  const [instanceRows] = await pool.query(
+    `SELECT host_port
+     FROM user_room_docker_instances
+     WHERE status = 'running' AND host_port IS NOT NULL`,
+  )
+  const instancePorts = instanceRows.map((row) => Number(row.host_port)).filter(Boolean)
+  return [...new Set([...dockerPorts, ...instancePorts])]
+}
+
+function chooseRandomDockerPort(blockedPorts) {
+  const blocked = new Set(blockedPorts.map(Number))
+  const minPort = 20000
+  const maxPort = 65000
+  for (let attempt = 0; attempt < 8000; attempt += 1) {
+    const candidate = minPort + Math.floor(Math.random() * (maxPort - minPort + 1))
+    if (!blocked.has(candidate)) return candidate
+  }
+  throw new Error('Unable to allocate a random available Docker host port.')
+}
+
 async function getDockerImageExposedPorts(image, fallbackPort) {
   try {
     const details = await dockerApiRequest(`/images/${encodeURIComponent(image)}/json`)
@@ -285,6 +312,57 @@ function getPublishedDockerHostPort(inspected, containerPort) {
   }
 
   return 0
+}
+
+async function createStartedDockerContainerWithRandomPorts(containerName, image, exposedPorts) {
+  const blockedPorts = await getUnavailableDockerPorts()
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const selectedPorts = []
+    const portBindings = Object.fromEntries(
+      exposedPorts.map((portName) => {
+        const hostPort = chooseRandomDockerPort([...blockedPorts, ...selectedPorts])
+        selectedPorts.push(hostPort)
+        return [portName, [{ HostPort: String(hostPort) }]]
+      }),
+    )
+    let containerId = ''
+
+    try {
+      const created = await dockerApiRequest(`/containers/create?name=${encodeURIComponent(containerName)}`, {
+        method: 'POST',
+        body: {
+          Image: image,
+          ExposedPorts: Object.fromEntries(exposedPorts.map((portName) => [portName, {}])),
+          HostConfig: {
+            PortBindings: portBindings,
+          },
+        },
+      })
+
+      containerId = created?.Id || ''
+      if (!containerId) {
+        throw new Error(created?.message || 'Docker did not return a container id.')
+      }
+
+      await dockerApiRequest(`/containers/${encodeURIComponent(containerId)}/start`, { method: 'POST' })
+      return { containerId, assignedPorts: selectedPorts }
+    } catch (error) {
+      if (containerId) {
+        await stopDockerContainer(containerId)
+      } else {
+        await stopDockerContainer(containerName)
+      }
+
+      selectedPorts.forEach((port) => blockedPorts.push(port))
+      const retryable = /port is already allocated|address already in use|bind/i.test(error?.message || '')
+      if (!retryable || attempt === 11) {
+        throw error
+      }
+    }
+  }
+
+  throw new Error('Unable to create Docker container with a random host port.')
 }
 
 function extractMessageText(modelMessage) {
@@ -2009,27 +2087,11 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
   }
 
   const exposedPorts = await getDockerImageExposedPorts(config.image, config.containerPort)
-  const portBindings = Object.fromEntries(
-    exposedPorts.map((portName) => [
-      portName,
-      [{ HostPort: '' }],
-    ]),
+  const { containerId } = await createStartedDockerContainerWithRandomPorts(
+    containerName,
+    config.image,
+    exposedPorts,
   )
-  const created = await dockerApiRequest(`/containers/create?name=${encodeURIComponent(containerName)}`, {
-    method: 'POST',
-    body: {
-      Image: config.image,
-      ExposedPorts: Object.fromEntries(exposedPorts.map((portName) => [portName, {}])),
-      HostConfig: {
-        PortBindings: portBindings,
-      },
-    },
-  })
-  const containerId = created?.Id || ''
-  if (!containerId) {
-    throw new Error(created?.message || 'Docker did not return a container id.')
-  }
-  await dockerApiRequest(`/containers/${encodeURIComponent(containerId)}/start`, { method: 'POST' })
   const inspected = await inspectDockerContainer(containerId)
   const hostPort = getPublishedDockerHostPort(inspected, config.containerPort)
   if (!hostPort) {
