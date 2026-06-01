@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import OpenAI from 'openai'
 import { execFile } from 'node:child_process'
+import http from 'node:http'
+import https from 'node:https'
 import net from 'node:net'
 import fs from 'node:fs/promises'
 import os from 'node:os'
@@ -65,17 +67,12 @@ async function findFreePort() {
 
 async function inspectDockerContainer(containerName) {
   try {
-    const { stdout } = await dockerExec([
-      'inspect',
-      '--format',
-      '{{.Id}}|{{.State.Running}}',
-      containerName,
-    ])
-    const [containerId, running] = String(stdout || '').trim().split('|')
+    const details = await dockerApiRequest(`/containers/${encodeURIComponent(containerName)}/json`)
+    const containerId = details?.Id || ''
     return {
       exists: Boolean(containerId),
       containerId,
-      running: running === 'true',
+      running: Boolean(details?.State?.Running),
     }
   } catch {
     return { exists: false, containerId: '', running: false }
@@ -84,7 +81,7 @@ async function inspectDockerContainer(containerName) {
 
 async function stopDockerContainer(containerName) {
   try {
-    await dockerExec(['rm', '-f', containerName], { timeout: 30000 })
+    await dockerApiRequest(`/containers/${encodeURIComponent(containerName)}?force=true`, { method: 'DELETE' })
   } catch {
     // Already stopped or Docker is unavailable.
   }
@@ -184,6 +181,121 @@ async function dockerExec(args, options = {}) {
   } finally {
     await prefix.cleanup()
   }
+}
+
+function normalizeDockerHostname(hostname, tlsEnabled) {
+  const raw = String(hostname || '').trim()
+  if (!raw) {
+    return { socketPath: '/var/run/docker.sock', basePath: '' }
+  }
+
+  if (raw.startsWith('unix://')) {
+    return { socketPath: raw.replace(/^unix:\/\//, ''), basePath: '' }
+  }
+
+  const withProtocol = /^[a-z]+:\/\//i.test(raw)
+    ? raw
+    : `${tlsEnabled ? 'https' : 'http'}://${raw}`
+  return { url: new URL(withProtocol) }
+}
+
+async function dockerApiRequest(apiPath, { method = 'GET', body = null } = {}) {
+  const docker = await getStoredDockerConfig()
+  const target = normalizeDockerHostname(docker.hostname, docker.tlsEnabled)
+  const payload = body ? JSON.stringify(body) : null
+
+  return new Promise((resolve, reject) => {
+    const isHttps = target.url?.protocol === 'https:'
+    const transport = isHttps ? https : http
+    const requestOptions = target.socketPath
+      ? {
+          socketPath: target.socketPath,
+          path: apiPath,
+          method,
+        }
+      : {
+          hostname: target.url.hostname,
+          port: target.url.port || (isHttps ? 443 : 80),
+          path: `${target.url.pathname === '/' ? '' : target.url.pathname}${apiPath}`,
+          method,
+          protocol: target.url.protocol,
+        }
+
+    requestOptions.headers = {
+      Accept: 'application/json',
+      ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } : {}),
+    }
+
+    if (isHttps && docker.tlsEnabled) {
+      if (docker.caCert) requestOptions.ca = docker.caCert
+      if (docker.clientCert) requestOptions.cert = docker.clientCert
+      if (docker.clientKey) requestOptions.key = docker.clientKey
+      requestOptions.rejectUnauthorized = true
+    }
+
+    const request = transport.request(requestOptions, (response) => {
+      let data = ''
+      response.setEncoding('utf8')
+      response.on('data', (chunk) => {
+        data += chunk
+      })
+      response.on('end', () => {
+        const ok = response.statusCode >= 200 && response.statusCode < 300
+        const parsed = data ? safeJsonParse(data, data) : null
+        if (!ok) {
+          reject(new Error(typeof parsed === 'object' ? parsed.message || data : data || `Docker API ${response.statusCode}`))
+          return
+        }
+        resolve(parsed)
+      })
+    })
+
+    request.on('error', reject)
+    request.setTimeout(20000, () => {
+      request.destroy(new Error('Docker API request timed out.'))
+    })
+    if (payload) request.write(payload)
+    request.end()
+  })
+}
+
+async function dockerApiImages() {
+  const images = await dockerApiRequest('/images/json?all=1')
+  return Array.isArray(images) ? images : []
+}
+
+async function dockerApiContainers(all = true) {
+  const containers = await dockerApiRequest(`/containers/json?all=${all ? 1 : 0}`)
+  return Array.isArray(containers) ? containers : []
+}
+
+async function getUnavailableDockerPorts() {
+  const containers = await dockerApiContainers(true)
+  return containers.flatMap((container) =>
+    Array.isArray(container.Ports)
+      ? container.Ports.map((port) => Number(port.PublicPort)).filter(Boolean)
+      : [],
+  )
+}
+
+async function getDockerImageExposedPorts(image, fallbackPort) {
+  try {
+    const details = await dockerApiRequest(`/images/${encodeURIComponent(image)}/json`)
+    const exposed = Object.keys(details?.Config?.ExposedPorts || {})
+    if (exposed.length) return exposed
+  } catch {
+    // Fall back to room configured port below.
+  }
+  return [`${fallbackPort}/tcp`]
+}
+
+function chooseDockerPort(blockedPorts) {
+  const blocked = new Set(blockedPorts.map(Number))
+  for (let attempt = 0; attempt < 6000; attempt += 1) {
+    const candidate = 30000 + Math.floor(Math.random() * 30000)
+    if (!blocked.has(candidate)) return candidate
+  }
+  throw new Error('Unable to allocate an available Docker host port.')
 }
 
 function extractMessageText(modelMessage) {
@@ -1546,35 +1658,24 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
 
 async function getDockerAdminStatus() {
   try {
-    const [{ stdout: infoOutput }, { stdout: imagesOutput }] = await Promise.all([
-      dockerExec(['info', '--format', '{{json .}}'], { timeout: 15000 }),
-      dockerExec([
-        'images',
-        '--format',
-        '{{json .}}',
-      ], { timeout: 15000 }),
+    const [info, rawImages] = await Promise.all([
+      dockerApiRequest('/info'),
+      dockerApiImages(),
     ])
 
-    const info = safeJsonParse(infoOutput, {})
-    const images = String(imagesOutput || '')
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => safeJsonParse(line, null))
-      .filter(Boolean)
-      .map((image) => {
-        const repository = image.Repository || ''
-        const tag = image.Tag || ''
-        const imageName = tag && tag !== '<none>' ? `${repository}:${tag}` : repository
-        return {
-          id: image.ID || image.ImageID || '',
-          repository,
-          tag,
-          name: imageName,
-          size: image.Size || '',
-          createdSince: image.CreatedSince || '',
-        }
-      })
+    const images = rawImages
+      .flatMap((image) =>
+        Array.isArray(image.RepoTags)
+          ? image.RepoTags.map((tag) => ({
+              id: image.Id || image.ID || '',
+              repository: tag.split(':').slice(0, -1).join(':') || tag,
+              tag: tag.includes(':') ? tag.split(':').at(-1) : '',
+              name: tag,
+              size: image.Size ? `${Math.round(Number(image.Size) / 1024 / 1024)} MB` : '',
+              createdSince: image.Created ? new Date(Number(image.Created) * 1000).toLocaleDateString() : '',
+            }))
+          : [],
+      )
       .filter((image) => image.name && !image.name.includes('<none>'))
 
     return {
@@ -1650,29 +1751,24 @@ router.put('/docker-config', authenticate, requireAdmin, async (req, res) => {
 
 router.get('/docker-config/containers', authenticate, requireAdmin, async (_req, res) => {
   try {
-    const { stdout } = await dockerExec([
-      'ps',
-      '-a',
-      '--filter',
-      'name=incognitrix_',
-      '--format',
-      '{{json .}}',
-    ], { timeout: 15000 })
-
-    const containers = String(stdout || '')
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => safeJsonParse(line, null))
-      .filter(Boolean)
+    const rawContainers = await dockerApiContainers(true)
+    const containers = rawContainers
+      .filter((container) =>
+        Array.isArray(container.Names) &&
+        container.Names.some((name) => String(name || '').replace(/^\//, '').startsWith('incognitrix_')),
+      )
       .map((container) => ({
-        id: container.ID || '',
+        id: container.Id || '',
         image: container.Image || '',
         command: container.Command || '',
         status: container.Status || '',
-        names: container.Names || '',
-        ports: container.Ports || '',
-        createdAt: container.CreatedAt || '',
+        names: Array.isArray(container.Names)
+          ? container.Names.map((name) => String(name).replace(/^\//, '')).join(', ')
+          : '',
+        ports: Array.isArray(container.Ports)
+          ? container.Ports.map((port) => `${port.PublicPort || ''}->${port.PrivatePort || ''}/${port.Type || 'tcp'}`).join(', ')
+          : '',
+        createdAt: container.Created ? new Date(Number(container.Created) * 1000).toISOString() : '',
       }))
 
     return res.json({ containers })
@@ -1687,14 +1783,15 @@ router.delete('/docker-config/containers/:name', authenticate, requireAdmin, asy
     return res.status(400).json({ message: 'Invalid Incognitrix container name.' })
   }
 
-  await stopDockerContainer(name)
+  const containerName = name.split(',')[0].trim()
+  await stopDockerContainer(containerName)
   await pool.query(
     `UPDATE user_room_docker_instances
      SET status = 'stopped'
      WHERE container_name = ?`,
-    [name],
+    [containerName],
   )
-  return res.json({ stopped: true, name })
+  return res.json({ stopped: true, name: containerName })
 })
 
 router.get('/:id/docker/status', authenticate, async (req, res) => {
@@ -1823,17 +1920,30 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
     await stopDockerContainer(containerName)
   }
 
-  const hostPort = await findFreePort()
-  const { stdout } = await dockerExec([
-    'run',
-    '-d',
-    '--name',
-    containerName,
-    '-p',
-    `${hostPort}:${config.containerPort}`,
-    config.image,
-  ], { timeout: 60000 })
-  const containerId = String(stdout || '').trim()
+  const unavailablePorts = await getUnavailableDockerPorts()
+  const hostPort = chooseDockerPort(unavailablePorts)
+  const exposedPorts = await getDockerImageExposedPorts(config.image, config.containerPort)
+  const portBindings = Object.fromEntries(
+    exposedPorts.map((portName, index) => [
+      portName,
+      [{ HostPort: String(index === 0 ? hostPort : chooseDockerPort([...unavailablePorts, hostPort])) }],
+    ]),
+  )
+  const created = await dockerApiRequest(`/containers/create?name=${encodeURIComponent(containerName)}`, {
+    method: 'POST',
+    body: {
+      Image: config.image,
+      ExposedPorts: Object.fromEntries(exposedPorts.map((portName) => [portName, {}])),
+      HostConfig: {
+        PortBindings: portBindings,
+      },
+    },
+  })
+  const containerId = created?.Id || ''
+  if (!containerId) {
+    throw new Error(created?.message || 'Docker did not return a container id.')
+  }
+  await dockerApiRequest(`/containers/${encodeURIComponent(containerId)}/start`, { method: 'POST' })
 
   await pool.query(
     `INSERT INTO user_room_docker_instances (
