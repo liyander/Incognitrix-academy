@@ -278,6 +278,24 @@ function AdminRoomEditorPage() {
     })
   }
 
+  const enableDockerValidationQuestions = () => {
+    setFormData((prev) => {
+      const currentQuestions = Array.isArray(prev.content?.questions) ? [...prev.content.questions] : []
+      if (!currentQuestions.length) {
+        currentQuestions.push(createEmptyQuestion(0))
+      }
+
+      return {
+        ...prev,
+        content: {
+          ...prev.content,
+          questionsEnabled: true,
+          questions: currentQuestions,
+        },
+      }
+    })
+  }
+
   const handleRemoveQuestion = (index) => {
     setFormData((prev) => {
       const currentQuestions = Array.isArray(prev.content?.questions)
@@ -844,17 +862,20 @@ function AdminRoomEditorPage() {
                     </label>
                     <label className="block">
                       <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
-                        Container Port
+                        Internal Service Port
                       </span>
                       <input
                         className="mt-2 w-full bg-surface-container-lowest border border-outline-variant/40 font-body text-sm py-2.5 px-3 outline-none"
                         min="1"
                         max="65535"
                         onChange={(e) => handleDockerChange('containerPort', e.target.value)}
-                        placeholder="80"
+                        placeholder="Optional, e.g. 80"
                         type="number"
                         value={formData.content?.docker?.containerPort || ''}
                       />
+                      <p className="mt-1 text-[11px] text-on-surface-variant">
+                        Optional when the image declares EXPOSE. Player access ports are assigned randomly when a machine is spawned.
+                      </p>
                     </label>
                     <label className="block">
                       <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
@@ -896,6 +917,21 @@ function AdminRoomEditorPage() {
                         value={formData.content?.docker?.instructions || ''}
                       ></textarea>
                     </label>
+                  </div>
+                  <div className="mt-5 bg-surface-container-lowest p-4 border-l-2 border-l-primary">
+                    <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
+                      Docker Validation
+                    </p>
+                    <p className="mt-2 text-xs text-on-surface-variant">
+                      The image name is hidden from learners. Add manual questions and expected answers to validate what they discover inside the running service.
+                    </p>
+                    <button
+                      className="mt-3 bg-secondary text-on-secondary px-4 py-2 font-headline text-[10px] font-bold uppercase tracking-widest"
+                      onClick={enableDockerValidationQuestions}
+                      type="button"
+                    >
+                      Enable Questions
+                    </button>
                   </div>
                 </div>
               ) : null}

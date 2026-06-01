@@ -9,7 +9,7 @@ import path from 'node:path'
 import { promisify } from 'node:util'
 import { pool } from '../db/pool.js'
 import { env } from '../config/env.js'
-import { authenticate, requireAdmin } from '../middleware/auth.js'
+import { authenticate, optionalAuthenticate, requireAdmin } from '../middleware/auth.js'
 import { mapRoomRow } from '../services/roomMapper.js'
 
 const router = Router()
@@ -42,8 +42,8 @@ function validateDockerConfig(config) {
   if (!/^[a-zA-Z0-9][a-zA-Z0-9._/:@-]{0,511}$/.test(config.image)) {
     return 'Docker image is missing or contains unsupported characters.'
   }
-  if (!Number.isInteger(config.containerPort) || config.containerPort < 1 || config.containerPort > 65535) {
-    return 'Docker container port must be between 1 and 65535.'
+  if (config.containerPort && (!Number.isInteger(config.containerPort) || config.containerPort < 1 || config.containerPort > 65535)) {
+    return 'Internal service port must be blank or between 1 and 65535.'
   }
   return ''
 }
@@ -265,14 +265,19 @@ async function getDockerImageExposedPorts(image, fallbackPort) {
   } catch {
     // Fall back to room configured port below.
   }
-  return [`${fallbackPort}/tcp`]
+  if (Number.isInteger(fallbackPort) && fallbackPort >= 1 && fallbackPort <= 65535) {
+    return [`${fallbackPort}/tcp`]
+  }
+  throw new Error('This image does not declare exposed ports. Set an internal service port in the room Docker settings.')
 }
 
 function getPublishedDockerHostPort(inspected, containerPort) {
   const ports = inspected?.ports || {}
-  const preferredPort = ports[`${containerPort}/tcp`]
-  const preferredHostPort = Array.isArray(preferredPort) ? Number(preferredPort[0]?.HostPort || 0) : 0
-  if (preferredHostPort) return preferredHostPort
+  if (containerPort) {
+    const preferredPort = ports[`${containerPort}/tcp`]
+    const preferredHostPort = Array.isArray(preferredPort) ? Number(preferredPort[0]?.HostPort || 0) : 0
+    if (preferredHostPort) return preferredHostPort
+  }
 
   for (const binding of Object.values(ports)) {
     const hostPort = Array.isArray(binding) ? Number(binding[0]?.HostPort || 0) : 0
@@ -979,6 +984,24 @@ async function fetchRoomById(id) {
   )
 }
 
+function redactRoomForPlayer(room) {
+  if (!room?.content?.docker) return room
+  return {
+    ...room,
+    content: {
+      ...room.content,
+      docker: {
+        ...room.content.docker,
+        image: '',
+      },
+    },
+  }
+}
+
+function roomResponseForRequest(room, req) {
+  return req.user?.role === 'admin' ? room : redactRoomForPlayer(room)
+}
+
 function buildRoomId(input) {
   const base = (input || '')
     .toLowerCase()
@@ -989,7 +1012,7 @@ function buildRoomId(input) {
   return base || `room-${Date.now()}`
 }
 
-router.get('/', async (_req, res) => {
+router.get('/', optionalAuthenticate, async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM rooms ORDER BY created_at DESC')
   const rooms = []
 
@@ -999,11 +1022,11 @@ router.get('/', async (_req, res) => {
       room.id,
     ])
     rooms.push(
-      mapRoomRow(
+      roomResponseForRequest(mapRoomRow(
         room,
         tagRows.map((row) => row.tag),
         keywordRows.map((row) => row.keyword),
-      ),
+      ), req),
     )
   }
 
@@ -1849,7 +1872,6 @@ router.get('/docker-machines/me', authenticate, async (req, res) => {
       slug: row.slug,
       title: row.title,
       category: row.category,
-      image: config.image,
       containerId: row.container_id,
       containerName: row.container_name,
       containerPort: config.containerPort,
@@ -1893,7 +1915,6 @@ router.get('/:id/docker/status', authenticate, async (req, res) => {
     return res.json({
       enabled: true,
       running: false,
-      image: config.image,
       containerPort: config.containerPort,
       protocol: config.protocol,
       instructions: config.instructions,
@@ -1906,7 +1927,6 @@ router.get('/:id/docker/status', authenticate, async (req, res) => {
       enabled: true,
       running: false,
       expired: true,
-      image: config.image,
       containerPort: config.containerPort,
       protocol: config.protocol,
       timeoutMinutes: config.timeoutMinutes,
@@ -1927,7 +1947,6 @@ router.get('/:id/docker/status', authenticate, async (req, res) => {
   return res.json({
     enabled: true,
     running: inspected.running,
-    image: config.image,
     containerId: instance.container_id,
     containerName: instance.container_name,
     containerPort: config.containerPort,
@@ -1974,7 +1993,6 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
     return res.json({
       enabled: true,
       running: true,
-      image: config.image,
       containerId: existing.containerId,
       containerName,
       containerPort: config.containerPort,
@@ -2034,7 +2052,6 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
   return res.status(201).json({
     enabled: true,
     running: true,
-    image: config.image,
     containerId,
     containerName,
     containerPort: config.containerPort,
@@ -2065,12 +2082,12 @@ router.post('/:id/docker/stop', authenticate, async (req, res) => {
   return res.json({ running: false })
 })
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuthenticate, async (req, res) => {
   const room = await fetchRoomById(req.params.id)
   if (!room) {
     return res.status(404).json({ message: 'Room not found' })
   }
-  return res.json(room)
+  return res.json(roomResponseForRequest(room, req))
 })
 
 router.post('/', authenticate, requireAdmin, async (req, res) => {

@@ -109,6 +109,7 @@ function LabRoomPage() {
   const [dockerError, setDockerError] = useState('')
   const contentRootRef = useRef(null)
   const roomId = room?.id || ''
+  const roomDocker = room?.content?.docker || {}
   const roomType = normalizeRoomType(room?.roomType)
   const questionsEnabled =
     roomType !== 'practical' ||
@@ -235,7 +236,7 @@ function LabRoomPage() {
     let cancelled = false
 
     const loadDockerStatus = async () => {
-      if (!roomId || !room?.content?.docker?.enabled) {
+      if (!roomId || !roomDocker.enabled) {
         if (!cancelled) {
           setDockerStatus({
             enabled: false,
@@ -255,10 +256,10 @@ function LabRoomPage() {
             enabled: Boolean(response?.enabled),
             running: Boolean(response?.running),
             access: response?.access || null,
-            image: response?.image || room.content.docker.image || '',
-            containerPort: response?.containerPort || room.content.docker.containerPort || '',
-            instructions: response?.instructions || room.content.docker.instructions || '',
-            timeoutMinutes: response?.timeoutMinutes || room.content.docker.timeoutMinutes || 120,
+            containerPort: response?.containerPort || roomDocker.containerPort || '',
+            hostPort: response?.hostPort || response?.access?.port || '',
+            instructions: response?.instructions || roomDocker.instructions || '',
+            timeoutMinutes: response?.timeoutMinutes || roomDocker.timeoutMinutes || 120,
           })
           setDockerError('')
         }
@@ -274,7 +275,13 @@ function LabRoomPage() {
     return () => {
       cancelled = true
     }
-  }, [roomId, room?.content?.docker?.enabled])
+  }, [
+    roomId,
+    roomDocker.containerPort,
+    roomDocker.enabled,
+    roomDocker.instructions,
+    roomDocker.timeoutMinutes,
+  ])
 
   useEffect(() => {
     const root = contentRootRef.current
@@ -426,8 +433,8 @@ function LabRoomPage() {
         enabled: Boolean(response?.enabled),
         running: Boolean(response?.running),
         access: response?.access || null,
-        image: response?.image || room.content?.docker?.image || '',
         containerPort: response?.containerPort || room.content?.docker?.containerPort || '',
+        hostPort: response?.hostPort || response?.access?.port || '',
         instructions: response?.instructions || room.content?.docker?.instructions || '',
         timeoutMinutes: response?.timeoutMinutes || room.content?.docker?.timeoutMinutes || 120,
       })
@@ -450,8 +457,8 @@ function LabRoomPage() {
         enabled: Boolean(response?.enabled),
         running: Boolean(response?.running),
         access: response?.access || null,
-        image: response?.image || room.content?.docker?.image || '',
         containerPort: response?.containerPort || room.content?.docker?.containerPort || '',
+        hostPort: response?.hostPort || response?.access?.port || '',
         instructions: response?.instructions || room.content?.docker?.instructions || '',
         timeoutMinutes: response?.timeoutMinutes || room.content?.docker?.timeoutMinutes || 120,
       })
@@ -473,6 +480,7 @@ function LabRoomPage() {
         ...current,
         running: false,
         access: null,
+        hostPort: '',
       }))
     } catch (error) {
       setDockerError(error?.message || 'Unable to stop Docker service.')
@@ -894,11 +902,20 @@ function LabRoomPage() {
                         {dockerStatus.running ? 'Service Running' : 'Spawn Target'}
                       </h3>
                       <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">
-                        Image: {dockerStatus.image || room.content.docker.image || 'Not configured'}
+                        Personal lab machine with isolated runtime access.
                       </p>
                       <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
                         Auto cleanup: {dockerStatus.timeoutMinutes || room.content.docker.timeoutMinutes || 120} minutes
                       </p>
+                      {dockerStatus.running && dockerStatus.hostPort ? (
+                        <p className="mt-1 text-xs leading-relaxed text-secondary">
+                          Assigned player port: {dockerStatus.hostPort}
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
+                          Player port: assigned randomly on spawn
+                        </p>
+                      )}
                     </div>
                     <span className={`px-2 py-1 font-headline text-[9px] font-bold uppercase tracking-widest ${dockerStatus.running ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'}`}>
                       {dockerStatus.running ? 'Online' : 'Offline'}

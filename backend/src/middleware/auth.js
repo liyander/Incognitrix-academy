@@ -21,6 +21,23 @@ export function authenticate(req, res, next) {
   }
 }
 
+export function optionalAuthenticate(req, _res, next) {
+  const authHeader = req.headers.authorization || ''
+  const [, token] = authHeader.split(' ')
+
+  if (!token) {
+    return next()
+  }
+
+  try {
+    req.user = jwt.verify(token, env.jwtSecret)
+  } catch {
+    req.user = null
+  }
+
+  return next()
+}
+
 export function requireAdmin(req, res, next) {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({ message: 'Admin role required' })
