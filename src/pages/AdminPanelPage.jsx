@@ -251,6 +251,33 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
               </a>
             </div>
 
+            {/* Docker Config */}
+            <div className="bg-surface-container-lowest border-l-4 border-primary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+              <a className="block" href="/admin/docker">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-primary" style={{ fontSize: '32px' }}>
+                      deployed_code
+                    </span>
+                    <div>
+                      <h3 className="font-headline text-lg font-bold uppercase">
+                        Docker Config
+                      </h3>
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
+                        Container Runtime
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-on-surface-variant">
+                    chevron_right
+                  </span>
+                </div>
+                <p className="text-sm text-on-surface-variant">
+                  Check Docker connectivity and review available container images for practical lab services.
+                </p>
+              </a>
+            </div>
+
             {/* Admin AI */}
             <div className="bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
               <a className="block" href="/admin/ai-control">

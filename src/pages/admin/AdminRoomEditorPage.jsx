@@ -813,19 +813,20 @@ function AdminRoomEditorPage() {
                       <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                         Docker Image
                       </span>
-                      <input
-                        list="available-docker-images"
+                      <select
                         className="mt-2 w-full bg-surface-container-lowest border border-outline-variant/40 font-body text-sm py-2.5 px-3 outline-none"
                         onChange={(e) => handleDockerChange('image', e.target.value)}
-                        placeholder="registry/image:tag"
-                        type="text"
                         value={formData.content?.docker?.image || ''}
-                      />
-                      <datalist id="available-docker-images">
+                      >
+                        <option value="">
+                          {dockerImages.length ? 'Select Docker image' : 'No Docker images available'}
+                        </option>
                         {dockerImages.map((image) => (
-                          <option key={`${image.id}-${image.name}`} value={image.name} />
+                          <option key={`${image.id}-${image.name}`} value={image.name}>
+                            {image.name}
+                          </option>
                         ))}
-                      </datalist>
+                      </select>
                       <div className="mt-2 flex flex-wrap items-center gap-3">
                         <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">
                           {dockerImages.length
