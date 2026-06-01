@@ -4,6 +4,7 @@ import {
   createCtfEvent,
   deleteCtfEvent,
   fetchCtfEvents,
+  syncCtfTimeEvents,
   toDatetimeInputValue,
   updateCtfEvent,
 } from '../../services/ctfEvents'
@@ -13,6 +14,7 @@ const initialFormState = {
   registrationDeadline: '',
   liveTime: '',
   registrationLink: '',
+  weight: '',
   isActive: true,
 }
 
@@ -25,13 +27,31 @@ function AdminUpcomingCtfManagementPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState(initialFormState)
+  const [syncing, setSyncing] = useState(false)
+  const [syncSummary, setSyncSummary] = useState(null)
 
-  const loadEvents = async () => {
+  const loadEvents = async ({ sync = false } = {}) => {
+    let syncErrorMessage = ''
     try {
       setLoading(true)
+      if (sync) {
+        try {
+          setSyncing(true)
+          const summary = await syncCtfTimeEvents()
+          setSyncSummary(summary)
+        } catch (syncError) {
+          setSyncSummary(null)
+          syncErrorMessage = syncError.message || 'Failed to sync CTFtime events'
+          setError(syncErrorMessage)
+        } finally {
+          setSyncing(false)
+        }
+      }
       const data = await fetchCtfEvents()
       setEvents(data)
-      setError('')
+      if (!syncErrorMessage) {
+        setError('')
+      }
     } catch (err) {
       setError(err.message || 'Failed to load CTF events')
     } finally {
@@ -40,7 +60,7 @@ function AdminUpcomingCtfManagementPage() {
   }
 
   useEffect(() => {
-    void loadEvents()
+    void loadEvents({ sync: true })
   }, [])
 
   const handleInputChange = (event) => {
@@ -73,6 +93,7 @@ function AdminUpcomingCtfManagementPage() {
         registrationDeadline: formData.registrationDeadline,
         liveTime: formData.liveTime,
         registrationLink: formData.registrationLink,
+        weight: formData.weight,
         isActive: formData.isActive,
       }
 
@@ -97,6 +118,7 @@ function AdminUpcomingCtfManagementPage() {
       registrationDeadline: toDatetimeInputValue(eventItem.registration_deadline),
       liveTime: toDatetimeInputValue(eventItem.live_time),
       registrationLink: eventItem.registration_link || '',
+      weight: eventItem.weight ?? '',
       isActive: Boolean(eventItem.is_active),
     })
     setEditingId(eventItem.id)
@@ -114,6 +136,22 @@ function AdminUpcomingCtfManagementPage() {
       await loadEvents()
     } catch (err) {
       setError(err.message || 'Failed to delete CTF event')
+    }
+  }
+
+  const handleSyncCtfTime = async () => {
+    setError('')
+    setSuccess('')
+    try {
+      setSyncing(true)
+      const summary = await syncCtfTimeEvents()
+      setSyncSummary(summary)
+      setSuccess(`CTFtime sync complete: ${summary.created || 0} created, ${summary.updated || 0} updated`)
+      await loadEvents()
+    } catch (err) {
+      setError(err.message || 'Failed to sync CTFtime events')
+    } finally {
+      setSyncing(false)
     }
   }
 
@@ -136,7 +174,7 @@ function AdminUpcomingCtfManagementPage() {
             Upcoming CTF Manager
           </h1>
           <p className="text-sm text-on-surface-variant mt-4 max-w-2xl">
-            Configure CTF name, registration deadline, live time, and registration link. Events past deadline are hidden from player pages automatically.
+            Configure CTF name, registration deadline, live time, registration link, and weightage. Weighted upcoming CTFtime events are imported automatically.
           </p>
         </header>
 
@@ -153,19 +191,35 @@ function AdminUpcomingCtfManagementPage() {
         ) : null}
 
         <div className="bg-surface-container-lowest border-l-4 border-primary p-8 mb-8">
-          <button
-            className="mb-6 bg-primary text-on-primary px-6 py-2.5 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors"
-            onClick={() => {
-              if (showForm) {
-                resetForm()
-              } else {
-                setShowForm(true)
-              }
-            }}
-            type="button"
-          >
-            {showForm ? 'Cancel' : '+ Add Upcoming CTF'}
-          </button>
+          <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <button
+              className="bg-primary text-on-primary px-6 py-2.5 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors"
+              onClick={() => {
+                if (showForm) {
+                  resetForm()
+                } else {
+                  setShowForm(true)
+                }
+              }}
+              type="button"
+            >
+              {showForm ? 'Cancel' : '+ Add Upcoming CTF'}
+            </button>
+            <button
+              className="bg-surface-container-high text-on-surface px-6 py-2.5 font-headline text-xs font-bold uppercase tracking-widest hover:text-secondary transition-colors disabled:opacity-60"
+              disabled={syncing}
+              onClick={handleSyncCtfTime}
+              type="button"
+            >
+              {syncing ? 'Syncing CTFtime...' : 'Sync CTFtime'}
+            </button>
+          </div>
+
+          {syncSummary ? (
+            <p className="mb-6 bg-secondary/10 border-l-4 border-secondary p-4 text-secondary font-headline text-xs font-bold uppercase tracking-widest">
+              CTFtime weighted upcoming sync: {syncSummary.created || 0} created / {syncSummary.updated || 0} updated
+            </p>
+          ) : null}
 
           {showForm ? (
             <form className="space-y-6" onSubmit={handleSubmit}>
@@ -221,6 +275,22 @@ function AdminUpcomingCtfManagementPage() {
                     onChange={handleInputChange}
                     type="datetime-local"
                     value={formData.liveTime}
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">
+                    Weightage
+                  </label>
+                  <input
+                    className="w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                    min="0"
+                    name="weight"
+                    onChange={handleInputChange}
+                    placeholder="e.g., 25"
+                    step="0.01"
+                    type="number"
+                    value={formData.weight}
                   />
                 </div>
               </div>
@@ -280,10 +350,21 @@ function AdminUpcomingCtfManagementPage() {
                         <p className="text-xs text-on-surface-variant">
                           Registered Players: {event.registered_count || 0}
                         </p>
+                        <p className="text-xs text-on-surface-variant">
+                          Weightage: {Number(event.weight || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                        </p>
                         <div className="flex gap-2 mt-2">
                           <span className={`px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest ${event.is_active ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
                             {event.is_active ? 'Active' : 'Inactive'}
                           </span>
+                          <span className="px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest bg-surface-container-high text-on-surface-variant">
+                            {event.source === 'ctftime' ? 'CTFtime' : 'Manual'}
+                          </span>
+                          {event.event_format ? (
+                            <span className="px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest bg-surface-container-high text-on-surface-variant">
+                              {event.event_format}
+                            </span>
+                          ) : null}
                           {deadlinePassed ? (
                             <span className="px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest bg-error/15 text-error">
                               Deadline Passed

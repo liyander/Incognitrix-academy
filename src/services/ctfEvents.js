@@ -39,6 +39,15 @@ export async function deleteCtfEvent(eventId) {
   return response
 }
 
+export async function syncCtfTimeEvents() {
+  const response = await apiFetch('/ctf-events/sync-ctftime', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+  broadcastCtfEventsUpdated()
+  return response
+}
+
 export async function setCtfRegistration(eventId, registered) {
   const response = await apiFetch(`/ctf-events/${eventId}/registration`, {
     method: 'POST',

@@ -91,6 +91,14 @@ async function stopStaleDockerInstance(instance, config) {
   return true
 }
 
+function getDockerExpiry(instance, config) {
+  if (!instance?.created_at) return null
+  const createdAt = new Date(instance.created_at).getTime()
+  if (!Number.isFinite(createdAt)) return null
+  const timeoutMs = Number(config.timeoutMinutes || 120) * 60 * 1000
+  return new Date(createdAt + timeoutMs).toISOString()
+}
+
 function buildDockerAccess(config, hostPort, requestHost = '', dockerConnection = {}) {
   const host = dockerConnection.displayHost || requestHost || env.publicHost || '127.0.0.1'
   if (config.protocol === 'tcp') {
@@ -1602,21 +1610,23 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
 
       if (isCorrect) {
         await conn.query(
-          `INSERT INTO user_room_question_progress (user_id, room_id, question_id, answered_correctly, answered_at)
-           VALUES (?, ?, ?, true, NOW())
+          `INSERT INTO user_room_question_progress (user_id, room_id, question_id, answer_text, answered_correctly, answered_at)
+           VALUES (?, ?, ?, ?, true, NOW())
            ON DUPLICATE KEY UPDATE
+             answer_text = VALUES(answer_text),
              answered_correctly = true,
              answered_at = NOW()`,
-          [req.user.id, room.id, question.id],
+          [req.user.id, room.id, question.id, providedAnswer],
         )
       } else {
         await conn.query(
-          `INSERT INTO user_room_question_progress (user_id, room_id, question_id, answered_correctly, answered_at)
-           VALUES (?, ?, ?, false, NULL)
+          `INSERT INTO user_room_question_progress (user_id, room_id, question_id, answer_text, answered_correctly, answered_at)
+           VALUES (?, ?, ?, ?, false, NULL)
            ON DUPLICATE KEY UPDATE
+             answer_text = VALUES(answer_text),
              answered_correctly = false,
              answered_at = NULL`,
-          [req.user.id, room.id, question.id],
+          [req.user.id, room.id, question.id, providedAnswer],
         )
       }
     }
@@ -1957,6 +1967,7 @@ router.get('/docker-machines/me', authenticate, async (req, res) => {
       protocol: config.protocol,
       access: buildDockerAccess(config, Number(row.host_port || 0), req.hostname, dockerConnection),
       createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+      expiresAt: getDockerExpiry(row, config),
       updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
     })
   }
@@ -2034,6 +2045,7 @@ router.get('/:id/docker/status', authenticate, async (req, res) => {
     access: buildDockerAccess(config, Number(instance.host_port || 0), req.hostname, dockerConnection),
     instructions: config.instructions,
     createdAt: instance.created_at ? new Date(instance.created_at).toISOString() : null,
+    expiresAt: getDockerExpiry(instance, config),
     updatedAt: instance.updated_at ? new Date(instance.updated_at).toISOString() : null,
   })
 })
@@ -2079,6 +2091,8 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
       timeoutMinutes: config.timeoutMinutes,
       access: buildDockerAccess(config, hostPort, req.hostname, dockerConnection),
       instructions: config.instructions,
+      createdAt: instanceRows[0].created_at ? new Date(instanceRows[0].created_at).toISOString() : null,
+      expiresAt: getDockerExpiry(instanceRows[0], config),
     })
   }
 
@@ -2111,6 +2125,15 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
     [req.user.id, room.id, containerId, containerName, hostPort],
   )
 
+  const [createdRows] = await pool.query(
+    `SELECT created_at
+     FROM user_room_docker_instances
+     WHERE user_id = ? AND room_id = ?
+     LIMIT 1`,
+    [req.user.id, room.id],
+  )
+  const createdInstance = createdRows[0] || { created_at: new Date() }
+
   return res.status(201).json({
     enabled: true,
     running: true,
@@ -2122,6 +2145,8 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
     timeoutMinutes: config.timeoutMinutes,
     access: buildDockerAccess(config, hostPort, req.hostname, dockerConnection),
     instructions: config.instructions,
+    createdAt: createdInstance.created_at ? new Date(createdInstance.created_at).toISOString() : null,
+    expiresAt: getDockerExpiry(createdInstance, config),
   })
 })
 

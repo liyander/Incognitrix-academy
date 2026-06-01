@@ -163,6 +163,16 @@ function UpcomingCtfPage() {
                     <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-background">Live Time: </span>
                     {formatDateTime(event.live_time)}
                   </p>
+                  <p>
+                    <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-background">Weightage: </span>
+                    {Number(event.weight || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </p>
+                  {event.event_format ? (
+                    <p>
+                      <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-background">Format: </span>
+                      {event.event_format}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="flex items-center gap-3 mt-auto">

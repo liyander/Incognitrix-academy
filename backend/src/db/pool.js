@@ -79,6 +79,11 @@ export async function initializeDatabaseIfNeeded() {
           registration_deadline DATETIME NOT NULL,
           live_time DATETIME NOT NULL,
           registration_link TEXT NOT NULL,
+          weight DECIMAL(8,2) DEFAULT 0,
+          source VARCHAR(50) DEFAULT 'manual',
+          ctftime_event_id INT NULL,
+          ctftime_url TEXT NULL,
+          event_format VARCHAR(120) NULL,
           is_active BOOLEAN DEFAULT true,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -139,6 +144,7 @@ export async function initializeDatabaseIfNeeded() {
           user_id INT NOT NULL,
           room_id VARCHAR(191) NOT NULL,
           question_id VARCHAR(191) NOT NULL,
+          answer_text LONGTEXT,
           answered_correctly BOOLEAN DEFAULT false,
           answered_at DATETIME NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -240,6 +246,11 @@ export async function initializeDatabaseIfNeeded() {
       )
       await addColumnIfMissing('career_path_modules', 'module_image_data', 'LONGTEXT NULL')
       await addColumnIfMissing('notifications', 'target_user_id', 'INT NULL')
+      await addColumnIfMissing('ctf_events', 'weight', 'DECIMAL(8,2) DEFAULT 0')
+      await addColumnIfMissing('ctf_events', 'source', "VARCHAR(50) DEFAULT 'manual'")
+      await addColumnIfMissing('ctf_events', 'ctftime_event_id', 'INT NULL')
+      await addColumnIfMissing('ctf_events', 'ctftime_url', 'TEXT NULL')
+      await addColumnIfMissing('ctf_events', 'event_format', 'VARCHAR(120) NULL')
       await addColumnIfMissing('career_paths', 'certificate_image_data', 'LONGTEXT NULL')
       await addColumnIfMissing('rooms', 'youtube_video_url', 'TEXT NULL')
       await addColumnIfMissing('rooms', 'practical_ai_questions_enabled', 'BOOLEAN DEFAULT false')
@@ -284,6 +295,7 @@ export async function initializeDatabaseIfNeeded() {
       await addColumnIfMissing('rooms', 'questions_enabled', 'BOOLEAN DEFAULT false')
       await addColumnIfMissing('rooms', 'questions_json', 'LONGTEXT NULL')
       await addColumnIfMissing('rooms', 'room_type', "VARCHAR(30) NOT NULL DEFAULT 'theoretical'")
+      await addColumnIfMissing('user_room_question_progress', 'answer_text', 'LONGTEXT NULL')
       await addColumnIfMissing('admin_ai_chat_history', 'session_id', 'BIGINT NULL')
       await addColumnIfMissing('certificates', 'first_name', 'VARCHAR(120) NULL')
       await addColumnIfMissing('certificates', 'last_name', 'VARCHAR(120) NULL')
@@ -417,6 +429,7 @@ export async function initializeDatabaseIfNeeded() {
         user_id INT NOT NULL,
         room_id VARCHAR(191) NOT NULL,
         question_id VARCHAR(191) NOT NULL,
+        answer_text LONGTEXT,
         answered_correctly BOOLEAN DEFAULT false,
         answered_at DATETIME NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -552,6 +565,11 @@ export async function initializeDatabaseIfNeeded() {
         registration_deadline DATETIME NOT NULL,
         live_time DATETIME NOT NULL,
         registration_link TEXT NOT NULL,
+        weight DECIMAL(8,2) DEFAULT 0,
+        source VARCHAR(50) DEFAULT 'manual',
+        ctftime_event_id INT NULL,
+        ctftime_url TEXT NULL,
+        event_format VARCHAR(120) NULL,
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

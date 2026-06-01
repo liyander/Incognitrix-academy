@@ -36,6 +36,82 @@ function parseBoolean(value) {
   return false
 }
 
+function normalizeCtfTimeDate(value) {
+  if (!value) return null
+  const numericValue = Number(value)
+  const parsed = Number.isFinite(numericValue) && String(value).trim() !== ''
+    ? new Date(numericValue < 1_000_000_000_000 ? numericValue * 1000 : numericValue)
+    : new Date(value)
+  if (Number.isNaN(parsed.getTime())) return null
+  return normalizeDatetime(parsed.toISOString())
+}
+
+function normalizeWeight(value) {
+  const weight = Number(value)
+  if (!Number.isFinite(weight) || weight < 0) return 0
+  return Math.round(weight * 100) / 100
+}
+
+function getCtfTimeEventUrl(event) {
+  if (event?.ctftime_url) return String(event.ctftime_url)
+  if (event?.id) return `https://ctftime.org/event/${event.id}`
+  return ''
+}
+
+async function fetchWeightedUpcomingCtfTimeEvents() {
+  if (typeof fetch !== 'function') {
+    throw new Error('Runtime fetch is not available')
+  }
+
+  const now = Math.floor(Date.now() / 1000)
+  const finish = now + 365 * 24 * 60 * 60
+  const url = `https://ctftime.org/api/v1/events/?limit=100&start=${now}&finish=${finish}`
+
+  const response = await fetch(url, {
+    headers: {
+      Accept: 'application/json',
+      'User-Agent': 'Incognitrix-Academy/1.0 CTFtime upcoming event sync',
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`CTFtime returned HTTP ${response.status}`)
+  }
+
+  const data = await response.json()
+  const events = Array.isArray(data) ? data : []
+  const currentTime = Date.now()
+
+  return events
+    .map((event) => {
+      const liveTime = normalizeCtfTimeDate(event.start)
+      const startsAt = liveTime ? new Date(liveTime).getTime() : NaN
+      const weight = normalizeWeight(event.weight)
+
+      return {
+        ctftimeEventId: Number(event.id),
+        name: String(event.title || event.name || '').trim(),
+        registrationDeadline: liveTime,
+        liveTime,
+        registrationLink: String(event.url || getCtfTimeEventUrl(event)).trim(),
+        ctftimeUrl: getCtfTimeEventUrl(event),
+        format: String(event.format || '').trim(),
+        weight,
+        startsAt,
+      }
+    })
+    .filter(
+      (event) =>
+        Number.isInteger(event.ctftimeEventId) &&
+        event.name &&
+        event.registrationLink &&
+        event.liveTime &&
+        event.weight > 0 &&
+        Number.isFinite(event.startsAt) &&
+        event.startsAt >= currentTime,
+    )
+}
+
 async function listCtfEventsForUser(userId, isAdmin) {
   const whereClause = isAdmin ? '' : 'WHERE ce.is_active = true AND ce.registration_deadline >= NOW()'
 
@@ -46,6 +122,11 @@ async function listCtfEventsForUser(userId, isAdmin) {
       ce.registration_deadline,
       ce.live_time,
       ce.registration_link,
+      ce.weight,
+      ce.source,
+      ce.ctftime_event_id,
+      ce.ctftime_url,
+      ce.event_format,
       ce.is_active,
       ce.created_at,
       ce.updated_at,
@@ -77,11 +158,98 @@ router.get('/', authenticate, async (req, res) => {
   }
 })
 
+router.post('/sync-ctftime', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const events = await fetchWeightedUpcomingCtfTimeEvents()
+    let created = 0
+    let updated = 0
+
+    for (const event of events) {
+      const [existingRows] = await pool.query(
+        `SELECT id
+         FROM ctf_events
+         WHERE source = 'ctftime' AND ctftime_event_id = ?
+         LIMIT 1`,
+        [event.ctftimeEventId],
+      )
+
+      if (existingRows.length) {
+        await pool.query(
+          `UPDATE ctf_events
+           SET name = ?,
+               registration_deadline = ?,
+               live_time = ?,
+               registration_link = ?,
+               weight = ?,
+               ctftime_url = ?,
+               event_format = ?,
+               is_active = true
+           WHERE id = ?`,
+          [
+            event.name,
+            event.registrationDeadline,
+            event.liveTime,
+            event.registrationLink,
+            event.weight,
+            event.ctftimeUrl,
+            event.format,
+            existingRows[0].id,
+          ],
+        )
+        updated += 1
+      } else {
+        await pool.query(
+          `INSERT INTO ctf_events (
+            name,
+            registration_deadline,
+            live_time,
+            registration_link,
+            weight,
+            source,
+            ctftime_event_id,
+            ctftime_url,
+            event_format,
+            is_active
+          ) VALUES (?, ?, ?, ?, ?, 'ctftime', ?, ?, ?, true)`,
+          [
+            event.name,
+            event.registrationDeadline,
+            event.liveTime,
+            event.registrationLink,
+            event.weight,
+            event.ctftimeEventId,
+            event.ctftimeUrl,
+            event.format,
+          ],
+        )
+        created += 1
+      }
+    }
+
+    await pool.query(
+      `UPDATE ctf_events
+       SET is_active = false
+       WHERE source = 'ctftime' AND registration_deadline < NOW()`,
+    )
+
+    return res.json({
+      source: 'ctftime',
+      scanned: events.length,
+      created,
+      updated,
+    })
+  } catch (error) {
+    console.error('Error syncing CTFtime events:', error)
+    return res.status(502).json({ message: error.message || 'Failed to sync CTFtime events' })
+  }
+})
+
 router.post('/', authenticate, requireAdmin, async (req, res) => {
   const name = String(req.body?.name || '').trim()
   const registrationLink = String(req.body?.registrationLink || '').trim()
   const registrationDeadline = normalizeDatetime(req.body?.registrationDeadline)
   const liveTime = normalizeDatetime(req.body?.liveTime)
+  const weight = normalizeWeight(req.body?.weight)
 
   if (!name || !registrationLink || !registrationDeadline || !liveTime) {
     return res.status(400).json({
@@ -102,9 +270,11 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
         registration_deadline,
         live_time,
         registration_link,
+        weight,
+        source,
         is_active
-      ) VALUES (?, ?, ?, ?, true)`,
-      [name, registrationDeadline, liveTime, registrationLink],
+      ) VALUES (?, ?, ?, ?, ?, 'manual', true)`,
+      [name, registrationDeadline, liveTime, registrationLink, weight],
     )
 
     return res.status(201).json({
@@ -113,6 +283,8 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
       registration_deadline: registrationDeadline,
       live_time: liveTime,
       registration_link: registrationLink,
+      weight,
+      source: 'manual',
       is_active: true,
     })
   } catch (error) {
@@ -166,6 +338,11 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
     values.push(registrationLink)
   }
 
+  if (Object.prototype.hasOwnProperty.call(req.body || {}, 'weight')) {
+    updates.push('weight = ?')
+    values.push(normalizeWeight(req.body.weight))
+  }
+
   if (Object.prototype.hasOwnProperty.call(req.body || {}, 'isActive')) {
     updates.push('is_active = ?')
     values.push(parseBoolean(req.body.isActive))
@@ -186,6 +363,11 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
         registration_deadline,
         live_time,
         registration_link,
+        weight,
+        source,
+        ctftime_event_id,
+        ctftime_url,
+        event_format,
         is_active,
         created_at,
         updated_at

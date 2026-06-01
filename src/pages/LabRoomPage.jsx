@@ -27,6 +27,17 @@ function normalizeRoomType(value) {
     : 'theoretical'
 }
 
+function formatDuration(milliseconds) {
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000))
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  if (hours > 0) {
+    return `${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`
+  }
+  return `${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`
+}
+
 function blockClipboardInput(event) {
   event.preventDefault()
 }
@@ -105,6 +116,7 @@ function LabRoomPage() {
     access: null,
     instructions: '',
   })
+  const [dockerNow, setDockerNow] = useState(Date.now())
   const [isDockerWorking, setIsDockerWorking] = useState(false)
   const [dockerError, setDockerError] = useState('')
   const contentRootRef = useRef(null)
@@ -260,6 +272,8 @@ function LabRoomPage() {
             hostPort: response?.hostPort || response?.access?.port || '',
             instructions: response?.instructions || roomDocker.instructions || '',
             timeoutMinutes: response?.timeoutMinutes || roomDocker.timeoutMinutes || 120,
+            createdAt: response?.createdAt || null,
+            expiresAt: response?.expiresAt || null,
           })
           setDockerError('')
         }
@@ -282,6 +296,21 @@ function LabRoomPage() {
     roomDocker.instructions,
     roomDocker.timeoutMinutes,
   ])
+
+  useEffect(() => {
+    if (!dockerStatus.running || !dockerStatus.expiresAt) {
+      return undefined
+    }
+
+    setDockerNow(Date.now())
+    const intervalId = window.setInterval(() => {
+      setDockerNow(Date.now())
+    }, 1000)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [dockerStatus.expiresAt, dockerStatus.running])
 
   useEffect(() => {
     const root = contentRootRef.current
@@ -382,6 +411,18 @@ function LabRoomPage() {
   const requiredAssessmentQuestions = questionStatus.questions.filter((question) => !question.bonus && !question.optional)
   const bonusAssessmentQuestions = questionStatus.questions.filter((question) => question.bonus || question.optional)
   const isAiEvaluatingAnswers = isSubmittingQuestions && isAiQuestionMode
+  const dockerExpiresAt = dockerStatus.expiresAt ? new Date(dockerStatus.expiresAt).getTime() : 0
+  const dockerRemainingMs = dockerStatus.running && dockerExpiresAt ? dockerExpiresAt - dockerNow : 0
+  const dockerRemainingPercent =
+    dockerStatus.running && dockerStatus.expiresAt
+      ? Math.max(
+          0,
+          Math.min(
+            100,
+            (dockerRemainingMs / ((dockerStatus.timeoutMinutes || 120) * 60 * 1000)) * 100,
+          ),
+        )
+      : 0
 
   const handleMarkComplete = async () => {
     setCompletionError('')
@@ -437,6 +478,8 @@ function LabRoomPage() {
         hostPort: response?.hostPort || response?.access?.port || '',
         instructions: response?.instructions || room.content?.docker?.instructions || '',
         timeoutMinutes: response?.timeoutMinutes || room.content?.docker?.timeoutMinutes || 120,
+        createdAt: response?.createdAt || null,
+        expiresAt: response?.expiresAt || null,
       })
     } catch (error) {
       setDockerError(error?.message || 'Unable to spawn Docker service.')
@@ -461,6 +504,8 @@ function LabRoomPage() {
         hostPort: response?.hostPort || response?.access?.port || '',
         instructions: response?.instructions || room.content?.docker?.instructions || '',
         timeoutMinutes: response?.timeoutMinutes || room.content?.docker?.timeoutMinutes || 120,
+        createdAt: response?.createdAt || null,
+        expiresAt: response?.expiresAt || null,
       })
     } catch (error) {
       setDockerError(error?.message || 'Unable to revert Docker service.')
@@ -481,6 +526,7 @@ function LabRoomPage() {
         running: false,
         access: null,
         hostPort: '',
+        expiresAt: null,
       }))
     } catch (error) {
       setDockerError(error?.message || 'Unable to stop Docker service.')
@@ -916,6 +962,24 @@ function LabRoomPage() {
                           Player port: assigned randomly on spawn
                         </p>
                       )}
+                      {dockerStatus.running && dockerStatus.expiresAt ? (
+                        <div className="mt-3 max-w-xs">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">
+                              Time Remaining
+                            </p>
+                            <p className="font-space text-sm font-bold text-secondary">
+                              {formatDuration(dockerRemainingMs)}
+                            </p>
+                          </div>
+                          <div className="mt-2 h-1.5 bg-surface-container-high overflow-hidden">
+                            <div
+                              className="h-full bg-secondary transition-all duration-500"
+                              style={{ width: `${dockerRemainingPercent}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                     <span className={`px-2 py-1 font-headline text-[9px] font-bold uppercase tracking-widest ${dockerStatus.running ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'}`}>
                       {dockerStatus.running ? 'Online' : 'Offline'}

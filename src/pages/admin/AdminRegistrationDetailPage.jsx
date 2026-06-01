@@ -160,6 +160,12 @@ function AdminRegistrationDetailPage() {
     categoryCounts: {},
     rooms: [],
   })
+  const [roomActivity, setRoomActivity] = useState({
+    total: 0,
+    completed: 0,
+    inProgress: 0,
+    rooms: [],
+  })
   const [selectedInterviewQuestion, setSelectedInterviewQuestion] = useState(null)
   const [changingPassword, setChangingPassword] = useState(false)
   const [passwordForm, setPasswordForm] = useState({
@@ -256,6 +262,37 @@ function AdminRegistrationDetailPage() {
     }
 
     void loadCompletedRooms()
+
+    return () => {
+      cancelled = true
+    }
+  }, [userId])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadRoomActivity = async () => {
+      if (!userId) return
+
+      try {
+        const data = await apiFetch(`/users/admin/registrations/${userId}/room-activity`)
+        if (!cancelled) {
+          setRoomActivity({
+            total: Number(data?.total || 0),
+            completed: Number(data?.completed || 0),
+            inProgress: Number(data?.inProgress || 0),
+            rooms: Array.isArray(data?.rooms) ? data.rooms : [],
+          })
+        }
+      } catch (activityError) {
+        console.error('Failed to load room activity:', activityError)
+        if (!cancelled) {
+          setRoomActivity({ total: 0, completed: 0, inProgress: 0, rooms: [] })
+        }
+      }
+    }
+
+    void loadRoomActivity()
 
     return () => {
       cancelled = true
@@ -644,6 +681,223 @@ function AdminRegistrationDetailPage() {
                 onChange={(e) => updateField('about_me', e.target.value)}
                 value={form.about_me}
               />
+            </section>
+
+            <section className="bg-surface-container-lowest p-6 md:p-8 space-y-5">
+              <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
+                <div>
+                  <p className="font-label text-[10px] uppercase tracking-[0.35em] text-primary font-bold">
+                    Player audit trail
+                  </p>
+                  <h2 className="mt-2 font-headline text-xl font-bold uppercase tracking-tight">
+                    Room Activity & Answer Logs
+                  </h2>
+                  <p className="mt-2 text-sm text-on-surface-variant">
+                    Review completed and in-progress rooms, submitted answers, interview bonus responses, and AI evaluation notes.
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-3 min-w-72">
+                  <div className="bg-surface-container-high p-4 border-l-2 border-l-outline">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                      Total
+                    </p>
+                    <p className="mt-1 font-headline text-3xl font-black">{roomActivity.total}</p>
+                  </div>
+                  <div className="bg-surface-container-high p-4 border-l-2 border-l-secondary">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                      Done
+                    </p>
+                    <p className="mt-1 font-headline text-3xl font-black">{roomActivity.completed}</p>
+                  </div>
+                  <div className="bg-surface-container-high p-4 border-l-2 border-l-primary">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                      Active
+                    </p>
+                    <p className="mt-1 font-headline text-3xl font-black">{roomActivity.inProgress}</p>
+                  </div>
+                </div>
+              </div>
+
+              {roomActivity.rooms.length ? (
+                <div className="space-y-3">
+                  {roomActivity.rooms.map((room) => (
+                    <details
+                      className="group border border-outline-variant/30 bg-surface-container-high"
+                      key={`${room.roomId}-${room.status}`}
+                    >
+                      <summary className="flex cursor-pointer list-none flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-headline text-lg font-bold uppercase tracking-tight text-on-surface">
+                              {room.title}
+                            </h3>
+                            <span
+                              className={`px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest ${
+                                room.status === 'completed'
+                                  ? 'bg-secondary text-background'
+                                  : 'bg-primary text-on-primary'
+                              }`}
+                            >
+                              {room.status}
+                            </span>
+                            <span className="bg-surface-container-highest px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                              {room.roomType}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-on-surface-variant">
+                            {room.category || 'Uncategorized'} / {room.difficulty || room.level || 'No difficulty'}
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-xs md:min-w-[360px]">
+                          <div>
+                            <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                              Started
+                            </p>
+                            <p className="mt-1 text-on-surface">{formatDateTime(room.startedAt)}</p>
+                          </div>
+                          <div>
+                            <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                              Completed
+                            </p>
+                            <p className="mt-1 text-on-surface">{formatDateTime(room.completedAt)}</p>
+                          </div>
+                        </div>
+                      </summary>
+
+                      <div className="space-y-4 border-t border-outline-variant/30 p-4">
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                          <div className="bg-surface-container-lowest p-3">
+                            <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                              XP
+                            </p>
+                            <p className="mt-1 font-headline text-2xl font-black">{room.xp || 0}</p>
+                          </div>
+                          <div className="bg-surface-container-lowest p-3">
+                            <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                              Technical
+                            </p>
+                            <p className="mt-1 font-headline text-2xl font-black">
+                              {room.technicalScore ?? 'N/A'}
+                            </p>
+                          </div>
+                          <div className="bg-surface-container-lowest p-3">
+                            <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                              Grammar
+                            </p>
+                            <p className="mt-1 font-headline text-2xl font-black">
+                              {room.grammarScore ?? 'N/A'}
+                            </p>
+                          </div>
+                          <div className="bg-surface-container-lowest p-3">
+                            <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                              AI Result
+                            </p>
+                            <p className="mt-1 font-headline text-sm font-bold uppercase tracking-widest">
+                              {room.aiPassed === null || room.aiPassed === undefined
+                                ? 'N/A'
+                                : room.aiPassed
+                                  ? 'Passed'
+                                  : 'Not passed'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {room.feedback ? (
+                          <div className="bg-surface-container-lowest p-4 border-l-2 border-l-primary">
+                            <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">
+                              AI Analysis
+                            </p>
+                            <p className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-on-surface-variant">
+                              {room.feedback}
+                            </p>
+                          </div>
+                        ) : null}
+
+                        <div className="space-y-3">
+                          <h4 className="font-headline text-sm font-bold uppercase tracking-widest text-on-surface">
+                            Submitted Answers
+                          </h4>
+                          {room.logs?.length ? (
+                            room.logs.map((log) => (
+                              <div
+                                className="bg-surface-container-lowest p-4 border border-outline-variant/20"
+                                key={`${room.roomId}-${log.type}-${log.id}`}
+                              >
+                                <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                                  <div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="bg-surface-container-highest px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                                        {log.type === 'interview-bonus' ? 'Interview bonus' : log.type}
+                                      </span>
+                                      {log.company ? (
+                                        <span className="bg-secondary/20 px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
+                                          {log.company}
+                                        </span>
+                                      ) : null}
+                                      {log.answeredCorrectly === null || log.answeredCorrectly === undefined ? null : (
+                                        <span
+                                          className={`px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest ${
+                                            log.answeredCorrectly
+                                              ? 'bg-secondary text-background'
+                                              : 'bg-primary text-on-primary'
+                                          }`}
+                                        >
+                                          {log.answeredCorrectly ? 'Correct' : 'Incorrect'}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="mt-3 whitespace-pre-wrap text-sm font-bold text-on-surface">
+                                      {log.prompt || 'Question prompt not recorded.'}
+                                    </p>
+                                  </div>
+                                  <p className="text-xs text-on-surface-variant md:text-right">
+                                    {formatDateTime(log.answeredAt)}
+                                  </p>
+                                </div>
+
+                                {log.sourceInfo || log.interview ? (
+                                  <p className="mt-3 text-xs uppercase tracking-widest text-on-surface-variant">
+                                    Source: {log.sourceInfo || log.interview}
+                                  </p>
+                                ) : null}
+
+                                <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                                  <div>
+                                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                                      Player Answer
+                                    </p>
+                                    <p className="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap bg-surface-container-high p-3 text-sm text-on-surface">
+                                      {log.answer || 'No answer recorded.'}
+                                    </p>
+                                  </div>
+                                  {log.expectedAnswer ? (
+                                    <div>
+                                      <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                                        Expected Answer
+                                      </p>
+                                      <p className="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap bg-surface-container-high p-3 text-sm text-on-surface">
+                                        {log.expectedAnswer}
+                                      </p>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="bg-surface-container-lowest p-4 text-sm text-on-surface-variant">
+                              No answer logs were recorded for this room yet.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              ) : (
+                <p className="bg-surface-container-high p-4 text-sm text-on-surface-variant">
+                  This player has not started any rooms yet.
+                </p>
+              )}
             </section>
 
             <section className="bg-surface-container-lowest p-6 md:p-8 space-y-5">

@@ -565,6 +565,137 @@ router.get('/admin/registrations/:id/completed-rooms', authenticate, requireAdmi
   })
 })
 
+router.get('/admin/registrations/:id/room-activity', authenticate, requireAdmin, async (req, res) => {
+  const userId = Number(req.params.id)
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: 'Invalid user id' })
+  }
+
+  const [userRows] = await pool.query('SELECT id FROM users WHERE id = ? LIMIT 1', [userId])
+  if (!userRows.length) {
+    return res.status(404).json({ message: 'User not found' })
+  }
+
+  const [progressRows] = await pool.query(
+    `SELECT
+       urp.room_id,
+       urp.started_at,
+       urp.completed_at,
+       r.slug,
+       r.title,
+       r.category,
+       r.level,
+       r.difficulty,
+       r.room_type,
+       r.xp,
+       r.questions_json AS manual_questions_json,
+       r.questions_enabled,
+       r.practical_ai_questions_enabled,
+       uta.questions_json AS ai_questions_json,
+       uta.answers_json AS ai_answers_json,
+       uta.technical_score,
+       uta.grammar_score,
+       uta.feedback,
+       uta.passed AS ai_passed,
+       uta.evaluated_at
+     FROM user_room_progress urp
+     INNER JOIN rooms r ON r.id = urp.room_id
+     LEFT JOIN user_room_theoretical_attempts uta
+       ON uta.user_id = urp.user_id AND uta.room_id = urp.room_id
+     WHERE urp.user_id = ?
+     ORDER BY COALESCE(urp.completed_at, urp.started_at) DESC`,
+    [userId],
+  )
+
+  const roomIds = progressRows.map((row) => row.room_id)
+  const questionProgressByRoom = new Map()
+
+  if (roomIds.length) {
+    const [questionRows] = await pool.query(
+      `SELECT room_id, question_id, answer_text, answered_correctly, answered_at
+       FROM user_room_question_progress
+       WHERE user_id = ? AND room_id IN (?)`,
+      [userId, roomIds],
+    )
+
+    questionRows.forEach((row) => {
+      const list = questionProgressByRoom.get(row.room_id) || []
+      list.push(row)
+      questionProgressByRoom.set(row.room_id, list)
+    })
+  }
+
+  const rooms = progressRows.map((row) => {
+    const manualQuestions = safeJsonParse(row.manual_questions_json, [])
+    const manualProgress = questionProgressByRoom.get(row.room_id) || []
+    const manualProgressMap = new Map(manualProgress.map((item) => [String(item.question_id), item]))
+    const aiQuestions = safeJsonParse(row.ai_questions_json, [])
+    const aiAnswers = safeJsonParse(row.ai_answers_json, {})
+
+    const manualLogs = manualQuestions.map((question, index) => {
+      const progress = manualProgressMap.get(String(question.id)) || {}
+      return {
+        id: question.id || `manual-${index + 1}`,
+        type: 'manual',
+        prompt: question.prompt || '',
+        expectedAnswer: question.answer || '',
+        answer: progress.answer_text || '',
+        answeredCorrectly:
+          progress.answered_correctly === null || progress.answered_correctly === undefined
+            ? null
+            : Boolean(progress.answered_correctly),
+        answeredAt: progress.answered_at ? new Date(progress.answered_at).toISOString() : null,
+      }
+    })
+
+    const aiLogs = aiQuestions.map((question, index) => ({
+      id: question.id || `ai-${index + 1}`,
+      type: question.bonus || question.optional ? 'interview-bonus' : 'ai',
+      prompt: question.prompt || '',
+      company: question.company || '',
+      interview: question.interview || '',
+      sourceInfo: question.sourceInfo || '',
+      answer: aiAnswers?.[question.id] || '',
+      answeredCorrectly:
+        row.ai_passed === null || row.ai_passed === undefined ? null : Boolean(row.ai_passed),
+      answeredAt: row.evaluated_at ? new Date(row.evaluated_at).toISOString() : null,
+    }))
+
+    return {
+      roomId: row.room_id,
+      slug: row.slug || row.room_id,
+      title: row.title || row.room_id,
+      category: row.category || 'Uncategorized',
+      level: row.level || row.difficulty || '',
+      difficulty: row.difficulty || row.level || '',
+      roomType: row.room_type || 'theoretical',
+      xp: row.xp || '0 XP',
+      status: row.completed_at ? 'completed' : 'in-progress',
+      startedAt: row.started_at ? new Date(row.started_at).toISOString() : null,
+      completedAt: row.completed_at ? new Date(row.completed_at).toISOString() : null,
+      manualQuestionsEnabled: Boolean(row.questions_enabled),
+      aiQuestionsEnabled: String(row.room_type || '').toLowerCase() !== 'practical' || Boolean(row.practical_ai_questions_enabled),
+      technicalScore:
+        row.technical_score === null || row.technical_score === undefined
+          ? null
+          : Number(row.technical_score),
+      grammarScore:
+        row.grammar_score === null || row.grammar_score === undefined ? null : Number(row.grammar_score),
+      aiPassed: row.ai_passed === null || row.ai_passed === undefined ? null : Boolean(row.ai_passed),
+      evaluatedAt: row.evaluated_at ? new Date(row.evaluated_at).toISOString() : null,
+      feedback: row.feedback || '',
+      logs: [...manualLogs, ...aiLogs],
+    }
+  })
+
+  return res.json({
+    total: rooms.length,
+    completed: rooms.filter((room) => room.status === 'completed').length,
+    inProgress: rooms.filter((room) => room.status === 'in-progress').length,
+    rooms,
+  })
+})
+
 router.put('/admin/registrations/:id', authenticate, requireAdmin, async (req, res) => {
   const userId = Number(req.params.id)
   if (!Number.isFinite(userId)) {
