@@ -32,6 +32,16 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
     })
   }
 
+  const setAiValue = (key, value) => {
+    onConfigChange({
+      ...config,
+      ai: { ...(config.ai || {}), [key]: value },
+    })
+  }
+
+  const availableAiModels = Array.isArray(config.ai?.availableModels) ? config.ai.availableModels : []
+  const selectedAiModel = config.ai?.model || availableAiModels[0]?.id || ''
+
   return (
     <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
       <section className="max-w-5xl mx-auto">
@@ -431,6 +441,79 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                 onChange={(v) => setFeatureValue('publicRegistration', v)}
               />
             </div>
+          </div>
+        </section>
+
+        <section className="mt-8">
+          <h2 className="font-headline text-2xl font-bold uppercase tracking-tight mb-6 text-primary flex items-center gap-2">
+            <span className="material-symbols-outlined">psychology</span>
+            AI Runtime Control
+          </h2>
+          <div className="bg-surface-container-lowest p-6 md:p-8 border-l-4 border-secondary">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-xl">
+                <h3 className="font-headline text-xl font-bold uppercase tracking-tight">
+                  Active AI Model
+                </h3>
+                <p className="mt-2 text-sm text-on-surface-variant">
+                  Choose the model used by room question generation, evaluation, profile analysis, Cyber AI, and Admin AI. API keys and base URL still come from backend environment settings.
+                </p>
+              </div>
+
+              <label className="block w-full lg:max-w-md">
+                <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                  Available Models
+                </span>
+                <select
+                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                  onChange={(event) => setAiValue('model', event.target.value)}
+                  value={selectedAiModel}
+                >
+                  {availableAiModels.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.label || model.id}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-2 text-xs text-on-surface-variant break-all">
+                  Current model id: {selectedAiModel || 'Not configured'}
+                </p>
+              </label>
+            </div>
+
+            {availableAiModels.length ? (
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+                {availableAiModels.map((model) => (
+                  <article
+                    className={`p-4 border-l-2 ${
+                      model.id === selectedAiModel
+                        ? 'bg-secondary/10 border-l-secondary'
+                        : 'bg-surface-container-high border-l-outline-variant'
+                    }`}
+                    key={model.id}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-headline text-sm font-bold uppercase tracking-wide">
+                          {model.label || model.id}
+                        </p>
+                        <p className="mt-1 text-xs text-on-surface-variant break-all">{model.id}</p>
+                      </div>
+                      <span className="bg-surface-container-highest px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                        {model.provider || 'AI'}
+                      </span>
+                    </div>
+                    {model.description ? (
+                      <p className="mt-3 text-xs text-on-surface-variant">{model.description}</p>
+                    ) : null}
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-6 bg-surface-container-high p-4 text-sm text-on-surface-variant">
+                No model list was returned by the backend.
+              </p>
+            )}
           </div>
         </section>
       </section>

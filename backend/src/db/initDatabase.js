@@ -61,6 +61,7 @@ async function ensureDatabase() {
       id INT PRIMARY KEY,
       routes_json JSON NOT NULL,
       features_json JSON NOT NULL,
+      ai_json JSON NULL,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     );
 
@@ -366,6 +367,7 @@ async function ensureDatabase() {
     'updated_at',
     'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
   )
+  await addColumnIfMissing('platform_config', 'ai_json', 'JSON NULL')
   await addColumnIfMissing('career_path_modules', 'module_image_data', 'LONGTEXT NULL')
   await addColumnIfMissing('notifications', 'target_user_id', 'INT NULL')
   await addColumnIfMissing('ctf_events', 'weight', 'DECIMAL(8,2) DEFAULT 0')
@@ -434,8 +436,12 @@ async function ensureDatabase() {
   const [configCountRows] = await connection.query('SELECT COUNT(*) AS count FROM platform_config')
   if (!configCountRows[0].count) {
     await connection.query(
-      'INSERT INTO platform_config (id, routes_json, features_json) VALUES (1, ?, ?)',
-      [JSON.stringify(defaultPlatformConfig.routes), JSON.stringify(defaultPlatformConfig.features)],
+      'INSERT INTO platform_config (id, routes_json, features_json, ai_json) VALUES (1, ?, ?, ?)',
+      [
+        JSON.stringify(defaultPlatformConfig.routes),
+        JSON.stringify(defaultPlatformConfig.features),
+        JSON.stringify(defaultPlatformConfig.ai || {}),
+      ],
     )
   }
 

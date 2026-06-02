@@ -11,6 +11,7 @@ import { pool } from '../db/pool.js'
 import { env } from '../config/env.js'
 import { authenticate, optionalAuthenticate, requireAdmin } from '../middleware/auth.js'
 import { mapRoomRow } from '../services/roomMapper.js'
+import { getAiRuntimeConfig } from '../services/aiSettings.js'
 
 const router = Router()
 const execFileAsync = promisify(execFile)
@@ -634,15 +635,16 @@ async function generateTheoreticalQuestions(room, userId, attemptSalt = '') {
   }
 
   try {
+    const aiConfig = await getAiRuntimeConfig()
     const client = new OpenAI({
-      baseURL: env.aiBaseUrl,
-      apiKey: env.nvidiaApiKey,
+      baseURL: aiConfig.baseUrl,
+      apiKey: aiConfig.apiKey,
     })
 
     const response = await client.chat.completions.create({
-      model: env.aiModel,
-      temperature: Math.max(0.75, Number(env.aiTemperature || 0.9)),
-      top_p: env.aiTopP,
+      model: aiConfig.model,
+      temperature: Math.max(0.75, Number(aiConfig.temperature || 0.9)),
+      top_p: aiConfig.topP,
       max_tokens: 1200,
       stream: false,
       messages: [
@@ -750,15 +752,16 @@ async function evaluateTheoreticalAnswers(room, questions, answers) {
   }
 
   try {
+    const aiConfig = await getAiRuntimeConfig()
     const client = new OpenAI({
-      baseURL: env.aiBaseUrl,
-      apiKey: env.nvidiaApiKey,
+      baseURL: aiConfig.baseUrl,
+      apiKey: aiConfig.apiKey,
     })
 
     const response = await client.chat.completions.create({
-      model: env.aiModel,
+      model: aiConfig.model,
       temperature: 0.1,
-      top_p: env.aiTopP,
+      top_p: aiConfig.topP,
       max_tokens: 900,
       stream: false,
       messages: [
@@ -855,15 +858,16 @@ async function generateProfileAnalysis(completedRooms) {
   }
 
   try {
+    const aiConfig = await getAiRuntimeConfig()
     const client = new OpenAI({
-      baseURL: env.aiBaseUrl,
-      apiKey: env.nvidiaApiKey,
+      baseURL: aiConfig.baseUrl,
+      apiKey: aiConfig.apiKey,
     })
 
     const response = await client.chat.completions.create({
-      model: env.aiModel,
+      model: aiConfig.model,
       temperature: 0.25,
-      top_p: env.aiTopP,
+      top_p: aiConfig.topP,
       max_tokens: 900,
       stream: false,
       messages: [

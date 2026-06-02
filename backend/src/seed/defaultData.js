@@ -31,6 +31,9 @@ export const defaultPlatformConfig = {
     navbarSettings: true,
     publicRegistration: true,
   },
+  ai: {
+    model: 'moonshotai/kimi-k2-thinking',
+  },
 }
 
 export const defaultRooms = [

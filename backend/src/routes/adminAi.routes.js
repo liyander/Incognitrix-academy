@@ -3,6 +3,7 @@ import OpenAI from 'openai'
 import { pool } from '../db/pool.js'
 import { env } from '../config/env.js'
 import { authenticate, requireAdmin } from '../middleware/auth.js'
+import { getAiRuntimeConfig } from '../services/aiSettings.js'
 
 const router = Router()
 const pendingActionByUser = new Map()
@@ -1829,16 +1830,17 @@ router.post('/chat', async (req, res, next) => {
       })
     }
 
+    const aiConfig = await getAiRuntimeConfig()
     const client = new OpenAI({
-      baseURL: env.aiBaseUrl,
-      apiKey: env.nvidiaApiKey,
+      baseURL: aiConfig.baseUrl,
+      apiKey: aiConfig.apiKey,
     })
 
     const payload = await client.chat.completions.create({
-      model: env.aiModel,
+      model: aiConfig.model,
       temperature: 0.2,
-      top_p: env.aiTopP,
-      max_tokens: Math.min(env.aiMaxTokens, 2000),
+      top_p: aiConfig.topP,
+      max_tokens: Math.min(aiConfig.maxTokens, 2000),
       stream: false,
       messages: [
         {

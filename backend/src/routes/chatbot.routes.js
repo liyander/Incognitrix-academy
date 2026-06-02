@@ -3,6 +3,7 @@ import OpenAI from 'openai'
 import { env } from '../config/env.js'
 import { pool } from '../db/pool.js'
 import { authenticate } from '../middleware/auth.js'
+import { getAiRuntimeConfig } from '../services/aiSettings.js'
 
 const router = Router()
 
@@ -849,17 +850,18 @@ router.post('/message', authenticate, async (req, res, next) => {
 
     let content = ''
     try {
+      const aiConfig = await getAiRuntimeConfig()
       const client = new OpenAI({
-        baseURL: env.aiBaseUrl,
-        apiKey: env.nvidiaApiKey,
+        baseURL: aiConfig.baseUrl,
+        apiKey: aiConfig.apiKey,
       })
 
       const prompt = buildSystemPrompt(context?.mode || 'brief', context)
       const payload = await client.chat.completions.create({
-        model: env.aiModel,
-        temperature: context?.mode === 'detailed' ? Math.max(env.aiTemperature, 0.7) : Math.min(env.aiTemperature, 0.5),
-        top_p: env.aiTopP,
-        max_tokens: context?.mode === 'detailed' ? env.aiMaxTokens : Math.min(env.aiMaxTokens, 900),
+        model: aiConfig.model,
+        temperature: context?.mode === 'detailed' ? Math.max(aiConfig.temperature, 0.7) : Math.min(aiConfig.temperature, 0.5),
+        top_p: aiConfig.topP,
+        max_tokens: context?.mode === 'detailed' ? aiConfig.maxTokens : Math.min(aiConfig.maxTokens, 900),
         stream: false,
         messages: [
           {

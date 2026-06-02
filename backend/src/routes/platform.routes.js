@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { pool } from '../db/pool.js'
 import { authenticate, requireAdmin } from '../middleware/auth.js'
+import { buildAiPlatformConfig } from '../services/aiSettings.js'
 
 const router = Router()
 
@@ -21,25 +22,32 @@ function parseJsonField(value, fallback = {}) {
 }
 
 router.get('/', async (_req, res) => {
-  const [rows] = await pool.query('SELECT routes_json, features_json FROM platform_config WHERE id = 1')
+  const [rows] = await pool.query('SELECT routes_json, features_json, ai_json FROM platform_config WHERE id = 1')
   if (!rows.length) {
-    return res.json({ routes: {}, features: {} })
+    return res.json({ routes: {}, features: {}, ai: buildAiPlatformConfig() })
   }
 
   return res.json({
     routes: parseJsonField(rows[0].routes_json, {}),
     features: parseJsonField(rows[0].features_json, {}),
+    ai: buildAiPlatformConfig(parseJsonField(rows[0].ai_json, {})),
   })
 })
 
 router.put('/', authenticate, requireAdmin, async (req, res) => {
-  const { routes, features } = req.body || {}
+  const { routes, features, ai } = req.body || {}
+  const aiConfig = buildAiPlatformConfig(ai || {})
   await pool.query(
-    'UPDATE platform_config SET routes_json = ?, features_json = ? WHERE id = 1',
-    [JSON.stringify(routes || {}), JSON.stringify(features || {})],
+    `INSERT INTO platform_config (id, routes_json, features_json, ai_json)
+     VALUES (1, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       routes_json = VALUES(routes_json),
+       features_json = VALUES(features_json),
+       ai_json = VALUES(ai_json)`,
+    [JSON.stringify(routes || {}), JSON.stringify(features || {}), JSON.stringify(aiConfig)],
   )
 
-  return res.json({ routes: routes || {}, features: features || {} })
+  return res.json({ routes: routes || {}, features: features || {}, ai: aiConfig })
 })
 
 export default router
