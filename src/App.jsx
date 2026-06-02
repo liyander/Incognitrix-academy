@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import './App.css'
 import { getAuthSession, logoutUser } from './auth'
@@ -58,6 +58,7 @@ function App() {
   const [isBootstrapping, setIsBootstrapping] = useState(true)
   const [syncTick, setSyncTick] = useState(0)
   const [theme, setTheme] = useState(getSavedTheme)
+  const platformConfigSaveRef = useRef({ inFlight: false, version: 0 })
   const location = useLocation()
   const isPublicVerificationRoute = location.pathname.startsWith('/verify-certificate')
 
@@ -143,6 +144,10 @@ function App() {
 
     let cancelled = false
     const syncNow = async () => {
+      if (platformConfigSaveRef.current.inFlight) {
+        return
+      }
+
       try {
         await syncFrontendStateFromBackend()
         if (!cancelled) {
@@ -168,17 +173,34 @@ function App() {
 
   const updatePlatformConfig = (nextConfig) => {
     const merged = savePlatformConfig(nextConfig)
+    const saveVersion = platformConfigSaveRef.current.version + 1
+    platformConfigSaveRef.current = { inFlight: true, version: saveVersion }
     setPlatformConfig(merged)
     void apiFetch('/platform-config', {
       method: 'PUT',
       body: JSON.stringify(merged),
-    }).catch((error) => {
-      if (isAuthError(error)) {
-        handleSessionExpired()
-        return
-      }
-      console.error('Failed to sync platform config:', error)
     })
+      .then((savedConfig) => {
+        if (platformConfigSaveRef.current.version !== saveVersion) {
+          return
+        }
+
+        const savedMerged = savePlatformConfig(savedConfig)
+        setPlatformConfig(savedMerged)
+        setSyncTick((value) => value + 1)
+      })
+      .catch((error) => {
+        if (isAuthError(error)) {
+          handleSessionExpired()
+          return
+        }
+        console.error('Failed to sync platform config:', error)
+      })
+      .finally(() => {
+        if (platformConfigSaveRef.current.version === saveVersion) {
+          platformConfigSaveRef.current = { inFlight: false, version: saveVersion }
+        }
+      })
   }
 
   if (authSession && !authSession.token) {
