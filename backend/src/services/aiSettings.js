@@ -79,13 +79,13 @@ export async function getAiRuntimeConfig() {
     temperature: env.aiTemperature,
     topP: env.aiTopP,
     maxTokens: env.aiMaxTokens,
-    availableModels,
+    availableModels: availableAiModels,
   }
 }
 
 export function buildAiPlatformConfig(input = {}) {
   return {
     model: normalizeModelId(input.model),
-    availableModels,
+    availableModels: availableAiModels,
   }
 }
