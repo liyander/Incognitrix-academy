@@ -112,9 +112,10 @@ function App() {
       }
 
       try {
-        await syncFrontendStateFromBackend()
+        const syncResult = await syncFrontendStateFromBackend({ persistPlatformConfig: false })
         if (!cancelled) {
-          setPlatformConfig(loadPlatformConfig())
+          const savedConfig = savePlatformConfig(syncResult.platformConfig)
+          setPlatformConfig(savedConfig)
           setSyncTick((value) => value + 1)
         }
       } catch (error) {
@@ -148,10 +149,16 @@ function App() {
         return
       }
 
+      const syncVersion = platformConfigSaveRef.current.version
       try {
-        await syncFrontendStateFromBackend()
+        const syncResult = await syncFrontendStateFromBackend({ persistPlatformConfig: false })
+        if (platformConfigSaveRef.current.inFlight || platformConfigSaveRef.current.version !== syncVersion) {
+          return
+        }
+
         if (!cancelled) {
-          setPlatformConfig(loadPlatformConfig())
+          const savedConfig = savePlatformConfig(syncResult.platformConfig)
+          setPlatformConfig(savedConfig)
           setSyncTick((value) => value + 1)
         }
       } catch (error) {

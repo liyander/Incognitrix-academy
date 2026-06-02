@@ -5,7 +5,8 @@ import { hydrateCvesData } from '../data/cvesData'
 import { savePlatformConfig } from '../platformConfig'
 import { syncLabProgressFromBackend } from './labProgress'
 
-export async function syncFrontendStateFromBackend() {
+export async function syncFrontendStateFromBackend(options = {}) {
+  const { persistPlatformConfig = true } = options
   const [rooms, careerPaths, platformConfig, cves] = await Promise.all([
     apiFetch('/rooms'),
     apiFetch('/career-paths'),
@@ -17,7 +18,7 @@ export async function syncFrontendStateFromBackend() {
   hydrateCareerPathsData(Array.isArray(careerPaths) ? careerPaths : [])
   hydrateCvesData(Array.isArray(cves) ? cves : [])
 
-  if (platformConfig?.routes || platformConfig?.features) {
+  if (persistPlatformConfig && (platformConfig?.routes || platformConfig?.features || platformConfig?.ai)) {
     savePlatformConfig(platformConfig)
   }
 
