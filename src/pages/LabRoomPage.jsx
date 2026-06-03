@@ -408,6 +408,36 @@ function LabRoomPage() {
     }
 
     const terminalHost = xtermHostRef.current
+    const isLightTerminalTheme = document.documentElement.getAttribute('data-theme') !== 'dark'
+    const terminalPalette = isLightTerminalTheme
+      ? {
+          background: '#fbfcfd',
+          foreground: '#14212a',
+          cursor: '#b6171e',
+          selectionBackground: '#cfeaf1',
+          black: '#111827',
+          red: '#b6171e',
+          green: '#16794f',
+          yellow: '#8a5d00',
+          blue: '#006878',
+          magenta: '#8f1c58',
+          cyan: '#006878',
+          white: '#f8f9fb',
+        }
+      : {
+          background: '#020405',
+          foreground: '#d7f7ff',
+          cursor: '#66d9ef',
+          selectionBackground: '#2b3f4a',
+          black: '#020405',
+          red: '#ff6670',
+          green: '#78d97b',
+          yellow: '#f7d66b',
+          blue: '#66d9ef',
+          magenta: '#ff7aa8',
+          cyan: '#66d9ef',
+          white: '#d7f7ff',
+        }
     const terminal = new Terminal({
       cursorBlink: true,
       convertEol: true,
@@ -416,20 +446,7 @@ function LabRoomPage() {
       lineHeight: 1.25,
       rows: 32,
       scrollback: 5000,
-      theme: {
-        background: '#020405',
-        foreground: '#d7f7ff',
-        cursor: '#66d9ef',
-        selectionBackground: '#2b3f4a',
-        black: '#020405',
-        red: '#ff6670',
-        green: '#78d97b',
-        yellow: '#f7d66b',
-        blue: '#66d9ef',
-        magenta: '#ff7aa8',
-        cyan: '#66d9ef',
-        white: '#d7f7ff',
-      },
+      theme: terminalPalette,
     })
     terminal.open(terminalHost)
     let terminalSocket = null
@@ -1154,9 +1171,9 @@ function LabRoomPage() {
               </p>
 
               {isTerminalOpen ? (
-                <div className="fixed inset-0 z-[120] bg-[#050607] text-[#d7f7ff]">
+                <div className="fixed inset-0 z-[120] bg-surface text-on-surface">
                   <div className="flex h-full flex-col">
-                    <div className="flex items-center justify-between border-b border-[#24313a] bg-[#10161a] px-5 py-3">
+                    <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-5 py-3 dark:border-[#24313a] dark:bg-[#10161a]">
                       <div className="flex items-center gap-3">
                         <span className="h-3 w-3 rounded-full bg-primary"></span>
                         <span className="h-3 w-3 rounded-full bg-secondary"></span>
@@ -1185,8 +1202,8 @@ function LabRoomPage() {
                     </div>
 
                     <div className="flex min-h-0 flex-1 flex-col px-5 py-4">
-                      <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border border-[#233039] bg-[#0b0f12] px-4 py-3">
-                        <p className="font-space text-xs text-[#9ed8e8]">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border border-outline-variant bg-surface-container-lowest px-4 py-3 dark:border-[#233039] dark:bg-[#0b0f12]">
+                        <p className="font-space text-xs text-on-surface-variant dark:text-[#9ed8e8]">
                           Commands run inside your personal challenge sandbox. Uploaded files appear in /challenge only when enabled by admin.
                         </p>
                         {dockerStatus.access?.url && isDockerServiceActive ? (
@@ -1194,20 +1211,20 @@ function LabRoomPage() {
                             target: {dockerStatus.access.url}
                           </p>
                         ) : null}
-                        <p className="font-space text-xs text-[#9ed8e8]">
+                        <p className="font-space text-xs text-on-surface-variant dark:text-[#9ed8e8]">
                           mode: interactive shell
                         </p>
                       </div>
 
-                      <div className="min-h-0 flex-1 overflow-hidden border border-[#26343d] bg-[#020405] p-3 shadow-[inset_0_0_40px_rgba(0,0,0,0.7)]">
+                      <div className="min-h-0 flex-1 overflow-hidden border border-outline-variant bg-surface-container-lowest p-3 shadow-[inset_0_0_28px_rgba(25,28,30,0.08)] dark:border-[#26343d] dark:bg-[#020405] dark:shadow-[inset_0_0_40px_rgba(0,0,0,0.7)]">
                         {isDockerServiceActive ? (
                           <div
-                            className="h-full w-full pb-6 [&_.xterm]:h-full [&_.xterm-screen]:!h-full [&_.xterm-viewport]:!bg-[#020405]"
+                            className="h-full w-full pb-6 [&_.xterm]:h-full [&_.xterm-screen]:!h-full [&_.xterm-viewport]:!bg-[#fbfcfd] dark:[&_.xterm-viewport]:!bg-[#020405]"
                             onClick={() => xtermRef.current?.focus()}
                             ref={xtermHostRef}
                           ></div>
                         ) : (
-                          <div className="space-y-3 p-5 font-space text-sm text-[#9ed8e8]">
+                          <div className="space-y-3 p-5 font-space text-sm text-on-surface-variant dark:text-[#9ed8e8]">
                             <pre className="whitespace-pre-wrap text-secondary">
 {`Welcome to Incognitrix Academy
 Interactive sandbox terminal waiting for Docker spawn.`}
