@@ -227,9 +227,29 @@ async function installDockerTerminalTools(containerId, tools = []) {
     'else echo "No supported package manager found for requested terminal tools. Use an isolated terminal image with apk, apt-get, dnf, or yum." >&2; exit 127; fi',
   ].join(' ')
 
-  await dockerExec(['exec', containerId, 'sh', '-lc', script], {
+  await dockerExec(['exec', '--user', '0:0', containerId, 'sh', '-lc', script], {
     timeout: 180000,
     maxBuffer: 1024 * 1024,
+  })
+}
+
+async function ensureDockerTerminalTools(containerId, tools = []) {
+  if (!tools.length) return
+  const marker = `/tmp/.incognitrix_tools_${tools.join('_').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 120)}`
+  try {
+    await dockerExec(['exec', containerId, 'sh', '-lc', `test -f ${marker}`], {
+      timeout: 5000,
+      maxBuffer: 64 * 1024,
+    })
+    return
+  } catch {
+    // Missing marker: install the configured tools below.
+  }
+
+  await installDockerTerminalTools(containerId, tools)
+  await dockerExec(['exec', '--user', '0:0', containerId, 'sh', '-lc', `touch ${marker}`], {
+    timeout: 5000,
+    maxBuffer: 64 * 1024,
   })
 }
 
@@ -241,7 +261,7 @@ async function copyRoomAttachmentToDocker(containerId, room, config) {
   const tempPath = path.join(tempDir, fileName)
   try {
     await fs.writeFile(tempPath, decodeDataUrl(room.content.attachment.dataUrl))
-    await dockerExec(['exec', containerId, 'sh', '-lc', 'mkdir -p /challenge && chmod 755 /challenge'], {
+    await dockerExec(['exec', '--user', '0:0', containerId, 'sh', '-lc', 'mkdir -p /challenge && chmod 755 /challenge'], {
       timeout: 10000,
       maxBuffer: 128 * 1024,
     })
@@ -249,7 +269,7 @@ async function copyRoomAttachmentToDocker(containerId, room, config) {
       timeout: 30000,
       maxBuffer: 512 * 1024,
     })
-    await dockerExec(['exec', containerId, 'sh', '-lc', `chmod 644 /challenge/${fileName}`], {
+    await dockerExec(['exec', '--user', '0:0', containerId, 'sh', '-lc', `chmod 644 /challenge/${fileName}`], {
       timeout: 10000,
       maxBuffer: 128 * 1024,
     })
@@ -269,6 +289,12 @@ function splitTerminalCwdFromOutput(stdout) {
   const before = text.slice(0, index).replace(/\n$/, '')
   const after = text.slice(index + marker.length).trim().split(/\r?\n/)[0] || ''
   return { stdout: before, cwd: after || '' }
+}
+
+function isBlockedPlayerTerminalCommand(command) {
+  const normalized = String(command || '').toLowerCase()
+  return /(^|[;&|()]\s*|\s)(sudo\s+)?(apt|apt-get|apk|yum|dnf|pacman|zypper)\s+/.test(normalized) ||
+    /(^|[;&|()]\s*|\s)(pip|pip3|npm|pnpm|yarn|gem|cargo|go)\s+(install|add|get)\b/.test(normalized)
 }
 
 function normalizeDockerHostname(hostname, tlsEnabled) {
@@ -2324,6 +2350,11 @@ router.post('/:id/docker/terminal', authenticate, async (req, res) => {
   if (command.length > 1000 || command.includes('\u0000')) {
     return res.status(400).json({ message: 'Terminal command is too large or invalid.' })
   }
+  if (isBlockedPlayerTerminalCommand(command)) {
+    return res.status(403).json({
+      message: 'Package installation is restricted. Use the tools prepared by the admin for this lab.',
+    })
+  }
   const requestedCwd = String(req.body?.cwd || '/').trim() || '/'
   if (requestedCwd.length > 300 || requestedCwd.includes('\u0000')) {
     return res.status(400).json({ message: 'Terminal working directory is invalid.' })
@@ -2361,6 +2392,7 @@ router.post('/:id/docker/terminal', authenticate, async (req, res) => {
   }
 
   try {
+    await ensureDockerTerminalTools(terminalContainerName, config.terminalTools)
     const workdir = config.exposeAttachmentToTerminal && room?.content?.attachment?.dataUrl ? '/challenge' : '/'
     const wrapper = [
       'cd "$INCOGNITRIX_CWD" 2>/dev/null || cd "$INCOGNITRIX_DEFAULT_CWD" 2>/dev/null || cd /',

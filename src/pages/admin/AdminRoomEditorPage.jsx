@@ -255,6 +255,20 @@ function AdminRoomEditorPage() {
     }))
   }
 
+  const rememberTerminalToolPresets = (value) => {
+    const nextTools = String(value || '')
+      .split(/[\s,]+/)
+      .map((tool) => tool.trim())
+      .filter(Boolean)
+    if (!nextTools.length) {
+      return
+    }
+
+    const uniqueTerminalToolPresets = [...new Set([...terminalToolPresets, ...nextTools])].sort()
+    setTerminalToolPresets(uniqueTerminalToolPresets)
+    localStorage.setItem('incognitrix_terminal_tool_presets', JSON.stringify(uniqueTerminalToolPresets))
+  }
+
   const addTerminalToolPreset = (tool) => {
     const selected = String(tool || '').trim()
     if (!selected) {
@@ -267,6 +281,7 @@ function AdminRoomEditorPage() {
       .filter(Boolean)
     const nextTools = [...new Set([...currentTools, selected])]
     handleDockerChange('terminalTools', nextTools.join(' '))
+    rememberTerminalToolPresets(nextTools.join(' '))
   }
 
   const handleVulnerabilityBriefingChange = (field, value) => {
@@ -961,6 +976,7 @@ function AdminRoomEditorPage() {
                       <input
                         className="mt-2 w-full bg-surface-container-lowest border border-outline-variant/40 font-body text-sm py-2.5 px-3 outline-none"
                         onChange={(e) => handleDockerChange('terminalTools', e.target.value)}
+                        onBlur={(e) => rememberTerminalToolPresets(e.target.value)}
                         placeholder="Comma or space separated packages, e.g. curl nmap netcat-openbsd python3"
                         type="text"
                         value={formData.content?.docker?.terminalTools || ''}

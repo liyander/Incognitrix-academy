@@ -1092,7 +1092,7 @@ function LabRoomPage() {
                      /____/                           
 
 Welcome to Incognitrix Academy
-Sandbox terminal ready. cd, pwd, ls, curl, and installed tools are available from the prompt below.`}
+Sandbox terminal ready. cd, pwd, ls and installed tools are available from the prompt below.`}
 </pre>
                         {terminalHistory.length > 0 ? (
                           terminalHistory.map((entry) => (
