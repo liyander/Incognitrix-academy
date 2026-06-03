@@ -291,7 +291,7 @@ async function copyRoomAttachmentToDocker(containerId, room, config) {
       timeout: 30000,
       maxBuffer: 512 * 1024,
     })
-    await dockerExec(['exec', '--user', '0:0', containerId, 'sh', '-lc', `chmod 644 /challenge/${fileName}`], {
+    await dockerExec(['exec', '--user', '0:0', containerId, 'chmod', '644', `/challenge/${fileName}`], {
       timeout: 10000,
       maxBuffer: 128 * 1024,
     })
