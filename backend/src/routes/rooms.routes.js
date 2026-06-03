@@ -199,6 +199,14 @@ async function dockerExec(args, options = {}) {
   }
 }
 
+function shellQuote(value) {
+  const text = String(value ?? '')
+  if (/^[A-Za-z0-9_@%+=:,./-]+$/.test(text)) {
+    return text
+  }
+  return `'${text.replace(/'/g, "'\\''")}'`
+}
+
 function sanitizeContainerFileName(name) {
   return String(name || 'challenge-file')
     .replace(/[/\\?%*:|"<>]/g, '_')
@@ -2766,7 +2774,8 @@ export function setupRoomTerminalWebSocket(server) {
 
       const workdir = config.exposeAttachmentToTerminal && room?.content?.attachment?.dataUrl ? '/challenge' : '/tmp'
       prefix = await buildDockerCliPrefix()
-      child = spawn('docker', [
+      const dockerTerminalCommand = [
+        'docker',
         ...prefix.args,
         'exec',
         '-i',
@@ -2777,7 +2786,21 @@ export function setupRoomTerminalWebSocket(server) {
         workdir,
         terminalContainerName,
         'sh',
-      ])
+      ].map(shellQuote).join(' ')
+
+      child = spawn('script', [
+        '-q',
+        '-f',
+        '-e',
+        '-c',
+        dockerTerminalCommand,
+        '/dev/null',
+      ], {
+        env: {
+          ...process.env,
+          TERM: 'xterm-256color',
+        },
+      })
 
       sendJson({ type: 'ready', cwd: workdir })
       child.stdout.on('data', (chunk) => sendJson({ type: 'output', data: chunk.toString('base64') }))
