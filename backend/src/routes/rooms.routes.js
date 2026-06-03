@@ -2078,11 +2078,12 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
     [req.user.id, room.id],
   )
 
+  let expiredExistingInstance = false
   if (instanceRows[0]) {
-    await stopStaleDockerInstance(instanceRows[0], config)
+    expiredExistingInstance = await stopStaleDockerInstance(instanceRows[0], config)
   }
 
-  if (existing.running && instanceRows[0]?.host_port && !forceRevert) {
+  if (existing.running && instanceRows[0]?.host_port && !forceRevert && !expiredExistingInstance) {
     const hostPort = Number(instanceRows[0].host_port)
     return res.json({
       enabled: true,
@@ -2125,7 +2126,8 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
        container_id = VALUES(container_id),
        container_name = VALUES(container_name),
        host_port = VALUES(host_port),
-       status = 'running'`,
+       status = 'running',
+       created_at = CURRENT_TIMESTAMP`,
     [req.user.id, room.id, containerId, containerName, hostPort],
   )
 
