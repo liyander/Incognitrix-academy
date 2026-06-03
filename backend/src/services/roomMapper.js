@@ -47,6 +47,10 @@ export function mapRoomRow(roomRow, tags = [], keywords = []) {
         protocol: roomRow.docker_protocol || 'http',
         timeoutMinutes: Number(roomRow.docker_timeout_minutes || 120),
         instructions: roomRow.docker_instructions || '',
+        terminalTools: roomRow.docker_terminal_tools || '',
+        exposeAttachmentToTerminal: Boolean(roomRow.docker_expose_attachment_to_terminal),
+        terminalMode: roomRow.docker_terminal_mode || 'service',
+        terminalImage: roomRow.docker_terminal_image || '',
       },
       questionsEnabled: Boolean(roomRow.questions_enabled),
       questions: (() => {

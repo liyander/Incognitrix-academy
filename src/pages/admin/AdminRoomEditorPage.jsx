@@ -76,6 +76,10 @@ function AdminRoomEditorPage() {
           protocol: 'http',
           timeoutMinutes: 120,
           instructions: '',
+          terminalTools: '',
+          exposeAttachmentToTerminal: false,
+          terminalMode: 'service',
+          terminalImage: '',
         },
         questionsEnabled: false,
         questions: [],
@@ -916,6 +920,77 @@ function AdminRoomEditorPage() {
                         rows="3"
                         value={formData.content?.docker?.instructions || ''}
                       ></textarea>
+                    </label>
+                    <label className="block md:col-span-2">
+                      <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                        Terminal Tools
+                      </span>
+                      <input
+                        className="mt-2 w-full bg-surface-container-lowest border border-outline-variant/40 font-body text-sm py-2.5 px-3 outline-none"
+                        onChange={(e) => handleDockerChange('terminalTools', e.target.value)}
+                        placeholder="Comma or space separated packages, e.g. curl nmap netcat-openbsd python3"
+                        type="text"
+                        value={formData.content?.docker?.terminalTools || ''}
+                      />
+                      <p className="mt-1 text-[11px] text-on-surface-variant">
+                        Installed after spawn with the container package manager. Use package names only.
+                      </p>
+                    </label>
+                    <label className="block">
+                      <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                        Terminal Mode
+                      </span>
+                      <select
+                        className="mt-2 w-full bg-surface-container-lowest border border-outline-variant/40 font-body text-sm py-2.5 px-3 outline-none"
+                        onChange={(e) => handleDockerChange('terminalMode', e.target.value)}
+                        value={formData.content?.docker?.terminalMode || 'service'}
+                      >
+                        <option value="service">Service container</option>
+                        <option value="isolated">Isolated utility container</option>
+                      </select>
+                      <p className="mt-1 text-[11px] text-on-surface-variant">
+                        Use isolated mode for web challenges so terminal users cannot browse service source files.
+                      </p>
+                    </label>
+                    {formData.content?.docker?.terminalMode === 'isolated' ? (
+                      <label className="block md:col-span-2">
+                        <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                          Terminal Runtime Image
+                        </span>
+                        <select
+                          className="mt-2 w-full bg-surface-container-lowest border border-outline-variant/40 font-body text-sm py-2.5 px-3 outline-none"
+                          onChange={(e) => handleDockerChange('terminalImage', e.target.value)}
+                          value={formData.content?.docker?.terminalImage || ''}
+                        >
+                          <option value="">
+                            {dockerImages.length ? 'Select utility terminal image' : 'No Docker images available'}
+                          </option>
+                          {dockerImages.map((image) => (
+                            <option key={`terminal-${image.id}-${image.name}`} value={image.name}>
+                              {image.name}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="mt-1 text-[11px] text-on-surface-variant">
+                          Choose a small image with a shell, such as alpine, debian, kali, or another prepared utility image.
+                        </p>
+                      </label>
+                    ) : null}
+                    <label className="flex items-start gap-3 bg-surface-container-lowest p-4 md:col-span-3 cursor-pointer">
+                      <input
+                        checked={Boolean(formData.content?.docker?.exposeAttachmentToTerminal)}
+                        className="mt-1 h-4 w-4"
+                        onChange={(e) => handleDockerChange('exposeAttachmentToTerminal', e.target.checked)}
+                        type="checkbox"
+                      />
+                      <span>
+                        <span className="block font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface">
+                          Expose Uploaded File In Terminal
+                        </span>
+                        <span className="mt-1 block text-xs text-on-surface-variant">
+                          Copies the uploaded practical-room file into /challenge for file-based labs. Leave disabled for web challenges so source files are not intentionally exposed through the terminal.
+                        </span>
+                      </span>
                     </label>
                   </div>
                   <div className="mt-5 bg-surface-container-lowest p-4 border-l-2 border-l-primary">

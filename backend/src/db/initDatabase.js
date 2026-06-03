@@ -99,6 +99,10 @@ async function ensureDatabase() {
       docker_protocol VARCHAR(20) DEFAULT 'http',
       docker_timeout_minutes INT DEFAULT 120,
       docker_instructions LONGTEXT,
+      docker_terminal_tools LONGTEXT,
+      docker_expose_attachment_to_terminal BOOLEAN DEFAULT false,
+      docker_terminal_mode VARCHAR(20) DEFAULT 'service',
+      docker_terminal_image VARCHAR(512),
       questions_enabled BOOLEAN DEFAULT false,
       questions_json LONGTEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -388,6 +392,10 @@ async function ensureDatabase() {
   await addColumnIfMissing('rooms', 'docker_protocol', "VARCHAR(20) DEFAULT 'http'")
   await addColumnIfMissing('rooms', 'docker_timeout_minutes', 'INT DEFAULT 120')
   await addColumnIfMissing('rooms', 'docker_instructions', 'LONGTEXT NULL')
+  await addColumnIfMissing('rooms', 'docker_terminal_tools', 'LONGTEXT NULL')
+  await addColumnIfMissing('rooms', 'docker_expose_attachment_to_terminal', 'BOOLEAN DEFAULT false')
+  await addColumnIfMissing('rooms', 'docker_terminal_mode', "VARCHAR(20) DEFAULT 'service'")
+  await addColumnIfMissing('rooms', 'docker_terminal_image', 'VARCHAR(512) NULL')
   await connection.query(`
     CREATE TABLE IF NOT EXISTS user_room_docker_instances (
       id BIGINT AUTO_INCREMENT PRIMARY KEY,

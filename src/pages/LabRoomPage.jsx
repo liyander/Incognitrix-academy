@@ -1021,65 +1021,93 @@ function LabRoomPage() {
               </p>
 
               {isTerminalOpen ? (
-                <div className="bg-surface-container-low border-l-2 border-l-primary p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
-                        Browser Terminal
-                      </p>
-                      <h3 className="mt-2 font-headline text-lg font-black uppercase tracking-tight">
-                        Sandbox Shell
-                      </h3>
-                      <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">
-                        Commands run inside your personal challenge container only.
-                      </p>
-                    </div>
-                    <span className={`px-2 py-1 font-headline text-[9px] font-bold uppercase tracking-widest ${isDockerServiceActive ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'}`}>
-                      {isDockerServiceActive ? 'Ready' : 'Spawn Required'}
-                    </span>
-                  </div>
-
-                  <div className="mt-4 max-h-72 overflow-y-auto bg-background border border-outline-variant p-3 font-space text-xs leading-relaxed text-on-background">
-                    {terminalHistory.length > 0 ? (
-                      terminalHistory.map((entry) => (
-                        <pre
-                          className={`whitespace-pre-wrap break-words ${entry.type === 'command' ? 'text-secondary' : entry.type === 'error' ? 'text-error' : 'text-on-surface-variant'}`}
-                          key={entry.id}
+                <div className="fixed inset-0 z-[80] bg-[#050607] text-[#d7f7ff]">
+                  <div className="flex h-full flex-col">
+                    <div className="flex items-center justify-between border-b border-[#24313a] bg-[#10161a] px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <span className="h-3 w-3 rounded-full bg-primary"></span>
+                        <span className="h-3 w-3 rounded-full bg-secondary"></span>
+                        <span className="h-3 w-3 rounded-full bg-outline-variant"></span>
+                        <div className="ml-3">
+                          <p className="font-headline text-[10px] font-bold uppercase tracking-[0.35em] text-primary">
+                            Browser Terminal
+                          </p>
+                          <h3 className="font-headline text-xl font-black uppercase tracking-tight text-on-background">
+                            Sandbox Shell
+                          </h3>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className={`font-headline text-[10px] font-bold uppercase tracking-widest ${isDockerServiceActive ? 'text-secondary' : 'text-primary'}`}>
+                          {isDockerServiceActive ? 'Ready' : 'Spawn Required'}
+                        </span>
+                        <button
+                          className="grid h-10 w-10 place-items-center border border-outline-variant text-on-background hover:border-primary hover:text-primary"
+                          onClick={() => setIsTerminalOpen(false)}
+                          type="button"
                         >
-                          {entry.text}
-                        </pre>
-                      ))
-                    ) : (
-                      <p className="text-on-surface-variant">
-                        Spawn the Docker service, then run commands such as pwd, ls, or curl against the assigned lab URL.
-                      </p>
-                    )}
-                    {isTerminalRunning ? (
-                      <p className="mt-2 text-primary animate-pulse">Executing command...</p>
-                    ) : null}
+                          <span className="material-symbols-outlined">close</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex min-h-0 flex-1 flex-col px-5 py-4">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border border-[#233039] bg-[#0b0f12] px-4 py-3">
+                        <p className="font-space text-xs text-[#9ed8e8]">
+                          Commands run inside your personal challenge sandbox. Uploaded files appear in /challenge only when enabled by admin.
+                        </p>
+                        {dockerStatus.access?.url && isDockerServiceActive ? (
+                          <p className="font-space text-xs text-secondary">
+                            target: {dockerStatus.access.url}
+                          </p>
+                        ) : null}
+                      </div>
+
+                      <div className="min-h-0 flex-1 overflow-y-auto border border-[#26343d] bg-[#020405] p-5 font-space text-sm leading-7 shadow-[inset_0_0_40px_rgba(0,0,0,0.7)]">
+                        {terminalHistory.length > 0 ? (
+                          terminalHistory.map((entry) => (
+                            <pre
+                              className={`whitespace-pre-wrap break-words ${entry.type === 'command' ? 'text-secondary' : entry.type === 'error' ? 'text-primary' : 'text-[#d7f7ff]'}`}
+                              key={entry.id}
+                            >
+                              {entry.text}
+                            </pre>
+                          ))
+                        ) : (
+                          <div className="space-y-2 text-[#9ed8e8]">
+                            <p>Incognitrix sandbox terminal initialized.</p>
+                            <p>Spawn the Docker service, then run commands such as pwd, ls, curl, nc, or tools configured by the admin.</p>
+                          </div>
+                        )}
+                        {isTerminalRunning ? (
+                          <p className="mt-2 text-primary animate-pulse">executing...</p>
+                        ) : null}
+                        {terminalError ? (
+                          <p className="mt-2 text-primary">{terminalError}</p>
+                        ) : null}
+                      </div>
+
+                      <form className="mt-3 flex items-center gap-3 border border-[#26343d] bg-[#080c0f] px-4 py-3" onSubmit={handleTerminalSubmit}>
+                        <span className="font-space text-sm text-secondary">$</span>
+                        <input
+                          autoFocus
+                          className="min-w-0 flex-1 bg-transparent font-space text-sm text-[#d7f7ff] outline-none placeholder:text-[#5f7480] disabled:opacity-60"
+                          disabled={!isDockerServiceActive || isTerminalRunning}
+                          onChange={(event) => setTerminalCommand(event.target.value)}
+                          placeholder={isDockerServiceActive ? 'type a command and press enter...' : 'spawn Docker to enable terminal'}
+                          type="text"
+                          value={terminalCommand}
+                        />
+                        <button
+                          className="bg-primary px-5 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-on-primary disabled:opacity-50"
+                          disabled={!isDockerServiceActive || isTerminalRunning || !terminalCommand.trim()}
+                          type="submit"
+                        >
+                          Run
+                        </button>
+                      </form>
+                    </div>
                   </div>
-
-                  {terminalError ? (
-                    <p className="mt-3 text-xs text-error">{terminalError}</p>
-                  ) : null}
-
-                  <form className="mt-4 flex gap-2" onSubmit={handleTerminalSubmit}>
-                    <input
-                      className="min-w-0 flex-1 bg-background border border-outline-variant px-3 py-3 font-space text-xs text-on-background outline-none focus:border-primary disabled:opacity-60"
-                      disabled={!isDockerServiceActive || isTerminalRunning}
-                      onChange={(event) => setTerminalCommand(event.target.value)}
-                      placeholder={isDockerServiceActive ? 'Enter sandbox command...' : 'Spawn Docker to enable terminal'}
-                      type="text"
-                      value={terminalCommand}
-                    />
-                    <button
-                      className="bg-primary px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-primary disabled:opacity-60"
-                      disabled={!isDockerServiceActive || isTerminalRunning || !terminalCommand.trim()}
-                      type="submit"
-                    >
-                      Run
-                    </button>
-                  </form>
                 </div>
               ) : null}
 

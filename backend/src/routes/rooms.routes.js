@@ -26,6 +26,11 @@ function hasPracticalAiQuestions(room) {
 
 function getDockerConfig(room) {
   const docker = room?.content?.docker || {}
+  const terminalTools = String(docker.terminalTools || '')
+    .split(/[\s,]+/)
+    .map((tool) => tool.trim())
+    .filter((tool) => /^[a-zA-Z0-9+._-]{1,80}$/.test(tool))
+    .slice(0, 30)
   return {
     enabled: !isTheoreticalRoom(room) && Boolean(docker.enabled),
     image: String(docker.image || '').trim(),
@@ -35,6 +40,10 @@ function getDockerConfig(room) {
       : 'http',
     timeoutMinutes: Math.max(5, Math.min(720, Number(docker.timeoutMinutes || 120))),
     instructions: String(docker.instructions || ''),
+    terminalTools,
+    exposeAttachmentToTerminal: Boolean(docker.exposeAttachmentToTerminal),
+    terminalMode: String(docker.terminalMode || '').toLowerCase() === 'isolated' ? 'isolated' : 'service',
+    terminalImage: String(docker.terminalImage || '').trim(),
   }
 }
 
@@ -46,11 +55,18 @@ function validateDockerConfig(config) {
   if (config.containerPort && (!Number.isInteger(config.containerPort) || config.containerPort < 1 || config.containerPort > 65535)) {
     return 'Internal service port must be blank or between 1 and 65535.'
   }
+  if (config.terminalMode === 'isolated' && !/^[a-zA-Z0-9][a-zA-Z0-9._/:@-]{0,511}$/.test(config.terminalImage)) {
+    return 'Isolated terminal image is missing or contains unsupported characters.'
+  }
   return ''
 }
 
 function buildDockerContainerName(userId, roomId) {
   return `incognitrix_${userId}_${String(roomId || '').replace(/[^a-zA-Z0-9_.-]/g, '_')}`.slice(0, 120)
+}
+
+function buildDockerTerminalContainerName(userId, roomId) {
+  return `${buildDockerContainerName(userId, roomId)}_terminal`.slice(0, 120)
 }
 
 async function inspectDockerContainer(containerName) {
@@ -83,6 +99,7 @@ async function stopStaleDockerInstance(instance, config) {
   if (Date.now() - createdAt < maxAgeMs) return false
 
   await stopDockerContainer(instance.container_name)
+  await stopDockerContainer(`${instance.container_name}_terminal`)
   await pool.query(
     `UPDATE user_room_docker_instances
      SET status = 'expired'
@@ -177,6 +194,67 @@ async function dockerExec(args, options = {}) {
     return await execFileAsync('docker', [...prefix.args, ...args], options)
   } finally {
     await prefix.cleanup()
+  }
+}
+
+function sanitizeContainerFileName(name) {
+  return String(name || 'challenge-file')
+    .replace(/[/\\?%*:|"<>]/g, '_')
+    .replace(/\s+/g, '_')
+    .slice(0, 120) || 'challenge-file'
+}
+
+function decodeDataUrl(dataUrl) {
+  const raw = String(dataUrl || '')
+  const match = raw.match(/^data:([^;,]+)?(;base64)?,(.*)$/)
+  if (!match) {
+    return Buffer.from(raw, 'utf8')
+  }
+  const payload = decodeURIComponent(match[3] || '')
+  return match[2] ? Buffer.from(payload, 'base64') : Buffer.from(payload, 'utf8')
+}
+
+async function installDockerTerminalTools(containerId, tools = []) {
+  if (!tools.length) return
+  const toolList = tools.join(' ')
+  const script = [
+    'set -e',
+    `TOOLS="${toolList}"`,
+    'if command -v apk >/dev/null 2>&1; then apk add --no-cache $TOOLS;',
+    'elif command -v apt-get >/dev/null 2>&1; then apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $TOOLS && rm -rf /var/lib/apt/lists/*;',
+    'elif command -v dnf >/dev/null 2>&1; then dnf install -y $TOOLS;',
+    'elif command -v yum >/dev/null 2>&1; then yum install -y $TOOLS;',
+    'else echo "No supported package manager found for requested terminal tools." >&2; fi',
+  ].join(' ')
+
+  await dockerExec(['exec', containerId, 'sh', '-lc', script], {
+    timeout: 180000,
+    maxBuffer: 1024 * 1024,
+  })
+}
+
+async function copyRoomAttachmentToDocker(containerId, room, config) {
+  if (!config.exposeAttachmentToTerminal || !room?.content?.attachment?.dataUrl) return
+
+  const fileName = sanitizeContainerFileName(room.content.attachment.name)
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'incognitrix-room-file-'))
+  const tempPath = path.join(tempDir, fileName)
+  try {
+    await fs.writeFile(tempPath, decodeDataUrl(room.content.attachment.dataUrl))
+    await dockerExec(['exec', containerId, 'sh', '-lc', 'mkdir -p /challenge && chmod 755 /challenge'], {
+      timeout: 10000,
+      maxBuffer: 128 * 1024,
+    })
+    await dockerExec(['cp', tempPath, `${containerId}:/challenge/${fileName}`], {
+      timeout: 30000,
+      maxBuffer: 512 * 1024,
+    })
+    await dockerExec(['exec', containerId, 'sh', '-lc', `chmod 644 /challenge/${fileName}`], {
+      timeout: 10000,
+      maxBuffer: 128 * 1024,
+    })
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true })
   }
 }
 
@@ -372,6 +450,25 @@ async function createStartedDockerContainerWithRandomPorts(containerName, image,
   }
 
   throw new Error('Unable to create Docker container with a random host port.')
+}
+
+async function createStartedDockerTerminalContainer(containerName, image) {
+  const created = await dockerApiRequest(`/containers/create?name=${encodeURIComponent(containerName)}`, {
+    method: 'POST',
+    body: {
+      Image: image,
+      Cmd: ['sh', '-lc', 'while true; do sleep 3600; done'],
+      HostConfig: {},
+    },
+  })
+
+  const containerId = created?.Id || ''
+  if (!containerId) {
+    throw new Error(created?.message || 'Docker did not return a terminal container id.')
+  }
+
+  await dockerApiRequest(`/containers/${encodeURIComponent(containerId)}/start`, { method: 'POST' })
+  return { containerId }
 }
 
 function extractMessageText(modelMessage) {
@@ -2104,6 +2201,7 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
   if (existing.exists) {
     await stopDockerContainer(containerName)
   }
+  await stopDockerContainer(buildDockerTerminalContainerName(req.user.id, room.id))
 
   const exposedPorts = await getDockerImageExposedPorts(config.image, config.containerPort)
   const { containerId } = await createStartedDockerContainerWithRandomPorts(
@@ -2116,6 +2214,24 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
   if (!hostPort) {
     await stopDockerContainer(containerId)
     throw new Error('Docker did not publish a host port for this lab container.')
+  }
+
+  let terminalContainerId = containerId
+  try {
+    if (config.terminalMode === 'isolated') {
+      const terminal = await createStartedDockerTerminalContainer(
+        buildDockerTerminalContainerName(req.user.id, room.id),
+        config.terminalImage,
+      )
+      terminalContainerId = terminal.containerId
+    }
+
+    await installDockerTerminalTools(terminalContainerId, config.terminalTools)
+    await copyRoomAttachmentToDocker(terminalContainerId, room, config)
+  } catch (error) {
+    await stopDockerContainer(containerId)
+    await stopDockerContainer(buildDockerTerminalContainerName(req.user.id, room.id))
+    throw new Error(`Docker sandbox setup failed: ${error?.stderr || error?.message || 'Unable to prepare terminal.'}`)
   }
 
   await pool.query(
@@ -2164,6 +2280,7 @@ router.post('/:id/docker/stop', authenticate, async (req, res) => {
 
   const containerName = buildDockerContainerName(req.user.id, room.id)
   await stopDockerContainer(containerName)
+  await stopDockerContainer(buildDockerTerminalContainerName(req.user.id, room.id))
 
   await pool.query(
     `UPDATE user_room_docker_instances
@@ -2212,7 +2329,10 @@ router.post('/:id/docker/terminal', authenticate, async (req, res) => {
     return res.status(410).json({ message: 'This Docker service expired. Revert or spawn it again.' })
   }
 
-  const inspected = await inspectDockerContainer(instance.container_name)
+  const terminalContainerName = config.terminalMode === 'isolated'
+    ? buildDockerTerminalContainerName(req.user.id, room.id)
+    : instance.container_name
+  const inspected = await inspectDockerContainer(terminalContainerName)
   if (!inspected.running) {
     await pool.query(
       `UPDATE user_room_docker_instances
@@ -2220,12 +2340,13 @@ router.post('/:id/docker/terminal', authenticate, async (req, res) => {
        WHERE user_id = ? AND room_id = ?`,
       [inspected.exists ? 'stopped' : 'missing', req.user.id, room.id],
     )
-    return res.status(409).json({ message: 'Docker service is not running.' })
+    return res.status(409).json({ message: 'Docker terminal is not running. Revert or spawn the service again.' })
   }
 
   try {
+    const workdir = config.exposeAttachmentToTerminal && room?.content?.attachment?.dataUrl ? '/challenge' : '/'
     const result = await dockerExec(
-      ['exec', '--workdir', '/', instance.container_name, 'sh', '-lc', command],
+      ['exec', '--workdir', workdir, terminalContainerName, 'sh', '-lc', command],
       { timeout: 10000, maxBuffer: 1024 * 1024 },
     )
 
@@ -2276,8 +2397,9 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
         youtube_video_url, practical_ai_questions_enabled,
         attachment_name, attachment_type, attachment_size, attachment_data,
         docker_enabled, docker_image, docker_container_port, docker_protocol, docker_timeout_minutes, docker_instructions,
+        docker_terminal_tools, docker_expose_attachment_to_terminal, docker_terminal_mode, docker_terminal_image,
         questions_enabled, questions_json
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         id,
@@ -2312,6 +2434,10 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
         payload.content?.docker?.protocol || 'http',
         Number(payload.content?.docker?.timeoutMinutes || 120),
         payload.content?.docker?.instructions || '',
+        payload.content?.docker?.terminalTools || '',
+        Boolean(payload.content?.docker?.exposeAttachmentToTerminal),
+        payload.content?.docker?.terminalMode === 'isolated' ? 'isolated' : 'service',
+        payload.content?.docker?.terminalImage || null,
         Boolean(payload.content?.questionsEnabled),
         JSON.stringify(parseRoomQuestions(payload)),
       ],
@@ -2362,6 +2488,7 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
         youtube_video_url = ?, practical_ai_questions_enabled = ?,
         attachment_name = ?, attachment_type = ?, attachment_size = ?, attachment_data = ?,
         docker_enabled = ?, docker_image = ?, docker_container_port = ?, docker_protocol = ?, docker_timeout_minutes = ?, docker_instructions = ?,
+        docker_terminal_tools = ?, docker_expose_attachment_to_terminal = ?, docker_terminal_mode = ?, docker_terminal_image = ?,
         questions_enabled = ?, questions_json = ?
       WHERE id = ?`,
       [
@@ -2397,6 +2524,10 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
         payload.content?.docker?.protocol ?? existing.content.docker?.protocol ?? 'http',
         Number(payload.content?.docker?.timeoutMinutes ?? existing.content.docker?.timeoutMinutes ?? 120),
         payload.content?.docker?.instructions ?? existing.content.docker?.instructions ?? '',
+        payload.content?.docker?.terminalTools ?? existing.content.docker?.terminalTools ?? '',
+        Boolean(payload.content?.docker?.exposeAttachmentToTerminal ?? existing.content.docker?.exposeAttachmentToTerminal),
+        (payload.content?.docker?.terminalMode ?? existing.content.docker?.terminalMode) === 'isolated' ? 'isolated' : 'service',
+        payload.content?.docker?.terminalImage ?? existing.content.docker?.terminalImage ?? null,
         Boolean(payload.content?.questionsEnabled ?? existing.content.questionsEnabled),
         JSON.stringify(
           parseRoomQuestions({
