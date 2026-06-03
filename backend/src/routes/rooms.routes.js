@@ -2780,12 +2780,18 @@ export function setupRoomTerminalWebSocket(server) {
         'exec',
         '-i',
         '-t',
+        '-e',
+        'TERM=xterm-256color',
+        '-e',
+        'HOME=/tmp',
         '--user',
         '65534:65534',
         '--workdir',
         workdir,
         terminalContainerName,
         'sh',
+        '-lc',
+        'if command -v bash >/dev/null 2>&1; then exec bash -li; else exec sh -i; fi',
       ].map(shellQuote).join(' ')
 
       child = spawn('script', [

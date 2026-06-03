@@ -121,6 +121,7 @@ function LabRoomPage() {
   })
   const [dockerNow, setDockerNow] = useState(Date.now())
   const [isDockerWorking, setIsDockerWorking] = useState(false)
+  const [dockerAction, setDockerAction] = useState('')
   const [dockerError, setDockerError] = useState('')
   const [isTerminalOpen, setIsTerminalOpen] = useState(false)
   const contentRootRef = useRef(null)
@@ -441,22 +442,26 @@ function LabRoomPage() {
         terminalSocket.send(JSON.stringify({ type: 'resize', cols, rows }))
       }
     }
-    const refocusTerminal = () => window.setTimeout(() => terminal.focus(), 0)
-    terminal.attachCustomKeyEventHandler((event) => {
-      if (['Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
-        event.preventDefault()
-      }
-      return true
-    })
+    const settleTerminalView = () => window.setTimeout(() => {
+      terminal.scrollToBottom()
+      terminal.focus()
+    }, 0)
+    const writeTerminal = (text) => {
+      terminal.write(text, settleTerminalView)
+    }
+    const writeLine = (text = '') => {
+      terminal.writeln(text)
+      settleTerminalView()
+    }
+    terminal.attachCustomKeyEventHandler(() => true)
     const resizeObserver = new ResizeObserver(() => {
       fitTerminalToHost()
-      refocusTerminal()
+      settleTerminalView()
     })
     resizeObserver.observe(xtermHostRef.current)
     fitTerminalToHost()
-    terminal.writeln('Welcome to Incognitrix Academy')
-    terminal.writeln('Opening interactive sandbox shell...')
-    refocusTerminal()
+    writeLine('Welcome to Incognitrix Academy')
+    writeLine('Opening interactive sandbox shell...')
     xtermRef.current = terminal
 
     const token = encodeURIComponent(getAuthToken())
@@ -475,38 +480,31 @@ function LabRoomPage() {
       try {
         const payload = JSON.parse(String(event.data || '{}'))
         if (payload.type === 'output') {
-          terminal.write(atob(payload.data || ''))
-          refocusTerminal()
+          writeTerminal(atob(payload.data || ''))
         } else if (payload.type === 'ready') {
           fitTerminalToHost()
-          terminal.writeln('')
-          terminal.writeln(`Connected. Workdir: ${payload.cwd || '/'}`)
-          refocusTerminal()
+          writeLine('')
+          writeLine(`Connected. Workdir: ${payload.cwd || '/'}`)
         } else if (payload.type === 'error') {
-          terminal.writeln('')
-          terminal.writeln(`\x1b[31m${payload.message || 'Terminal error.'}\x1b[0m`)
-          refocusTerminal()
+          writeLine('')
+          writeLine(`\x1b[31m${payload.message || 'Terminal error.'}\x1b[0m`)
         } else if (payload.type === 'exit') {
-          terminal.writeln('')
-          terminal.writeln(`\x1b[33mTerminal session closed (${payload.code ?? 0}).\x1b[0m`)
-          refocusTerminal()
+          writeLine('')
+          writeLine(`\x1b[33mTerminal session closed (${payload.code ?? 0}).\x1b[0m`)
         }
       } catch {
-        terminal.write(String(event.data || ''))
-        refocusTerminal()
+        writeTerminal(String(event.data || ''))
       }
     })
 
     socket.addEventListener('close', () => {
-      terminal.writeln('')
-      terminal.writeln('\x1b[33mDisconnected from sandbox terminal.\x1b[0m')
-      refocusTerminal()
+      writeLine('')
+      writeLine('\x1b[33mDisconnected from sandbox terminal.\x1b[0m')
     })
 
     socket.addEventListener('error', () => {
-      terminal.writeln('')
-      terminal.writeln('\x1b[31mUnable to connect to sandbox terminal.\x1b[0m')
-      refocusTerminal()
+      writeLine('')
+      writeLine('\x1b[31mUnable to connect to sandbox terminal.\x1b[0m')
     })
 
     return () => {
@@ -622,6 +620,7 @@ function LabRoomPage() {
 
   const handleSpawnDocker = async () => {
     setDockerError('')
+    setDockerAction('Spawning sandbox')
     setIsDockerWorking(true)
     try {
       const response = await apiFetch(`/rooms/${encodeURIComponent(room.id)}/docker/spawn`, {
@@ -643,11 +642,13 @@ function LabRoomPage() {
       setDockerError(error?.message || 'Unable to spawn Docker service.')
     } finally {
       setIsDockerWorking(false)
+      setDockerAction('')
     }
   }
 
   const handleRevertDocker = async () => {
     setDockerError('')
+    setDockerAction('Reverting sandbox')
     setIsDockerWorking(true)
     try {
       const response = await apiFetch(`/rooms/${encodeURIComponent(room.id)}/docker/spawn`, {
@@ -670,11 +671,13 @@ function LabRoomPage() {
       setDockerError(error?.message || 'Unable to revert Docker service.')
     } finally {
       setIsDockerWorking(false)
+      setDockerAction('')
     }
   }
 
   const handleStopDocker = async () => {
     setDockerError('')
+    setDockerAction('Stopping sandbox')
     setIsDockerWorking(true)
     try {
       await apiFetch(`/rooms/${encodeURIComponent(room.id)}/docker/stop`, {
@@ -692,6 +695,7 @@ function LabRoomPage() {
       setDockerError(error?.message || 'Unable to stop Docker service.')
     } finally {
       setIsDockerWorking(false)
+      setDockerAction('')
     }
   }
 
@@ -1172,7 +1176,23 @@ Interactive sandbox terminal waiting for Docker spawn.`}
               ) : null}
 
               {room.content?.docker?.enabled ? (
-                <div className="bg-surface-container-low p-5 border-l-2 border-l-secondary">
+                <div className="relative overflow-hidden bg-surface-container-low p-5 border-l-2 border-l-secondary">
+                  {isDockerWorking ? (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-surface-container-low/90 backdrop-blur-sm">
+                      <div className="border border-outline-variant bg-surface-container-high px-6 py-5 text-center shadow-xl">
+                        <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-secondary border-t-transparent"></div>
+                        <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-secondary">
+                          Docker Runtime
+                        </p>
+                        <h4 className="mt-2 font-headline text-lg font-black uppercase tracking-tight text-on-surface">
+                          {dockerAction || 'Updating sandbox'}
+                        </h4>
+                        <p className="mt-2 text-xs text-on-surface-variant">
+                          Preparing your isolated lab machine...
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
@@ -1249,7 +1269,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                       onClick={handleSpawnDocker}
                       type="button"
                     >
-                      {isDockerWorking && !isDockerServiceActive ? 'Spawning...' : 'Spawn Docker'}
+                      Spawn Docker
                     </button>
                     <button
                       className="flex-1 bg-surface-container-high text-on-surface px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-60"
