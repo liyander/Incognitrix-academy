@@ -2173,6 +2173,78 @@ router.post('/:id/docker/stop', authenticate, async (req, res) => {
   return res.json({ running: false })
 })
 
+router.post('/:id/docker/terminal', authenticate, async (req, res) => {
+  const room = await fetchRoomById(req.params.id)
+  if (!room) {
+    return res.status(404).json({ message: 'Room not found' })
+  }
+
+  const config = getDockerConfig(room)
+  const validationError = validateDockerConfig(config)
+  if (validationError) {
+    return res.status(400).json({ message: validationError })
+  }
+
+  const command = String(req.body?.command || '').trim()
+  if (!command) {
+    return res.status(400).json({ message: 'Terminal command is required.' })
+  }
+  if (command.length > 1000 || command.includes('\u0000')) {
+    return res.status(400).json({ message: 'Terminal command is too large or invalid.' })
+  }
+
+  const [rows] = await pool.query(
+    `SELECT id, container_name, created_at
+     FROM user_room_docker_instances
+     WHERE user_id = ? AND room_id = ?
+     LIMIT 1`,
+    [req.user.id, room.id],
+  )
+  const instance = rows[0]
+  if (!instance) {
+    return res.status(404).json({ message: 'Spawn the Docker service before opening the terminal.' })
+  }
+
+  const expired = await stopStaleDockerInstance(instance, config)
+  if (expired) {
+    return res.status(410).json({ message: 'This Docker service expired. Revert or spawn it again.' })
+  }
+
+  const inspected = await inspectDockerContainer(instance.container_name)
+  if (!inspected.running) {
+    await pool.query(
+      `UPDATE user_room_docker_instances
+       SET status = ?
+       WHERE user_id = ? AND room_id = ?`,
+      [inspected.exists ? 'stopped' : 'missing', req.user.id, room.id],
+    )
+    return res.status(409).json({ message: 'Docker service is not running.' })
+  }
+
+  try {
+    const result = await dockerExec(
+      ['exec', '--workdir', '/', instance.container_name, 'sh', '-lc', command],
+      { timeout: 10000, maxBuffer: 1024 * 1024 },
+    )
+
+    return res.json({
+      command,
+      stdout: result.stdout || '',
+      stderr: result.stderr || '',
+      exitCode: 0,
+      executedAt: new Date().toISOString(),
+    })
+  } catch (error) {
+    return res.json({
+      command,
+      stdout: error?.stdout || '',
+      stderr: error?.stderr || error?.message || 'Command failed.',
+      exitCode: Number(error?.code || 1),
+      executedAt: new Date().toISOString(),
+    })
+  }
+})
+
 router.get('/:id', optionalAuthenticate, async (req, res) => {
   const room = await fetchRoomById(req.params.id)
   if (!room) {

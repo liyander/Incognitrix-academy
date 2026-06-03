@@ -119,6 +119,11 @@ function LabRoomPage() {
   const [dockerNow, setDockerNow] = useState(Date.now())
   const [isDockerWorking, setIsDockerWorking] = useState(false)
   const [dockerError, setDockerError] = useState('')
+  const [isTerminalOpen, setIsTerminalOpen] = useState(false)
+  const [terminalCommand, setTerminalCommand] = useState('')
+  const [terminalHistory, setTerminalHistory] = useState([])
+  const [isTerminalRunning, setIsTerminalRunning] = useState(false)
+  const [terminalError, setTerminalError] = useState('')
   const contentRootRef = useRef(null)
   const roomId = room?.id || ''
   const roomDocker = room?.content?.docker || {}
@@ -535,6 +540,51 @@ function LabRoomPage() {
     }
   }
 
+  const handleTerminalSubmit = async (event) => {
+    event.preventDefault()
+    const command = terminalCommand.trim()
+    if (!command || isTerminalRunning) {
+      return
+    }
+
+    if (!dockerStatus.running) {
+      setTerminalError('Spawn the Docker service before using the sandbox terminal.')
+      return
+    }
+
+    setTerminalError('')
+    setTerminalCommand('')
+    setIsTerminalRunning(true)
+    setTerminalHistory((current) => [
+      ...current,
+      {
+        id: `cmd-${Date.now()}`,
+        type: 'command',
+        text: `$ ${command}`,
+      },
+    ])
+
+    try {
+      const result = await apiFetch(`/rooms/${encodeURIComponent(room.id)}/docker/terminal`, {
+        method: 'POST',
+        body: JSON.stringify({ command }),
+      })
+      const output = [result?.stdout, result?.stderr].filter(Boolean).join('\n')
+      setTerminalHistory((current) => [
+        ...current,
+        {
+          id: `out-${Date.now()}`,
+          type: Number(result?.exitCode || 0) === 0 ? 'output' : 'error',
+          text: output || `Process exited with code ${Number(result?.exitCode || 0)}`,
+        },
+      ])
+    } catch (error) {
+      setTerminalError(error?.message || 'Unable to execute command in sandbox.')
+    } finally {
+      setIsTerminalRunning(false)
+    }
+  }
+
   const handleSubmitQuestions = async () => {
     setQuestionFeedback('')
     setIsSubmittingQuestions(true)
@@ -921,13 +971,18 @@ function LabRoomPage() {
             </div>
 
             <div className="space-y-4">
-              <button className="w-full group relative bg-primary hover:bg-primary-container text-on-primary p-6 transition-all" type="button">
+              <button
+                className="w-full group relative bg-primary hover:bg-primary-container text-on-primary p-6 transition-all disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={!room.content?.docker?.enabled}
+                onClick={() => setIsTerminalOpen((current) => !current)}
+                type="button"
+              >
                 <div className="flex justify-between items-center">
                   <span className="font-headline text-xl font-bold uppercase tracking-tighter italic">
                     Access Terminal
                   </span>
                   <span className="material-symbols-outlined group-hover:translate-x-2 transition-transform">
-                    arrow_forward
+                    {isTerminalOpen ? 'keyboard_arrow_up' : 'arrow_forward'}
                   </span>
                 </div>
                 <div className="absolute bottom-0 left-0 h-1 bg-white/20 w-full"></div>
@@ -936,6 +991,69 @@ function LabRoomPage() {
                 Ready for deployment? Ensure secure connection protocols are
                 active.
               </p>
+
+              {isTerminalOpen ? (
+                <div className="bg-surface-container-low border-l-2 border-l-primary p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
+                        Browser Terminal
+                      </p>
+                      <h3 className="mt-2 font-headline text-lg font-black uppercase tracking-tight">
+                        Sandbox Shell
+                      </h3>
+                      <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">
+                        Commands run inside your personal challenge container only.
+                      </p>
+                    </div>
+                    <span className={`px-2 py-1 font-headline text-[9px] font-bold uppercase tracking-widest ${dockerStatus.running ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'}`}>
+                      {dockerStatus.running ? 'Ready' : 'Spawn Required'}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 max-h-72 overflow-y-auto bg-background border border-outline-variant p-3 font-space text-xs leading-relaxed text-on-background">
+                    {terminalHistory.length > 0 ? (
+                      terminalHistory.map((entry) => (
+                        <pre
+                          className={`whitespace-pre-wrap break-words ${entry.type === 'command' ? 'text-secondary' : entry.type === 'error' ? 'text-error' : 'text-on-surface-variant'}`}
+                          key={entry.id}
+                        >
+                          {entry.text}
+                        </pre>
+                      ))
+                    ) : (
+                      <p className="text-on-surface-variant">
+                        Spawn the Docker service, then run commands such as pwd, ls, or curl against the assigned lab URL.
+                      </p>
+                    )}
+                    {isTerminalRunning ? (
+                      <p className="mt-2 text-primary animate-pulse">Executing command...</p>
+                    ) : null}
+                  </div>
+
+                  {terminalError ? (
+                    <p className="mt-3 text-xs text-error">{terminalError}</p>
+                  ) : null}
+
+                  <form className="mt-4 flex gap-2" onSubmit={handleTerminalSubmit}>
+                    <input
+                      className="min-w-0 flex-1 bg-background border border-outline-variant px-3 py-3 font-space text-xs text-on-background outline-none focus:border-primary disabled:opacity-60"
+                      disabled={!dockerStatus.running || isTerminalRunning}
+                      onChange={(event) => setTerminalCommand(event.target.value)}
+                      placeholder={dockerStatus.running ? 'Enter sandbox command...' : 'Spawn Docker to enable terminal'}
+                      type="text"
+                      value={terminalCommand}
+                    />
+                    <button
+                      className="bg-primary px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-primary disabled:opacity-60"
+                      disabled={!dockerStatus.running || isTerminalRunning || !terminalCommand.trim()}
+                      type="submit"
+                    >
+                      Run
+                    </button>
+                  </form>
+                </div>
+              ) : null}
 
               {room.content?.docker?.enabled ? (
                 <div className="bg-surface-container-low p-5 border-l-2 border-l-secondary">
