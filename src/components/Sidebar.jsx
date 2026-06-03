@@ -203,18 +203,12 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
         <footer className="shrink-0 flex flex-col gap-1 border-t border-outline-variant pt-3">
           <a
             className="flex items-center gap-3 px-5 sm:px-6 py-2.5 text-on-surface-variant hover:text-on-surface font-headline text-[11px] font-bold tracking-widest uppercase min-w-0"
-            href="#"
+            href="/support"
           >
             <span className="material-symbols-outlined shrink-0">help</span>
             <span className="truncate">Support</span>
           </a>
-          <a
-            className="flex items-center gap-3 px-5 sm:px-6 py-2.5 text-on-surface-variant hover:text-on-surface font-headline text-[11px] font-bold tracking-widest uppercase min-w-0"
-            href="#"
-          >
-            <span className="material-symbols-outlined shrink-0">terminal</span>
-            <span className="truncate">Terminal</span>
-          </a>
+          
         </footer>
       </aside>
 

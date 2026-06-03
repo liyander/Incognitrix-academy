@@ -2819,6 +2819,10 @@ export function setupRoomTerminalWebSocket(server) {
           const payload = JSON.parse(String(message))
           if (payload.type === 'input' && child?.stdin?.writable) {
             child.stdin.write(Buffer.from(String(payload.data || ''), 'base64'))
+          } else if (payload.type === 'resize' && child?.stdin?.writable) {
+            const cols = Math.max(20, Math.min(300, Number(payload.cols) || 80))
+            const rows = Math.max(10, Math.min(120, Number(payload.rows) || 24))
+            child.stdin.write(`stty rows ${rows} cols ${cols}\r`)
           }
         } catch {
           // Ignore malformed terminal frames.

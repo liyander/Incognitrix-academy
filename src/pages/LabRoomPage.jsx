@@ -408,8 +408,10 @@ function LabRoomPage() {
       cursorBlink: true,
       convertEol: true,
       fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-      fontSize: 14,
-      rows: 28,
+      fontSize: 16,
+      lineHeight: 1.25,
+      rows: 32,
+      scrollback: 5000,
       theme: {
         background: '#020405',
         foreground: '#d7f7ff',
@@ -426,7 +428,32 @@ function LabRoomPage() {
       },
     })
     terminal.open(xtermHostRef.current)
+    let terminalSocket = null
+    const fitTerminalToHost = () => {
+      const host = xtermHostRef.current
+      if (!host) return
+
+      const cols = Math.max(80, Math.floor((host.clientWidth - 24) / 9.8))
+      const rows = Math.max(24, Math.floor((host.clientHeight - 24) / 20))
+      terminal.resize(cols, rows)
+
+      if (terminalSocket?.readyState === WebSocket.OPEN) {
+        terminalSocket.send(JSON.stringify({ type: 'resize', cols, rows }))
+      }
+    }
     const refocusTerminal = () => window.setTimeout(() => terminal.focus(), 0)
+    terminal.attachCustomKeyEventHandler((event) => {
+      if (['Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+        event.preventDefault()
+      }
+      return true
+    })
+    const resizeObserver = new ResizeObserver(() => {
+      fitTerminalToHost()
+      refocusTerminal()
+    })
+    resizeObserver.observe(xtermHostRef.current)
+    fitTerminalToHost()
     terminal.writeln('Welcome to Incognitrix Academy')
     terminal.writeln('Opening interactive sandbox shell...')
     refocusTerminal()
@@ -435,6 +462,7 @@ function LabRoomPage() {
     const token = encodeURIComponent(getAuthToken())
     const wsBaseUrl = API_BASE_URL.replace(/^http/i, 'ws').replace(/\/api$/, '')
     const socket = new WebSocket(`${wsBaseUrl}/api/rooms/${encodeURIComponent(roomId)}/docker/terminal/ws?token=${token}`)
+    terminalSocket = socket
     terminalSocketRef.current = socket
 
     const inputDisposable = terminal.onData((data) => {
@@ -450,6 +478,7 @@ function LabRoomPage() {
           terminal.write(atob(payload.data || ''))
           refocusTerminal()
         } else if (payload.type === 'ready') {
+          fitTerminalToHost()
           terminal.writeln('')
           terminal.writeln(`Connected. Workdir: ${payload.cwd || '/'}`)
           refocusTerminal()
@@ -481,6 +510,7 @@ function LabRoomPage() {
     })
 
     return () => {
+      resizeObserver.disconnect()
       inputDisposable.dispose()
       socket.close()
       terminal.dispose()
@@ -1121,7 +1151,7 @@ function LabRoomPage() {
                       <div className="min-h-0 flex-1 overflow-hidden border border-[#26343d] bg-[#020405] p-3 shadow-[inset_0_0_40px_rgba(0,0,0,0.7)]">
                         {isDockerServiceActive ? (
                           <div
-                            className="h-full w-full [&_.xterm]:h-full [&_.xterm-viewport]:!bg-[#020405]"
+                            className="h-full w-full [&_.xterm]:h-full [&_.xterm-screen]:!h-full [&_.xterm-viewport]:!bg-[#020405]"
                             onClick={() => xtermRef.current?.focus()}
                             ref={xtermHostRef}
                           ></div>
