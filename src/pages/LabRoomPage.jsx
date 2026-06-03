@@ -307,9 +307,29 @@ function LabRoomPage() {
       return undefined
     }
 
-    setDockerNow(Date.now())
+    const expiresAt = new Date(dockerStatus.expiresAt).getTime()
+    const refreshDockerTime = () => {
+      const now = Date.now()
+      setDockerNow(now)
+      if (expiresAt && now >= expiresAt) {
+        setDockerStatus((current) => {
+          if (!current.running || current.expiresAt !== dockerStatus.expiresAt) {
+            return current
+          }
+          return {
+            ...current,
+            running: false,
+            access: null,
+            hostPort: '',
+          }
+        })
+        setDockerError('This Docker service expired. Revert or spawn it again.')
+      }
+    }
+
+    refreshDockerTime()
     const intervalId = window.setInterval(() => {
-      setDockerNow(Date.now())
+      refreshDockerTime()
     }, 1000)
 
     return () => {
@@ -417,9 +437,10 @@ function LabRoomPage() {
   const bonusAssessmentQuestions = questionStatus.questions.filter((question) => question.bonus || question.optional)
   const isAiEvaluatingAnswers = isSubmittingQuestions && isAiQuestionMode
   const dockerExpiresAt = dockerStatus.expiresAt ? new Date(dockerStatus.expiresAt).getTime() : 0
-  const dockerRemainingMs = dockerStatus.running && dockerExpiresAt ? dockerExpiresAt - dockerNow : 0
+  const dockerRemainingMs = dockerStatus.running && dockerExpiresAt ? Math.max(0, dockerExpiresAt - dockerNow) : 0
+  const isDockerServiceActive = dockerStatus.running && (!dockerExpiresAt || dockerRemainingMs > 0)
   const dockerRemainingPercent =
-    dockerStatus.running && dockerStatus.expiresAt
+    isDockerServiceActive && dockerStatus.expiresAt
       ? Math.max(
           0,
           Math.min(
@@ -547,7 +568,7 @@ function LabRoomPage() {
       return
     }
 
-    if (!dockerStatus.running) {
+    if (!isDockerServiceActive) {
       setTerminalError('Spawn the Docker service before using the sandbox terminal.')
       return
     }
@@ -1006,8 +1027,8 @@ function LabRoomPage() {
                         Commands run inside your personal challenge container only.
                       </p>
                     </div>
-                    <span className={`px-2 py-1 font-headline text-[9px] font-bold uppercase tracking-widest ${dockerStatus.running ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'}`}>
-                      {dockerStatus.running ? 'Ready' : 'Spawn Required'}
+                    <span className={`px-2 py-1 font-headline text-[9px] font-bold uppercase tracking-widest ${isDockerServiceActive ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'}`}>
+                      {isDockerServiceActive ? 'Ready' : 'Spawn Required'}
                     </span>
                   </div>
 
@@ -1038,15 +1059,15 @@ function LabRoomPage() {
                   <form className="mt-4 flex gap-2" onSubmit={handleTerminalSubmit}>
                     <input
                       className="min-w-0 flex-1 bg-background border border-outline-variant px-3 py-3 font-space text-xs text-on-background outline-none focus:border-primary disabled:opacity-60"
-                      disabled={!dockerStatus.running || isTerminalRunning}
+                      disabled={!isDockerServiceActive || isTerminalRunning}
                       onChange={(event) => setTerminalCommand(event.target.value)}
-                      placeholder={dockerStatus.running ? 'Enter sandbox command...' : 'Spawn Docker to enable terminal'}
+                      placeholder={isDockerServiceActive ? 'Enter sandbox command...' : 'Spawn Docker to enable terminal'}
                       type="text"
                       value={terminalCommand}
                     />
                     <button
                       className="bg-primary px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-primary disabled:opacity-60"
-                      disabled={!dockerStatus.running || isTerminalRunning || !terminalCommand.trim()}
+                      disabled={!isDockerServiceActive || isTerminalRunning || !terminalCommand.trim()}
                       type="submit"
                     >
                       Run
@@ -1063,7 +1084,7 @@ function LabRoomPage() {
                         Docker Service
                       </p>
                       <h3 className="mt-2 font-headline text-lg font-black uppercase tracking-tight">
-                        {dockerStatus.running ? 'Service Running' : 'Spawn Target'}
+                        {isDockerServiceActive ? 'Service Running' : 'Spawn Target'}
                       </h3>
                       <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">
                         Personal lab machine with isolated runtime access.
@@ -1071,7 +1092,7 @@ function LabRoomPage() {
                       <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
                         Auto cleanup: {dockerStatus.timeoutMinutes || room.content.docker.timeoutMinutes || 120} minutes
                       </p>
-                      {dockerStatus.running && dockerStatus.hostPort ? (
+                      {isDockerServiceActive && dockerStatus.hostPort ? (
                         <p className="mt-1 text-xs leading-relaxed text-secondary">
                           Assigned player port: {dockerStatus.hostPort}
                         </p>
@@ -1080,7 +1101,7 @@ function LabRoomPage() {
                           Player port: assigned randomly on spawn
                         </p>
                       )}
-                      {dockerStatus.running && dockerStatus.expiresAt ? (
+                      {isDockerServiceActive && dockerStatus.expiresAt ? (
                         <div className="mt-3 max-w-xs">
                           <div className="flex items-center justify-between gap-3">
                             <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">
@@ -1099,8 +1120,8 @@ function LabRoomPage() {
                         </div>
                       ) : null}
                     </div>
-                    <span className={`px-2 py-1 font-headline text-[9px] font-bold uppercase tracking-widest ${dockerStatus.running ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'}`}>
-                      {dockerStatus.running ? 'Online' : 'Offline'}
+                    <span className={`px-2 py-1 font-headline text-[9px] font-bold uppercase tracking-widest ${isDockerServiceActive ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'}`}>
+                      {isDockerServiceActive ? 'Online' : 'Offline'}
                     </span>
                   </div>
 
@@ -1110,7 +1131,7 @@ function LabRoomPage() {
                     </p>
                   ) : null}
 
-                  {dockerStatus.running && dockerStatus.access?.url ? (
+                  {isDockerServiceActive && dockerStatus.access?.url ? (
                     <a
                       className="mt-4 flex items-center justify-between gap-3 bg-surface-container-high p-3 text-sm font-bold text-on-surface hover:text-primary transition-colors"
                       href={dockerStatus.access.url.startsWith('http') ? dockerStatus.access.url : undefined}
@@ -1129,15 +1150,15 @@ function LabRoomPage() {
                   <div className="mt-4 flex gap-3">
                     <button
                       className="flex-1 bg-secondary text-on-secondary px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-60"
-                      disabled={isDockerWorking || dockerStatus.running}
+                      disabled={isDockerWorking || isDockerServiceActive}
                       onClick={handleSpawnDocker}
                       type="button"
                     >
-                      {isDockerWorking && !dockerStatus.running ? 'Spawning...' : 'Spawn Docker'}
+                      {isDockerWorking && !isDockerServiceActive ? 'Spawning...' : 'Spawn Docker'}
                     </button>
                     <button
                       className="flex-1 bg-surface-container-high text-on-surface px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-60"
-                      disabled={isDockerWorking || !dockerStatus.running}
+                      disabled={isDockerWorking || !isDockerServiceActive}
                       onClick={handleStopDocker}
                       type="button"
                     >
