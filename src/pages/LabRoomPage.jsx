@@ -126,6 +126,7 @@ function LabRoomPage() {
   const [isTerminalRunning, setIsTerminalRunning] = useState(false)
   const [terminalError, setTerminalError] = useState('')
   const contentRootRef = useRef(null)
+  const terminalOutputRef = useRef(null)
   const roomId = room?.id || ''
   const roomDocker = room?.content?.docker || {}
   const roomType = normalizeRoomType(room?.roomType)
@@ -391,6 +392,14 @@ function LabRoomPage() {
       cleanupHandlers.forEach((cleanup) => cleanup())
     }
   }, [roomId, room?.content])
+
+  useEffect(() => {
+    if (!isTerminalOpen || !terminalOutputRef.current) {
+      return
+    }
+
+    terminalOutputRef.current.scrollTop = terminalOutputRef.current.scrollHeight
+  }, [isTerminalOpen, terminalHistory, isTerminalRunning, terminalError])
 
   if (isLoadingRoom) {
     return (
@@ -1021,7 +1030,7 @@ function LabRoomPage() {
               </p>
 
               {isTerminalOpen ? (
-                <div className="fixed inset-0 z-[80] bg-[#050607] text-[#d7f7ff]">
+                <div className="fixed inset-0 z-[120] bg-[#050607] text-[#d7f7ff]">
                   <div className="flex h-full flex-col">
                     <div className="flex items-center justify-between border-b border-[#24313a] bg-[#10161a] px-5 py-3">
                       <div className="flex items-center gap-3">
@@ -1063,7 +1072,21 @@ function LabRoomPage() {
                         ) : null}
                       </div>
 
-                      <div className="min-h-0 flex-1 overflow-y-auto border border-[#26343d] bg-[#020405] p-5 font-space text-sm leading-7 shadow-[inset_0_0_40px_rgba(0,0,0,0.7)]">
+                      <div
+                        className="min-h-0 flex-1 overflow-y-auto border border-[#26343d] bg-[#020405] p-5 font-space text-sm leading-7 shadow-[inset_0_0_40px_rgba(0,0,0,0.7)]"
+                        ref={terminalOutputRef}
+                      >
+                        <pre className="mb-5 whitespace-pre-wrap break-words text-secondary">
+{`    ____                             _ _        _      
+   /  _/___  _________  ____ _____  (_) /_____  (_)  __
+   / // __ \\/ ___/ __ \\/ __ \`/ __ \\/ / __/ __ \\/ / |/_/
+ _/ // / / / /__/ /_/ / /_/ / / / / / /_/ /_/ / />  <  
+/___/_/ /_/\\___/\\____/\\__, /_/ /_/_/\\__/\\____/_/_/|_|  
+                      /____/                            
+
+Welcome to Incognitrix Academy
+Sandbox terminal ready. Type commands below and press Enter.`}
+                        </pre>
                         {terminalHistory.length > 0 ? (
                           terminalHistory.map((entry) => (
                             <pre
@@ -1075,8 +1098,8 @@ function LabRoomPage() {
                           ))
                         ) : (
                           <div className="space-y-2 text-[#9ed8e8]">
-                            <p>Incognitrix sandbox terminal initialized.</p>
                             <p>Spawn the Docker service, then run commands such as pwd, ls, curl, nc, or tools configured by the admin.</p>
+                            <p>File challenges expose their files in /challenge only when the admin enables terminal file access.</p>
                           </div>
                         )}
                         {isTerminalRunning ? (
