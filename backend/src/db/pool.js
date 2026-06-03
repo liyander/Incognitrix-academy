@@ -276,7 +276,7 @@ export async function initializeDatabaseIfNeeded() {
           room_id VARCHAR(191) NOT NULL,
           container_id VARCHAR(191) NOT NULL,
           container_name VARCHAR(191) NOT NULL,
-          host_port INT NOT NULL,
+          host_port INT NULL,
           status VARCHAR(40) DEFAULT 'running',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -285,6 +285,7 @@ export async function initializeDatabaseIfNeeded() {
           FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
         )
       `)
+      await conn.query('ALTER TABLE user_room_docker_instances MODIFY COLUMN host_port INT NULL')
       await conn.query(`
         CREATE TABLE IF NOT EXISTS docker_config (
           id INT PRIMARY KEY,
@@ -474,7 +475,7 @@ export async function initializeDatabaseIfNeeded() {
         room_id VARCHAR(191) NOT NULL,
         container_id VARCHAR(191) NOT NULL,
         container_name VARCHAR(191) NOT NULL,
-        host_port INT NOT NULL,
+        host_port INT NULL,
         status VARCHAR(40) DEFAULT 'running',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

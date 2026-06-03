@@ -182,7 +182,7 @@ async function ensureDatabase() {
       room_id VARCHAR(191) NOT NULL,
       container_id VARCHAR(191) NOT NULL,
       container_name VARCHAR(191) NOT NULL,
-      host_port INT NOT NULL,
+      host_port INT NULL,
       status VARCHAR(40) DEFAULT 'running',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -403,7 +403,7 @@ async function ensureDatabase() {
       room_id VARCHAR(191) NOT NULL,
       container_id VARCHAR(191) NOT NULL,
       container_name VARCHAR(191) NOT NULL,
-      host_port INT NOT NULL,
+      host_port INT NULL,
       status VARCHAR(40) DEFAULT 'running',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -412,6 +412,7 @@ async function ensureDatabase() {
       FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
     )
   `)
+  await connection.query('ALTER TABLE user_room_docker_instances MODIFY COLUMN host_port INT NULL')
   await connection.query(`
     CREATE TABLE IF NOT EXISTS docker_config (
       id INT PRIMARY KEY,
