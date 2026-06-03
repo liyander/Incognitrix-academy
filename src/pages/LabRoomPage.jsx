@@ -115,6 +115,7 @@ function LabRoomPage() {
     running: false,
     access: null,
     instructions: '',
+    expired: false,
   })
   const [dockerNow, setDockerNow] = useState(Date.now())
   const [isDockerWorking, setIsDockerWorking] = useState(false)
@@ -260,6 +261,7 @@ function LabRoomPage() {
             running: false,
             access: null,
             instructions: '',
+            expired: false,
           })
           setDockerError('')
         }
@@ -279,6 +281,7 @@ function LabRoomPage() {
             timeoutMinutes: response?.timeoutMinutes || roomDocker.timeoutMinutes || 120,
             createdAt: response?.createdAt || null,
             expiresAt: response?.expiresAt || null,
+            expired: Boolean(response?.expired),
           })
           setDockerError('')
         }
@@ -321,9 +324,10 @@ function LabRoomPage() {
             running: false,
             access: null,
             hostPort: '',
+            expired: true,
           }
         })
-        setDockerError('This Docker service expired. Revert or spawn it again.')
+        setDockerError('')
       }
     }
 
@@ -506,6 +510,7 @@ function LabRoomPage() {
         timeoutMinutes: response?.timeoutMinutes || room.content?.docker?.timeoutMinutes || 120,
         createdAt: response?.createdAt || null,
         expiresAt: response?.expiresAt || null,
+        expired: false,
       })
     } catch (error) {
       setDockerError(error?.message || 'Unable to spawn Docker service.')
@@ -532,6 +537,7 @@ function LabRoomPage() {
         timeoutMinutes: response?.timeoutMinutes || room.content?.docker?.timeoutMinutes || 120,
         createdAt: response?.createdAt || null,
         expiresAt: response?.expiresAt || null,
+        expired: false,
       })
     } catch (error) {
       setDockerError(error?.message || 'Unable to revert Docker service.')
@@ -553,6 +559,7 @@ function LabRoomPage() {
         access: null,
         hostPort: '',
         expiresAt: null,
+        expired: false,
       }))
     } catch (error) {
       setDockerError(error?.message || 'Unable to stop Docker service.')
