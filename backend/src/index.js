@@ -1,6 +1,7 @@
 import app from './app.js'
 import { env } from './config/env.js'
 import { testConnection, initializeDatabaseIfNeeded } from './db/pool.js'
+import { setupRoomTerminalWebSocket } from './routes/rooms.routes.js'
 
 async function start() {
   try {
@@ -12,6 +13,8 @@ async function start() {
       console.log(`    operator01 / RedTeam@123`)
       console.log(`    admin01 / AdminControl@123`)
     })
+
+    setupRoomTerminalWebSocket(server)
 
     server.on('error', (error) => {
       if (error?.code === 'EADDRINUSE') {

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
+import { Terminal } from '@xterm/xterm'
+import '@xterm/xterm/css/xterm.css'
 import { getRoomsData } from '../data/roomsData'
-import { apiFetch } from '../services/api'
+import { API_BASE_URL, apiFetch, getAuthToken } from '../services/api'
 import {
   getLabStatus,
   markLabCompleted,
@@ -121,13 +123,10 @@ function LabRoomPage() {
   const [isDockerWorking, setIsDockerWorking] = useState(false)
   const [dockerError, setDockerError] = useState('')
   const [isTerminalOpen, setIsTerminalOpen] = useState(false)
-  const [terminalCommand, setTerminalCommand] = useState('')
-  const [terminalHistory, setTerminalHistory] = useState([])
-  const [terminalCwd, setTerminalCwd] = useState('/')
-  const [isTerminalRunning, setIsTerminalRunning] = useState(false)
-  const [terminalError, setTerminalError] = useState('')
   const contentRootRef = useRef(null)
-  const terminalOutputRef = useRef(null)
+  const xtermHostRef = useRef(null)
+  const xtermRef = useRef(null)
+  const terminalSocketRef = useRef(null)
   const roomId = room?.id || ''
   const roomDocker = room?.content?.docker || {}
   const roomType = normalizeRoomType(room?.roomType)
@@ -395,12 +394,100 @@ function LabRoomPage() {
   }, [roomId, room?.content])
 
   useEffect(() => {
-    if (!isTerminalOpen || !terminalOutputRef.current) {
-      return
+    const dockerExpiresAtForTerminal = dockerStatus.expiresAt ? new Date(dockerStatus.expiresAt).getTime() : 0
+    const dockerRemainingMsForTerminal = dockerStatus.running && dockerExpiresAtForTerminal
+      ? Math.max(0, dockerExpiresAtForTerminal - Date.now())
+      : 0
+    const terminalServiceActive = dockerStatus.running && (!dockerExpiresAtForTerminal || dockerRemainingMsForTerminal > 0)
+
+    if (!isTerminalOpen || !terminalServiceActive || !xtermHostRef.current || xtermRef.current) {
+      return undefined
     }
 
-    terminalOutputRef.current.scrollTop = terminalOutputRef.current.scrollHeight
-  }, [isTerminalOpen, terminalHistory, isTerminalRunning, terminalError])
+    const terminal = new Terminal({
+      cursorBlink: true,
+      convertEol: true,
+      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+      fontSize: 14,
+      rows: 28,
+      theme: {
+        background: '#020405',
+        foreground: '#d7f7ff',
+        cursor: '#66d9ef',
+        selectionBackground: '#2b3f4a',
+        black: '#020405',
+        red: '#ff6670',
+        green: '#78d97b',
+        yellow: '#f7d66b',
+        blue: '#66d9ef',
+        magenta: '#ff7aa8',
+        cyan: '#66d9ef',
+        white: '#d7f7ff',
+      },
+    })
+    terminal.open(xtermHostRef.current)
+    const refocusTerminal = () => window.setTimeout(() => terminal.focus(), 0)
+    terminal.writeln('Welcome to Incognitrix Academy')
+    terminal.writeln('Opening interactive sandbox shell...')
+    refocusTerminal()
+    xtermRef.current = terminal
+
+    const token = encodeURIComponent(getAuthToken())
+    const wsBaseUrl = API_BASE_URL.replace(/^http/i, 'ws').replace(/\/api$/, '')
+    const socket = new WebSocket(`${wsBaseUrl}/api/rooms/${encodeURIComponent(roomId)}/docker/terminal/ws?token=${token}`)
+    terminalSocketRef.current = socket
+
+    const inputDisposable = terminal.onData((data) => {
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'input', data: btoa(data) }))
+      }
+    })
+
+    socket.addEventListener('message', (event) => {
+      try {
+        const payload = JSON.parse(String(event.data || '{}'))
+        if (payload.type === 'output') {
+          terminal.write(atob(payload.data || ''))
+          refocusTerminal()
+        } else if (payload.type === 'ready') {
+          terminal.writeln('')
+          terminal.writeln(`Connected. Workdir: ${payload.cwd || '/'}`)
+          refocusTerminal()
+        } else if (payload.type === 'error') {
+          terminal.writeln('')
+          terminal.writeln(`\x1b[31m${payload.message || 'Terminal error.'}\x1b[0m`)
+          refocusTerminal()
+        } else if (payload.type === 'exit') {
+          terminal.writeln('')
+          terminal.writeln(`\x1b[33mTerminal session closed (${payload.code ?? 0}).\x1b[0m`)
+          refocusTerminal()
+        }
+      } catch {
+        terminal.write(String(event.data || ''))
+        refocusTerminal()
+      }
+    })
+
+    socket.addEventListener('close', () => {
+      terminal.writeln('')
+      terminal.writeln('\x1b[33mDisconnected from sandbox terminal.\x1b[0m')
+      refocusTerminal()
+    })
+
+    socket.addEventListener('error', () => {
+      terminal.writeln('')
+      terminal.writeln('\x1b[31mUnable to connect to sandbox terminal.\x1b[0m')
+      refocusTerminal()
+    })
+
+    return () => {
+      inputDisposable.dispose()
+      socket.close()
+      terminal.dispose()
+      xtermRef.current = null
+      terminalSocketRef.current = null
+    }
+  }, [dockerStatus.expiresAt, dockerStatus.running, isTerminalOpen, roomId])
 
   if (isLoadingRoom) {
     return (
@@ -575,54 +662,6 @@ function LabRoomPage() {
       setDockerError(error?.message || 'Unable to stop Docker service.')
     } finally {
       setIsDockerWorking(false)
-    }
-  }
-
-  const handleTerminalSubmit = async (event) => {
-    event.preventDefault()
-    const command = terminalCommand.trim()
-    if (!command || isTerminalRunning) {
-      return
-    }
-
-    if (!isDockerServiceActive) {
-      setTerminalError('Spawn the Docker service before using the sandbox terminal.')
-      return
-    }
-
-    setTerminalError('')
-    setTerminalCommand('')
-    setIsTerminalRunning(true)
-    setTerminalHistory((current) => [
-      ...current,
-      {
-        id: `cmd-${Date.now()}`,
-        type: 'command',
-        text: `$ ${command}`,
-      },
-    ])
-
-    try {
-      const result = await apiFetch(`/rooms/${encodeURIComponent(room.id)}/docker/terminal`, {
-        method: 'POST',
-        body: JSON.stringify({ command, cwd: terminalCwd }),
-      })
-      if (result?.cwd) {
-        setTerminalCwd(result.cwd)
-      }
-      const output = [result?.stdout, result?.stderr].filter(Boolean).join('\n')
-      setTerminalHistory((current) => [
-        ...current,
-        {
-          id: `out-${Date.now()}`,
-          type: Number(result?.exitCode || 0) === 0 ? 'output' : 'error',
-          text: output || `Process exited with code ${Number(result?.exitCode || 0)}`,
-        },
-      ])
-    } catch (error) {
-      setTerminalError(error?.message || 'Unable to execute command in sandbox.')
-    } finally {
-      setIsTerminalRunning(false)
     }
   }
 
@@ -1075,69 +1114,28 @@ function LabRoomPage() {
                           </p>
                         ) : null}
                         <p className="font-space text-xs text-[#9ed8e8]">
-                          cwd: {terminalCwd}
+                          mode: interactive shell
                         </p>
                       </div>
 
-                      <div
-                        className="min-h-0 flex-1 overflow-y-auto border border-[#26343d] bg-[#020405] p-5 font-space text-sm leading-7 shadow-[inset_0_0_40px_rgba(0,0,0,0.7)]"
-                        ref={terminalOutputRef}
-                      >
-                       <pre className="mb-5 whitespace-pre-wrap break-words text-secondary">
-{`    ____                             _ __       _     
-   /  _/___  _________  ____ _____  (_) /______(_)  __
-   / // __ \\/ ___/ __ \\/ __ \`/ __ \\/ / __/ ___/ / |/_/
- _/ // / / / /__/ /_/ / /_/ / / / / / /_/ /  / />  <  
-/___/_/ /_/\\___/\\____/\\__, /_/ /_/_/\\__/_/  /_/_/|_|  
-                     /____/                           
-
-Welcome to Incognitrix Academy
-Sandbox terminal ready. cd, pwd, ls, curl, and installed tools are available.
-Create files with commands like: printf 'hello\\n' > notes.txt`}
-</pre>
-                        {terminalHistory.length > 0 ? (
-                          terminalHistory.map((entry) => (
-                            <pre
-                              className={`whitespace-pre-wrap break-words ${entry.type === 'command' ? 'text-secondary' : entry.type === 'error' ? 'text-primary' : 'text-[#d7f7ff]'}`}
-                              key={entry.id}
-                            >
-                              {entry.text}
-                            </pre>
-                          ))
+                      <div className="min-h-0 flex-1 overflow-hidden border border-[#26343d] bg-[#020405] p-3 shadow-[inset_0_0_40px_rgba(0,0,0,0.7)]">
+                        {isDockerServiceActive ? (
+                          <div
+                            className="h-full w-full [&_.xterm]:h-full [&_.xterm-viewport]:!bg-[#020405]"
+                            onClick={() => xtermRef.current?.focus()}
+                            ref={xtermHostRef}
+                          ></div>
                         ) : (
-                          <div className="space-y-2 text-[#9ed8e8]">
-                            <p>Spawn the Docker service, then run commands such as pwd, ls, curl, nc, or tools configured by the admin.</p>
-                            <p>Full-screen editors like vim need a real PTY, so use non-interactive file commands such as printf, cat, sed, or python scripts.</p>
-                            <p>File challenges expose their files in /challenge only when the admin enables terminal file access.</p>
+                          <div className="space-y-3 p-5 font-space text-sm text-[#9ed8e8]">
+                            <pre className="whitespace-pre-wrap text-secondary">
+{`Welcome to Incognitrix Academy
+Interactive sandbox terminal waiting for Docker spawn.`}
+                            </pre>
+                            <p>Spawn the Docker service, then open terminal access for a real interactive shell.</p>
+                            <p>Admin-prepared tools and /challenge file access are applied before the shell opens.</p>
                           </div>
                         )}
-                        {isTerminalRunning ? (
-                          <p className="mt-2 text-primary animate-pulse">executing...</p>
-                        ) : null}
-                        {terminalError ? (
-                          <p className="mt-2 text-primary">{terminalError}</p>
-                        ) : null}
                       </div>
-
-                      <form className="mt-3 flex items-center gap-3 border border-[#26343d] bg-[#080c0f] px-4 py-3" onSubmit={handleTerminalSubmit}>
-                        <span className="shrink-0 font-space text-sm text-secondary">operator:{terminalCwd}$</span>
-                        <input
-                          autoFocus
-                          className="min-w-0 flex-1 bg-transparent font-space text-sm text-[#d7f7ff] outline-none placeholder:text-[#5f7480] disabled:opacity-60"
-                          disabled={!isDockerServiceActive || isTerminalRunning}
-                          onChange={(event) => setTerminalCommand(event.target.value)}
-                          placeholder={isDockerServiceActive ? 'type a command and press enter...' : 'spawn Docker to enable terminal'}
-                          type="text"
-                          value={terminalCommand}
-                        />
-                        <button
-                          className="bg-primary px-5 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-on-primary disabled:opacity-50"
-                          disabled={!isDockerServiceActive || isTerminalRunning || !terminalCommand.trim()}
-                          type="submit"
-                        >
-                          Run
-                        </button>
-                      </form>
                     </div>
                   </div>
                 </div>

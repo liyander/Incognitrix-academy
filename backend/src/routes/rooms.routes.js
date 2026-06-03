@@ -1,12 +1,14 @@
 import { Router } from 'express'
 import OpenAI from 'openai'
-import { execFile } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import http from 'node:http'
 import https from 'node:https'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
+import jwt from 'jsonwebtoken'
+import { WebSocketServer } from 'ws'
 import { pool } from '../db/pool.js'
 import { env } from '../config/env.js'
 import { authenticate, optionalAuthenticate, requireAdmin } from '../middleware/auth.js'
@@ -217,15 +219,24 @@ function decodeDataUrl(dataUrl) {
 async function installDockerTerminalTools(containerId, tools = []) {
   if (!tools.length) return
   const toolList = tools.join(' ')
-  const script = [
-    'set -e',
-    `TOOLS="${toolList}"`,
-    'if command -v apk >/dev/null 2>&1; then apk add --no-cache $TOOLS;',
-    'elif command -v apt-get >/dev/null 2>&1; then apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $TOOLS && rm -rf /var/lib/apt/lists/*;',
-    'elif command -v dnf >/dev/null 2>&1; then dnf install -y $TOOLS;',
-    'elif command -v yum >/dev/null 2>&1; then yum install -y $TOOLS;',
-    'else echo "No supported package manager found for requested terminal tools. Use an isolated terminal image with apk, apt-get, dnf, or yum." >&2; exit 127; fi',
-  ].join(' ')
+  const script = `
+set -e
+TOOLS="${toolList}"
+if command -v apk >/dev/null 2>&1; then
+  apk add --no-cache $TOOLS
+elif command -v apt-get >/dev/null 2>&1; then
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $TOOLS
+  rm -rf /var/lib/apt/lists/*
+elif command -v dnf >/dev/null 2>&1; then
+  dnf install -y $TOOLS
+elif command -v yum >/dev/null 2>&1; then
+  yum install -y $TOOLS
+else
+  echo "No supported package manager found for requested terminal tools. Use an isolated terminal image with apk, apt-get, dnf, or yum." >&2
+  exit 127
+fi
+`
 
   await dockerExec(['exec', '--user', '0:0', containerId, 'sh', '-lc', script], {
     timeout: 180000,
@@ -261,7 +272,7 @@ async function copyRoomAttachmentToDocker(containerId, room, config) {
   const tempPath = path.join(tempDir, fileName)
   try {
     await fs.writeFile(tempPath, decodeDataUrl(room.content.attachment.dataUrl))
-    await dockerExec(['exec', '--user', '0:0', containerId, 'sh', '-lc', 'mkdir -p /challenge && chmod 755 /challenge'], {
+    await dockerExec(['exec', '--user', '0:0', containerId, 'sh', '-lc', 'mkdir -p /challenge && chmod 777 /challenge'], {
       timeout: 10000,
       maxBuffer: 128 * 1024,
     })
@@ -2669,5 +2680,141 @@ router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
   await pool.query('DELETE FROM rooms WHERE id = ?', [existing.id])
   return res.status(204).send()
 })
+
+export function setupRoomTerminalWebSocket(server) {
+  const wss = new WebSocketServer({ noServer: true })
+
+  server.on('upgrade', (request, socket, head) => {
+    let parsedUrl
+    try {
+      parsedUrl = new URL(request.url || '', 'http://localhost')
+    } catch {
+      socket.destroy()
+      return
+    }
+
+    const match = parsedUrl.pathname.match(/^\/api\/rooms\/([^/]+)\/docker\/terminal\/ws$/)
+    if (!match) {
+      return
+    }
+
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request, decodeURIComponent(match[1]), parsedUrl)
+    })
+  })
+
+  wss.on('connection', async (ws, _request, roomId, parsedUrl) => {
+    let prefix = null
+    let child = null
+
+    const sendJson = (payload) => {
+      if (ws.readyState === 1) {
+        ws.send(JSON.stringify(payload))
+      }
+    }
+
+    try {
+      const token = parsedUrl.searchParams.get('token') || ''
+      const user = jwt.verify(token, env.jwtSecret)
+      const room = await fetchRoomById(roomId)
+      if (!room) {
+        sendJson({ type: 'error', message: 'Room not found.' })
+        ws.close()
+        return
+      }
+
+      const config = getDockerConfig(room)
+      const validationError = validateDockerConfig(config)
+      if (validationError) {
+        sendJson({ type: 'error', message: validationError })
+        ws.close()
+        return
+      }
+
+      const [rows] = await pool.query(
+        `SELECT id, container_name, created_at
+         FROM user_room_docker_instances
+         WHERE user_id = ? AND room_id = ?
+         LIMIT 1`,
+        [user.id, room.id],
+      )
+      const instance = rows[0]
+      if (!instance) {
+        sendJson({ type: 'error', message: 'Spawn the Docker service before opening the terminal.' })
+        ws.close()
+        return
+      }
+
+      const expired = await stopStaleDockerInstance(instance, config)
+      if (expired) {
+        sendJson({ type: 'error', message: 'This Docker service expired. Revert or spawn it again.' })
+        ws.close()
+        return
+      }
+
+      const terminalContainerName = config.terminalMode === 'isolated'
+        ? buildDockerTerminalContainerName(user.id, room.id)
+        : instance.container_name
+      const inspected = await inspectDockerContainer(terminalContainerName)
+      if (!inspected.running) {
+        sendJson({ type: 'error', message: 'Docker terminal is not running. Revert or spawn the service again.' })
+        ws.close()
+        return
+      }
+
+      await ensureDockerTerminalTools(terminalContainerName, config.terminalTools)
+
+      const workdir = config.exposeAttachmentToTerminal && room?.content?.attachment?.dataUrl ? '/challenge' : '/tmp'
+      prefix = await buildDockerCliPrefix()
+      child = spawn('docker', [
+        ...prefix.args,
+        'exec',
+        '-i',
+        '-t',
+        '--user',
+        '65534:65534',
+        '--workdir',
+        workdir,
+        terminalContainerName,
+        'sh',
+      ])
+
+      sendJson({ type: 'ready', cwd: workdir })
+      child.stdout.on('data', (chunk) => sendJson({ type: 'output', data: chunk.toString('base64') }))
+      child.stderr.on('data', (chunk) => sendJson({ type: 'output', data: chunk.toString('base64') }))
+      child.on('close', (code) => {
+        sendJson({ type: 'exit', code })
+        ws.close()
+      })
+      child.on('error', (error) => {
+        sendJson({ type: 'error', message: error?.message || 'Terminal process failed.' })
+        ws.close()
+      })
+
+      ws.on('message', (message) => {
+        try {
+          const payload = JSON.parse(String(message))
+          if (payload.type === 'input' && child?.stdin?.writable) {
+            child.stdin.write(Buffer.from(String(payload.data || ''), 'base64'))
+          }
+        } catch {
+          // Ignore malformed terminal frames.
+        }
+      })
+    } catch (error) {
+      sendJson({ type: 'error', message: error?.message || 'Unable to open terminal.' })
+      ws.close()
+    }
+
+    ws.on('close', async () => {
+      if (child && !child.killed) {
+        child.kill('SIGTERM')
+      }
+      if (prefix) {
+        await prefix.cleanup()
+      }
+    })
+  })
+}
 
 export default router
