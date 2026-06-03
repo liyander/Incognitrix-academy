@@ -1092,7 +1092,8 @@ function LabRoomPage() {
                      /____/                           
 
 Welcome to Incognitrix Academy
-Sandbox terminal ready. cd, pwd, ls and installed tools are available from the prompt below.`}
+Sandbox terminal ready. cd, pwd, ls, curl, and installed tools are available.
+Create files with commands like: printf 'hello\\n' > notes.txt`}
 </pre>
                         {terminalHistory.length > 0 ? (
                           terminalHistory.map((entry) => (
@@ -1106,6 +1107,7 @@ Sandbox terminal ready. cd, pwd, ls and installed tools are available from the p
                         ) : (
                           <div className="space-y-2 text-[#9ed8e8]">
                             <p>Spawn the Docker service, then run commands such as pwd, ls, curl, nc, or tools configured by the admin.</p>
+                            <p>Full-screen editors like vim need a real PTY, so use non-interactive file commands such as printf, cat, sed, or python scripts.</p>
                             <p>File challenges expose their files in /challenge only when the admin enables terminal file access.</p>
                           </div>
                         )}

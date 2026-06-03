@@ -297,6 +297,19 @@ function isBlockedPlayerTerminalCommand(command) {
     /(^|[;&|()]\s*|\s)(pip|pip3|npm|pnpm|yarn|gem|cargo|go)\s+(install|add|get)\b/.test(normalized)
 }
 
+function getBlockedInteractiveTerminalCommand(command) {
+  const normalized = String(command || '').trim().toLowerCase()
+  const interactivePattern =
+    /(^|[;&|()]\s*)(vim|vi|nano|emacs|less|more|top|htop|watch|tmux|screen|ssh|telnet|ftp|mysql|psql|sqlite3)(\s|$)/
+  const shellPattern = /^(bash|sh|zsh|fish|dash|ash)(\s*)$/
+
+  if (interactivePattern.test(normalized) || shellPattern.test(normalized)) {
+    return 'Interactive full-screen terminal programs are not supported in this browser command runner. Use non-interactive commands such as cat, printf, sed, python scripts, or admin-prepared tooling.'
+  }
+
+  return ''
+}
+
 function normalizeDockerHostname(hostname, tlsEnabled) {
   const raw = String(hostname || '').trim()
   if (!raw) {
@@ -2349,6 +2362,10 @@ router.post('/:id/docker/terminal', authenticate, async (req, res) => {
   }
   if (command.length > 1000 || command.includes('\u0000')) {
     return res.status(400).json({ message: 'Terminal command is too large or invalid.' })
+  }
+  const interactiveBlockMessage = getBlockedInteractiveTerminalCommand(command)
+  if (interactiveBlockMessage) {
+    return res.status(400).json({ message: interactiveBlockMessage })
   }
   if (isBlockedPlayerTerminalCommand(command)) {
     return res.status(403).json({
