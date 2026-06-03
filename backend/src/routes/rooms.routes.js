@@ -28,14 +28,16 @@ function hasPracticalAiQuestions(room) {
 
 function getDockerConfig(room) {
   const docker = room?.content?.docker || {}
+  const isPractical = !isTheoreticalRoom(room)
+  const fallbackImage = String(docker.image || docker.terminalImage || env.defaultDockerImage || 'ubuntu:24.04').trim()
   const terminalTools = String(docker.terminalTools || '')
     .split(/[\s,]+/)
     .map((tool) => tool.trim())
     .filter((tool) => /^[a-zA-Z0-9+._-]{1,80}$/.test(tool))
     .slice(0, 30)
   return {
-    enabled: !isTheoreticalRoom(room) && Boolean(docker.enabled),
-    image: String(docker.image || '').trim(),
+    enabled: isPractical,
+    image: fallbackImage,
     containerPort: Number(docker.containerPort || 0),
     protocol: ['http', 'https', 'tcp'].includes(String(docker.protocol || '').toLowerCase())
       ? String(docker.protocol).toLowerCase()
@@ -120,6 +122,7 @@ function getDockerExpiry(instance, config) {
 }
 
 function buildDockerAccess(config, hostPort, requestHost = '', dockerConnection = {}) {
+  if (!hostPort) return null
   const host = dockerConnection.displayHost || requestHost || env.publicHost || '127.0.0.1'
   if (config.protocol === 'tcp') {
     return {
@@ -453,7 +456,7 @@ async function getDockerImageExposedPorts(image, fallbackPort) {
   if (Number.isInteger(fallbackPort) && fallbackPort >= 1 && fallbackPort <= 65535) {
     return [`${fallbackPort}/tcp`]
   }
-  throw new Error('This image does not declare exposed ports. Set an internal service port in the room Docker settings.')
+  return []
 }
 
 function getPublishedDockerHostPort(inspected, containerPort) {
@@ -474,11 +477,12 @@ function getPublishedDockerHostPort(inspected, containerPort) {
 
 async function createStartedDockerContainerWithRandomPorts(containerName, image, exposedPorts) {
   const blockedPorts = await getUnavailableDockerPorts()
+  const portsToPublish = Array.isArray(exposedPorts) ? exposedPorts : []
 
   for (let attempt = 0; attempt < 12; attempt += 1) {
     const selectedPorts = []
     const portBindings = Object.fromEntries(
-      exposedPorts.map((portName) => {
+      portsToPublish.map((portName) => {
         const hostPort = chooseRandomDockerPort([...blockedPorts, ...selectedPorts])
         selectedPorts.push(hostPort)
         return [portName, [{ HostPort: String(hostPort) }]]
@@ -491,9 +495,9 @@ async function createStartedDockerContainerWithRandomPorts(containerName, image,
         method: 'POST',
         body: {
           Image: image,
-          ExposedPorts: Object.fromEntries(exposedPorts.map((portName) => [portName, {}])),
+          ...(portsToPublish.length ? { ExposedPorts: Object.fromEntries(portsToPublish.map((portName) => [portName, {}])) } : {}),
           HostConfig: {
-            PortBindings: portBindings,
+            ...(portsToPublish.length ? { PortBindings: portBindings } : {}),
           },
         },
       })
@@ -590,6 +594,30 @@ function extractJsonObject(raw) {
   }
 
   return null
+}
+
+function extractPartialEvaluationObject(raw) {
+  const text = String(raw || '')
+  const readNumber = (key) => {
+    const match = text.match(new RegExp(`"${key}"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)`))
+    return match ? Number(match[1]) : undefined
+  }
+  const technicalScore = readNumber('technicalScore')
+  const grammarScore = readNumber('grammarScore')
+  if (technicalScore === undefined || grammarScore === undefined) return null
+
+  const bonusScore = readNumber('bonusScore') ?? 0
+  const feedbackMatch = text.match(/"feedback"\s*:\s*"([\s\S]*)$/)
+  const feedback = feedbackMatch
+    ? feedbackMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\').replace(/"?\s*}?\s*$/, '').trim()
+    : 'Evaluation completed. Improve next: 1) Tie each answer directly to the room content. 2) Add exact examples where requested.'
+
+  return {
+    technicalScore,
+    grammarScore,
+    bonusScore,
+    feedback,
+  }
 }
 
 function hashText(value) {
@@ -957,7 +985,7 @@ async function evaluateTheoreticalAnswers(room, questions, answers) {
     })
 
     const rawEvaluation = extractMessageText(response?.choices?.[0]?.message)
-    const parsed = extractJsonObject(rawEvaluation)
+    const parsed = extractJsonObject(rawEvaluation) || extractPartialEvaluationObject(rawEvaluation)
     if (!parsed || parsed.technicalScore === undefined || parsed.grammarScore === undefined) {
       console.warn('Theoretical evaluator returned non-JSON or incomplete scores:', rawEvaluation)
       return evaluateTheoreticalAnswersLocally(room, questions, answers, 'The remote evaluator returned incomplete scoring data.')
@@ -2251,8 +2279,8 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
     expiredExistingInstance = await stopStaleDockerInstance(instanceRows[0], config)
   }
 
-  if (existing.running && instanceRows[0]?.host_port && !forceRevert && !expiredExistingInstance) {
-    const hostPort = Number(instanceRows[0].host_port)
+  if (existing.running && instanceRows[0] && !forceRevert && !expiredExistingInstance) {
+    const hostPort = Number(instanceRows[0].host_port || 0)
     return res.json({
       enabled: true,
       running: true,
@@ -2274,17 +2302,26 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
   }
   await stopDockerContainer(buildDockerTerminalContainerName(req.user.id, room.id))
 
-  const exposedPorts = await getDockerImageExposedPorts(config.image, config.containerPort)
-  const { containerId } = await createStartedDockerContainerWithRandomPorts(
-    containerName,
-    config.image,
-    exposedPorts,
-  )
+  let exposedPorts = []
+  let containerId = ''
+  try {
+    exposedPorts = await getDockerImageExposedPorts(config.image, config.containerPort)
+    const createdContainer = await createStartedDockerContainerWithRandomPorts(
+      containerName,
+      config.image,
+      exposedPorts,
+    )
+    containerId = createdContainer.containerId
+  } catch (error) {
+    return res.status(500).json({
+      message: error?.message || 'Unable to start Docker container for this practical room.',
+    })
+  }
   const inspected = await inspectDockerContainer(containerId)
   const hostPort = getPublishedDockerHostPort(inspected, config.containerPort)
-  if (!hostPort) {
+  if (!hostPort && exposedPorts.length) {
     await stopDockerContainer(containerId)
-    throw new Error('Docker did not publish a host port for this lab container.')
+    return res.status(500).json({ message: 'Docker did not publish a host port for this lab container.' })
   }
 
   let terminalContainerId = containerId
@@ -2302,7 +2339,9 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
   } catch (error) {
     await stopDockerContainer(containerId)
     await stopDockerContainer(buildDockerTerminalContainerName(req.user.id, room.id))
-    throw new Error(`Docker sandbox setup failed: ${error?.stderr || error?.message || 'Unable to prepare terminal.'}`)
+    return res.status(500).json({
+      message: `Docker sandbox setup failed: ${error?.stderr || error?.message || 'Unable to prepare terminal.'}`,
+    })
   }
 
   await pool.query(
@@ -2315,7 +2354,7 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
        host_port = VALUES(host_port),
        status = 'running',
        created_at = CURRENT_TIMESTAMP`,
-    [req.user.id, room.id, containerId, containerName, hostPort],
+    [req.user.id, room.id, containerId, containerName, hostPort || null],
   )
 
   const [createdRows] = await pool.query(

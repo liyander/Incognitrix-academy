@@ -131,8 +131,10 @@ function LabRoomPage() {
   const roomId = room?.id || ''
   const roomDocker = room?.content?.docker || {}
   const roomType = normalizeRoomType(room?.roomType)
+  const isPracticalRoom = roomType === 'practical'
+  const dockerAvailable = isPracticalRoom
   const questionsEnabled =
-    roomType !== 'practical' ||
+    !isPracticalRoom ||
     Boolean(room?.content?.questionsEnabled || room?.content?.aiQuestionsEnabled)
 
   useEffect(() => {
@@ -256,7 +258,7 @@ function LabRoomPage() {
     let cancelled = false
 
     const loadDockerStatus = async () => {
-      if (!roomId || !roomDocker.enabled) {
+      if (!roomId || !dockerAvailable) {
         if (!cancelled) {
           setDockerStatus({
             enabled: false,
@@ -302,7 +304,7 @@ function LabRoomPage() {
   }, [
     roomId,
     roomDocker.containerPort,
-    roomDocker.enabled,
+    dockerAvailable,
     roomDocker.instructions,
     roomDocker.timeoutMinutes,
   ])
@@ -405,6 +407,7 @@ function LabRoomPage() {
       return undefined
     }
 
+    const terminalHost = xtermHostRef.current
     const terminal = new Terminal({
       cursorBlink: true,
       convertEol: true,
@@ -428,7 +431,7 @@ function LabRoomPage() {
         white: '#d7f7ff',
       },
     })
-    terminal.open(xtermHostRef.current)
+    terminal.open(terminalHost)
     let terminalSocket = null
     const fitTerminalToHost = () => {
       const host = xtermHostRef.current
@@ -458,12 +461,51 @@ function LabRoomPage() {
       terminal.writeln(text)
       settleTerminalView()
     }
-    terminal.attachCustomKeyEventHandler(() => true)
+    const sendTerminalInput = (data) => {
+      if (data && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'input', data: btoa(data) }))
+      }
+    }
+    const pasteFromClipboard = async () => {
+      try {
+        const text = await navigator.clipboard.readText()
+        sendTerminalInput(text)
+        settleTerminalView()
+      } catch {
+        writeLine('\x1b[31mClipboard paste is blocked by the browser. Use the browser permission prompt or right-click paste.\x1b[0m')
+      }
+    }
+    const handleTerminalPaste = (event) => {
+      const text = event.clipboardData?.getData('text/plain') || ''
+      if (!text) return
+      event.preventDefault()
+      sendTerminalInput(text)
+      settleTerminalView()
+    }
+    terminal.attachCustomKeyEventHandler((event) => {
+      const wantsPaste = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v'
+      const wantsShiftInsert = event.shiftKey && event.key === 'Insert'
+      if (event.type === 'keydown' && (wantsPaste || wantsShiftInsert)) {
+        event.preventDefault()
+        void pasteFromClipboard()
+        return false
+      }
+
+      const wantsCopy = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c'
+      if (event.type === 'keydown' && wantsCopy && terminal.hasSelection()) {
+        event.preventDefault()
+        void navigator.clipboard.writeText(terminal.getSelection())
+        terminal.clearSelection()
+        return false
+      }
+
+      return true
+    })
     const resizeObserver = new ResizeObserver(() => {
       fitTerminalToHost()
       settleTerminalView()
     })
-    resizeObserver.observe(xtermHostRef.current)
+    resizeObserver.observe(terminalHost)
     fitTerminalToHost()
     writeLine('Welcome to Incognitrix Academy')
     writeLine('Opening interactive sandbox shell...')
@@ -476,10 +518,9 @@ function LabRoomPage() {
     terminalSocketRef.current = socket
 
     const inputDisposable = terminal.onData((data) => {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: 'input', data: btoa(data) }))
-      }
+      sendTerminalInput(data)
     })
+    terminalHost.addEventListener('paste', handleTerminalPaste)
 
     socket.addEventListener('message', (event) => {
       try {
@@ -514,6 +555,7 @@ function LabRoomPage() {
 
     return () => {
       resizeObserver.disconnect()
+      terminalHost.removeEventListener('paste', handleTerminalPaste)
       inputDisposable.dispose()
       socket.close()
       terminal.dispose()
@@ -1092,7 +1134,7 @@ function LabRoomPage() {
             <div className="space-y-4">
               <button
                 className="w-full group relative bg-primary hover:bg-primary-container text-on-primary p-6 transition-all disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={!room.content?.docker?.enabled}
+                disabled={!dockerAvailable}
                 onClick={() => setIsTerminalOpen((current) => !current)}
                 type="button"
               >
@@ -1180,7 +1222,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                 </div>
               ) : null}
 
-              {room.content?.docker?.enabled ? (
+              {dockerAvailable ? (
                 <div className="relative overflow-hidden bg-surface-container-low p-5 border-l-2 border-l-secondary">
                   {isDockerWorking ? (
                     <div className="absolute inset-0 z-10 flex items-center justify-center bg-surface-container-low/90 backdrop-blur-sm">
@@ -1210,15 +1252,19 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                         Personal lab machine with isolated runtime access.
                       </p>
                       <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
-                        Auto cleanup: {dockerStatus.timeoutMinutes || room.content.docker.timeoutMinutes || 120} minutes
+                        Auto cleanup: {dockerStatus.timeoutMinutes || room.content?.docker?.timeoutMinutes || 120} minutes
                       </p>
                       {isDockerServiceActive && dockerStatus.hostPort ? (
                         <p className="mt-1 text-xs leading-relaxed text-secondary">
                           Assigned player port: {dockerStatus.hostPort}
                         </p>
+                      ) : isDockerServiceActive ? (
+                        <p className="mt-1 text-xs leading-relaxed text-secondary">
+                          Terminal-only runtime: no service port published
+                        </p>
                       ) : (
                         <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
-                          Player port: assigned randomly on spawn
+                          Player port: assigned randomly when the image exposes a service
                         </p>
                       )}
                       {isDockerServiceActive && dockerStatus.expiresAt ? (
