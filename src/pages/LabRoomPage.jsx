@@ -434,18 +434,23 @@ function LabRoomPage() {
       const host = xtermHostRef.current
       if (!host) return
 
-      const cols = Math.max(80, Math.floor((host.clientWidth - 24) / 9.8))
-      const rows = Math.max(24, Math.floor((host.clientHeight - 24) / 20))
+      const cols = Math.max(80, Math.floor((host.clientWidth - 32) / 10))
+      const rows = Math.max(20, Math.floor((host.clientHeight - 56) / 21))
       terminal.resize(cols, rows)
 
       if (terminalSocket?.readyState === WebSocket.OPEN) {
         terminalSocket.send(JSON.stringify({ type: 'resize', cols, rows }))
       }
     }
-    const settleTerminalView = () => window.setTimeout(() => {
-      terminal.scrollToBottom()
-      terminal.focus()
-    }, 0)
+    const settleTerminalView = () => {
+      window.setTimeout(() => {
+        terminal.scrollToBottom()
+        terminal.focus()
+      }, 0)
+      window.setTimeout(() => {
+        terminal.scrollToBottom()
+      }, 50)
+    }
     const writeTerminal = (text) => {
       terminal.write(text, settleTerminalView)
     }
@@ -1155,7 +1160,7 @@ function LabRoomPage() {
                       <div className="min-h-0 flex-1 overflow-hidden border border-[#26343d] bg-[#020405] p-3 shadow-[inset_0_0_40px_rgba(0,0,0,0.7)]">
                         {isDockerServiceActive ? (
                           <div
-                            className="h-full w-full [&_.xterm]:h-full [&_.xterm-screen]:!h-full [&_.xterm-viewport]:!bg-[#020405]"
+                            className="h-full w-full pb-6 [&_.xterm]:h-full [&_.xterm-screen]:!h-full [&_.xterm-viewport]:!bg-[#020405]"
                             onClick={() => xtermRef.current?.focus()}
                             ref={xtermHostRef}
                           ></div>
