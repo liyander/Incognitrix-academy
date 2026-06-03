@@ -1076,17 +1076,17 @@ function LabRoomPage() {
                         className="min-h-0 flex-1 overflow-y-auto border border-[#26343d] bg-[#020405] p-5 font-space text-sm leading-7 shadow-[inset_0_0_40px_rgba(0,0,0,0.7)]"
                         ref={terminalOutputRef}
                       >
-                        <pre className="mb-5 whitespace-pre-wrap break-words text-secondary">
-{`    ____                             _ _        _      
-   /  _/___  _________  ____ _____  (_) /_____  (_)  __
-   / // __ \\/ ___/ __ \\/ __ \`/ __ \\/ / __/ __ \\/ / |/_/
- _/ // / / / /__/ /_/ / /_/ / / / / / /_/ /_/ / />  <  
-/___/_/ /_/\\___/\\____/\\__, /_/ /_/_/\\__/\\____/_/_/|_|  
-                      /____/                            
+                       <pre className="mb-5 whitespace-pre-wrap break-words text-secondary">
+{`    ____                             _ __       _     
+   /  _/___  _________  ____ _____  (_) /______(_)  __
+   / // __ \\/ ___/ __ \\/ __ \`/ __ \\/ / __/ ___/ / |/_/
+ _/ // / / / /__/ /_/ / /_/ / / / / / /_/ /  / />  <  
+/___/_/ /_/\\___/\\____/\\__, /_/ /_/_/\\__/_/  /_/_/|_|  
+                     /____/                           
 
 Welcome to Incognitrix Academy
 Sandbox terminal ready. Type commands below and press Enter.`}
-                        </pre>
+</pre>
                         {terminalHistory.length > 0 ? (
                           terminalHistory.map((entry) => (
                             <pre
