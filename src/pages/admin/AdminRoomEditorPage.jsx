@@ -95,6 +95,14 @@ function AdminRoomEditorPage() {
   )
   const [roomCategories, setRoomCategories] = useState(() => getRoomCategories([formData.category]))
   const [dockerImages, setDockerImages] = useState([])
+  const [terminalToolPresets, setTerminalToolPresets] = useState(() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem('incognitrix_terminal_tool_presets') || '[]')
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : []
+    } catch {
+      return []
+    }
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -175,6 +183,17 @@ function AdminRoomEditorPage() {
 
     setErrorMessage('')
 
+    const nextTerminalToolPresets = [
+      ...terminalToolPresets,
+      ...String(normalized.content?.docker?.terminalTools || '')
+        .split(/[\s,]+/)
+        .map((tool) => tool.trim())
+        .filter(Boolean),
+    ]
+    const uniqueTerminalToolPresets = [...new Set(nextTerminalToolPresets)].sort()
+    setTerminalToolPresets(uniqueTerminalToolPresets)
+    localStorage.setItem('incognitrix_terminal_tool_presets', JSON.stringify(uniqueTerminalToolPresets))
+
     if (isNewRoom) {
       addRoom(normalized)
     } else {
@@ -234,6 +253,20 @@ function AdminRoomEditorPage() {
         },
       },
     }))
+  }
+
+  const addTerminalToolPreset = (tool) => {
+    const selected = String(tool || '').trim()
+    if (!selected) {
+      return
+    }
+
+    const currentTools = String(formData.content?.docker?.terminalTools || '')
+      .split(/[\s,]+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+    const nextTools = [...new Set([...currentTools, selected])]
+    handleDockerChange('terminalTools', nextTools.join(' '))
   }
 
   const handleVulnerabilityBriefingChange = (field, value) => {
@@ -935,6 +968,23 @@ function AdminRoomEditorPage() {
                       <p className="mt-1 text-[11px] text-on-surface-variant">
                         Installed after spawn with the container package manager. Use package names only.
                       </p>
+                      {terminalToolPresets.length > 0 ? (
+                        <select
+                          className="mt-2 w-full bg-surface-container-lowest border border-outline-variant/40 font-body text-sm py-2.5 px-3 outline-none"
+                          onChange={(e) => {
+                            addTerminalToolPreset(e.target.value)
+                            e.target.value = ''
+                          }}
+                          value=""
+                        >
+                          <option value="">Add saved tool preset</option>
+                          {terminalToolPresets.map((tool) => (
+                            <option key={tool} value={tool}>
+                              {tool}
+                            </option>
+                          ))}
+                        </select>
+                      ) : null}
                     </label>
                     <label className="block">
                       <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">

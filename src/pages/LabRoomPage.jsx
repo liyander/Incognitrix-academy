@@ -123,6 +123,7 @@ function LabRoomPage() {
   const [isTerminalOpen, setIsTerminalOpen] = useState(false)
   const [terminalCommand, setTerminalCommand] = useState('')
   const [terminalHistory, setTerminalHistory] = useState([])
+  const [terminalCwd, setTerminalCwd] = useState('/')
   const [isTerminalRunning, setIsTerminalRunning] = useState(false)
   const [terminalError, setTerminalError] = useState('')
   const contentRootRef = useRef(null)
@@ -604,8 +605,11 @@ function LabRoomPage() {
     try {
       const result = await apiFetch(`/rooms/${encodeURIComponent(room.id)}/docker/terminal`, {
         method: 'POST',
-        body: JSON.stringify({ command }),
+        body: JSON.stringify({ command, cwd: terminalCwd }),
       })
+      if (result?.cwd) {
+        setTerminalCwd(result.cwd)
+      }
       const output = [result?.stdout, result?.stderr].filter(Boolean).join('\n')
       setTerminalHistory((current) => [
         ...current,
@@ -1070,6 +1074,9 @@ function LabRoomPage() {
                             target: {dockerStatus.access.url}
                           </p>
                         ) : null}
+                        <p className="font-space text-xs text-[#9ed8e8]">
+                          cwd: {terminalCwd}
+                        </p>
                       </div>
 
                       <div
@@ -1085,7 +1092,7 @@ function LabRoomPage() {
                      /____/                           
 
 Welcome to Incognitrix Academy
-Sandbox terminal ready. Type commands below and press Enter.`}
+Sandbox terminal ready. cd, pwd, ls, curl, and installed tools are available from the prompt below.`}
 </pre>
                         {terminalHistory.length > 0 ? (
                           terminalHistory.map((entry) => (
@@ -1111,7 +1118,7 @@ Sandbox terminal ready. Type commands below and press Enter.`}
                       </div>
 
                       <form className="mt-3 flex items-center gap-3 border border-[#26343d] bg-[#080c0f] px-4 py-3" onSubmit={handleTerminalSubmit}>
-                        <span className="font-space text-sm text-secondary">$</span>
+                        <span className="shrink-0 font-space text-sm text-secondary">operator:{terminalCwd}$</span>
                         <input
                           autoFocus
                           className="min-w-0 flex-1 bg-transparent font-space text-sm text-[#d7f7ff] outline-none placeholder:text-[#5f7480] disabled:opacity-60"

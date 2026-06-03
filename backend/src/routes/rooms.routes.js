@@ -224,7 +224,7 @@ async function installDockerTerminalTools(containerId, tools = []) {
     'elif command -v apt-get >/dev/null 2>&1; then apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $TOOLS && rm -rf /var/lib/apt/lists/*;',
     'elif command -v dnf >/dev/null 2>&1; then dnf install -y $TOOLS;',
     'elif command -v yum >/dev/null 2>&1; then yum install -y $TOOLS;',
-    'else echo "No supported package manager found for requested terminal tools." >&2; fi',
+    'else echo "No supported package manager found for requested terminal tools. Use an isolated terminal image with apk, apt-get, dnf, or yum." >&2; exit 127; fi',
   ].join(' ')
 
   await dockerExec(['exec', containerId, 'sh', '-lc', script], {
@@ -256,6 +256,19 @@ async function copyRoomAttachmentToDocker(containerId, room, config) {
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true })
   }
+}
+
+function splitTerminalCwdFromOutput(stdout) {
+  const marker = '__INCOGNITRIX_CWD__'
+  const text = String(stdout || '')
+  const index = text.lastIndexOf(marker)
+  if (index === -1) {
+    return { stdout: text, cwd: '' }
+  }
+
+  const before = text.slice(0, index).replace(/\n$/, '')
+  const after = text.slice(index + marker.length).trim().split(/\r?\n/)[0] || ''
+  return { stdout: before, cwd: after || '' }
 }
 
 function normalizeDockerHostname(hostname, tlsEnabled) {
@@ -2311,6 +2324,10 @@ router.post('/:id/docker/terminal', authenticate, async (req, res) => {
   if (command.length > 1000 || command.includes('\u0000')) {
     return res.status(400).json({ message: 'Terminal command is too large or invalid.' })
   }
+  const requestedCwd = String(req.body?.cwd || '/').trim() || '/'
+  if (requestedCwd.length > 300 || requestedCwd.includes('\u0000')) {
+    return res.status(400).json({ message: 'Terminal working directory is invalid.' })
+  }
 
   const [rows] = await pool.query(
     `SELECT id, container_name, created_at
@@ -2345,23 +2362,48 @@ router.post('/:id/docker/terminal', authenticate, async (req, res) => {
 
   try {
     const workdir = config.exposeAttachmentToTerminal && room?.content?.attachment?.dataUrl ? '/challenge' : '/'
+    const wrapper = [
+      'cd "$INCOGNITRIX_CWD" 2>/dev/null || cd "$INCOGNITRIX_DEFAULT_CWD" 2>/dev/null || cd /',
+      'eval "$INCOGNITRIX_COMMAND"',
+      'status=$?',
+      'printf "\\n__INCOGNITRIX_CWD__%s\\n" "$PWD"',
+      'exit "$status"',
+    ].join('; ')
     const result = await dockerExec(
-      ['exec', '--workdir', workdir, terminalContainerName, 'sh', '-lc', command],
+      [
+        'exec',
+        '--env',
+        `INCOGNITRIX_CWD=${requestedCwd}`,
+        '--env',
+        `INCOGNITRIX_DEFAULT_CWD=${workdir}`,
+        '--env',
+        `INCOGNITRIX_COMMAND=${command}`,
+        '--workdir',
+        '/',
+        terminalContainerName,
+        'sh',
+        '-lc',
+        wrapper,
+      ],
       { timeout: 10000, maxBuffer: 1024 * 1024 },
     )
+    const parsed = splitTerminalCwdFromOutput(result.stdout)
 
     return res.json({
       command,
-      stdout: result.stdout || '',
+      stdout: parsed.stdout || '',
       stderr: result.stderr || '',
+      cwd: parsed.cwd || requestedCwd,
       exitCode: 0,
       executedAt: new Date().toISOString(),
     })
   } catch (error) {
+    const parsed = splitTerminalCwdFromOutput(error?.stdout || '')
     return res.json({
       command,
-      stdout: error?.stdout || '',
+      stdout: parsed.stdout || '',
       stderr: error?.stderr || error?.message || 'Command failed.',
+      cwd: parsed.cwd || requestedCwd,
       exitCode: Number(error?.code || 1),
       executedAt: new Date().toISOString(),
     })
