@@ -648,6 +648,7 @@ function LabRoomPage() {
     (question) => question.questionType === 'manual' && !question.answeredCorrectly,
   ).length
   const isAiEvaluatingAnswers = isSubmittingQuestions && isAiQuestionMode
+  const assessmentClipboardBlocker = isPracticalRoom ? undefined : blockClipboardInput
   const dockerExpiresAt = dockerStatus.expiresAt ? new Date(dockerStatus.expiresAt).getTime() : 0
   const dockerRemainingMs = dockerStatus.running && dockerExpiresAt ? Math.max(0, dockerExpiresAt - dockerNow) : 0
   const isDockerServiceActive = dockerStatus.running && (!dockerExpiresAt || dockerRemainingMs > 0)
@@ -1639,8 +1640,8 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                           <textarea
                             className="w-full bg-surface-container-lowest border border-outline-variant/40 text-sm py-2 px-3 outline-none"
                             onChange={(e) => handleQuestionAnswerChange(question.id, e.target.value)}
-                            onDrop={blockClipboardInput}
-                            onPaste={blockClipboardInput}
+                            onDrop={assessmentClipboardBlocker}
+                            onPaste={assessmentClipboardBlocker}
                             placeholder="Write a complete answer"
                             rows="5"
                             value={questionAnswers[question.id] || ''}
@@ -1654,8 +1655,8 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                             }`}
                             disabled={isManualSolved}
                             onChange={(e) => handleQuestionAnswerChange(question.id, e.target.value)}
-                            onDrop={blockClipboardInput}
-                            onPaste={blockClipboardInput}
+                            onDrop={assessmentClipboardBlocker}
+                            onPaste={assessmentClipboardBlocker}
                             placeholder={isManualSolved ? 'Answer locked after correct submission' : 'Enter your answer'}
                             type="text"
                             value={questionAnswers[question.id] || ''}
@@ -1705,8 +1706,8 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                         <textarea
                           className="w-full bg-surface-container-lowest border border-outline-variant/40 text-sm py-2 px-3 outline-none"
                           onChange={(e) => handleQuestionAnswerChange(question.id, e.target.value)}
-                          onDrop={blockClipboardInput}
-                          onPaste={blockClipboardInput}
+                          onDrop={assessmentClipboardBlocker}
+                          onPaste={assessmentClipboardBlocker}
                           placeholder="Optional bonus answer"
                           rows="4"
                           value={questionAnswers[question.id] || ''}

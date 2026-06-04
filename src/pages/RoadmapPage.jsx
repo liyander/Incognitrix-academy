@@ -314,16 +314,17 @@ function RoadmapPage() {
             </div>
           ) : (
             <div className="relative mx-auto mt-16 max-w-[96rem]">
-              <div className="relative hidden h-12 lg:block">
-                <div className="absolute left-1/2 top-0 h-12 w-px -translate-x-1/2 bg-outline-variant/70"></div>
-                <div className="absolute left-[12.5%] right-[12.5%] bottom-0 h-px bg-outline-variant/70"></div>
+              <div className="relative hidden h-16 lg:block">
+                <div className="absolute left-1/2 top-0 h-16 w-[3px] -translate-x-1/2 bg-secondary/70 shadow-[0_0_18px_rgba(102,217,239,0.25)]"></div>
+                <div className="absolute left-[12.5%] right-[12.5%] bottom-0 h-[3px] bg-secondary/45 shadow-[0_0_18px_rgba(102,217,239,0.16)]"></div>
               </div>
 
-              <div className="grid gap-6 lg:grid-cols-4 lg:items-start">
+              <div className="grid gap-8 lg:grid-cols-4 lg:items-start">
                 {columns.map((column) => (
-                  <section className="relative" key={column.id || column.title}>
-                    <div className="absolute left-1/2 top-0 hidden h-full w-px -translate-x-1/2 bg-outline-variant/40 lg:block"></div>
-                    <div className="relative z-10 mx-auto mb-5 min-h-36 border border-outline-variant/50 bg-surface-container-lowest p-5 text-center shadow-xl">
+                  <section className="relative pt-10" key={column.id || column.title}>
+                    <div className={`absolute left-1/2 top-0 hidden h-full w-[3px] -translate-x-1/2 ${column.tone.line} lg:block`}></div>
+                    <div className="absolute left-1/2 top-0 hidden h-10 w-[3px] -translate-x-1/2 bg-secondary/65 lg:block"></div>
+                    <div className="relative z-10 mx-auto mb-6 min-h-40 border border-outline-variant/60 bg-surface-container-lowest p-5 text-center shadow-xl">
                       <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-primary">
                         Specialization
                       </p>
@@ -338,7 +339,7 @@ function RoadmapPage() {
                       </div>
                     </div>
 
-                    <div className="relative z-10 space-y-4">
+                    <div className="relative z-10 space-y-0">
                       {column.rooms.length ? column.rooms.map((room, roomIndex) => {
                         const status = getRoomStatus(progressMap[room.id])
                         const isActive = nextRoom?.id === room.id
@@ -349,59 +350,67 @@ function RoadmapPage() {
                             : 0
 
                         return (
-                          <Link
-                            className={`group relative flex min-h-24 overflow-hidden border bg-surface-container-lowest shadow-lg transition-transform hover:-translate-y-0.5 ${
-                              isActive
-                                ? 'border-secondary shadow-[0_0_30px_rgba(102,217,239,0.14)]'
-                                : status === 'completed'
-                                  ? 'border-secondary/60'
-                                  : column.tone.border
-                            }`}
-                            key={room.id}
-                            to={`/learn/lab/${room.slug || room.id}`}
-                          >
-                            {isActive ? (
-                              <span className="absolute left-0 top-0 z-20 bg-secondary px-3 py-1 font-headline text-[9px] font-bold uppercase tracking-widest text-on-secondary">
-                                Next
-                              </span>
+                          <div className="relative pb-5" key={room.id}>
+                            <div className={`absolute left-1/2 top-0 hidden h-full w-[3px] -translate-x-1/2 ${column.tone.line} lg:block`}></div>
+                            {roomIndex > 0 ? (
+                              <div className={`mx-auto hidden h-5 w-[3px] ${column.tone.line} lg:block`}></div>
                             ) : null}
-                            <div className={`grid w-24 shrink-0 place-items-center bg-gradient-to-br ${column.tone.panel}`}>
-                              <span className="material-symbols-outlined text-4xl text-on-background">
-                                {getIconForTrack(room.category || column.title)}
-                              </span>
-                            </div>
-                            <div className="flex min-w-0 flex-1 flex-col justify-center p-4">
-                              <h4 className="line-clamp-2 font-headline text-sm font-black uppercase tracking-wide text-on-background">
-                                {room.title}
-                              </h4>
-                              <div className="mt-3 flex flex-wrap items-center gap-2">
-                                <span className={`material-symbols-outlined text-base ${status === 'completed' ? 'text-secondary' : column.tone.text}`}>
-                                  {status === 'completed' ? 'check_circle' : 'signal_cellular_alt'}
+                            <Link
+                              className={`group relative z-10 flex min-h-28 overflow-hidden border bg-surface-container-lowest shadow-lg transition-transform hover:-translate-y-0.5 ${
+                                isActive
+                                  ? 'border-secondary shadow-[0_0_30px_rgba(102,217,239,0.14)]'
+                                  : status === 'completed'
+                                    ? 'border-secondary/60'
+                                    : column.tone.border
+                              }`}
+                              to={`/learn/lab/${room.slug || room.id}`}
+                            >
+                              {isActive ? (
+                                <span className="absolute left-0 top-0 z-20 bg-secondary px-3 py-1 font-headline text-[9px] font-bold uppercase tracking-widest text-on-secondary">
+                                  Next
                                 </span>
-                                <span className="bg-surface-container-high px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-                                  {room.roomType === 'practical' ? 'Lab' : 'Path'}
+                              ) : null}
+                              <div className={`grid w-24 shrink-0 place-items-center bg-gradient-to-br ${column.tone.panel}`}>
+                                <span className="material-symbols-outlined text-4xl text-on-background">
+                                  {getIconForTrack(room.category || column.title)}
                                 </span>
-                                {roomIndex > 2 || room.moduleTitle ? (
-                                  <span className="max-w-28 truncate bg-primary/10 px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
-                                    {room.moduleTitle || 'Extension'}
+                              </div>
+                              <div className="flex min-w-0 flex-1 flex-col justify-center p-4 pr-14">
+                                <h4 className="line-clamp-2 font-headline text-sm font-black uppercase tracking-wide text-on-background">
+                                  {room.title}
+                                </h4>
+                                <div className="mt-3 flex flex-wrap items-center gap-2">
+                                  <span className={`material-symbols-outlined text-base ${status === 'completed' ? 'text-secondary' : column.tone.text}`}>
+                                    {status === 'completed' ? 'check_circle' : 'signal_cellular_alt'}
                                   </span>
-                                ) : null}
+                                  <span className="bg-surface-container-high px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                                    {room.roomType === 'practical' ? 'Lab' : 'Path'}
+                                  </span>
+                                  {roomIndex > 2 || room.moduleTitle ? (
+                                    <span className="max-w-full truncate bg-primary/10 px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
+                                      {room.moduleTitle || 'Extension'}
+                                    </span>
+                                  ) : null}
+                                </div>
                               </div>
+                              {progress > 0 && status !== 'completed' ? (
+                                <div className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border-2 border-primary bg-surface-container-lowest text-[10px] font-black text-primary">
+                                  {progress}%
+                                </div>
+                              ) : null}
+                              {status === 'completed' ? (
+                                <div className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-secondary text-on-secondary">
+                                  <span className="material-symbols-outlined text-xl">check</span>
+                                </div>
+                              ) : null}
+                            </Link>
+                            {roomIndex < column.rooms.length - 1 ? (
+                              <div className={`mx-auto hidden h-5 w-[3px] ${column.tone.line} lg:block`}></div>
+                            ) : null}
                             </div>
-                            {progress > 0 && status !== 'completed' ? (
-                              <div className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border-2 border-primary text-[10px] font-black text-primary">
-                                {progress}%
-                              </div>
-                            ) : null}
-                            {status === 'completed' ? (
-                              <div className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-secondary text-on-secondary">
-                                <span className="material-symbols-outlined text-xl">check</span>
-                              </div>
-                            ) : null}
-                          </Link>
                         )
                       }) : (
-                        <div className="rounded-md border border-slate-600 bg-slate-700/70 p-5 text-center text-sm text-slate-300">
+                        <div className="border border-outline-variant/50 bg-surface-container-lowest p-5 text-center text-sm text-on-surface-variant">
                           Rooms will appear here when this path is configured.
                         </div>
                       )}
@@ -414,8 +423,8 @@ function RoadmapPage() {
                   No rooms are available for a roadmap yet.
                 </div>
               ) : null}
-              <div className="mx-auto mt-12 hidden h-14 max-w-[72rem] border-x border-b border-outline-variant/70 lg:block"></div>
-              <div className="mx-auto hidden h-16 w-px bg-outline-variant/70 lg:block"></div>
+              <div className="mx-auto mt-10 hidden h-14 max-w-[72rem] border-x-[3px] border-b-[3px] border-secondary/45 lg:block"></div>
+              <div className="mx-auto hidden h-16 w-[3px] bg-secondary/65 lg:block"></div>
               <div className="mx-auto max-w-xl border border-outline-variant/50 bg-surface-container-lowest p-6 text-center shadow-xl">
                 <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-secondary">
                   Current Mission Focus
