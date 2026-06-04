@@ -99,6 +99,7 @@ function RoadmapPage() {
   const [rooms, setRooms] = useState(() => getRoomsData())
   const [progressMap, setProgressMap] = useState(() => getLabProgressMap())
   const [isLoading, setIsLoading] = useState(true)
+  const [roadmapZoom, setRoadmapZoom] = useState(1)
 
   useEffect(() => {
     let cancelled = false
@@ -226,8 +227,9 @@ function RoadmapPage() {
       rooms: roomsForPath,
     }
   })
-  const branchGridColumns = `repeat(${Math.max(columns.length, 1)}, minmax(18rem, 1fr))`
-  const branchGridMinWidth = `${Math.max(columns.length, 4) * 20}rem`
+  const branchColumnWidth = `${Math.max(12, 18 * roadmapZoom).toFixed(2)}rem`
+  const branchGridColumns = `repeat(${Math.max(columns.length, 1)}, minmax(${branchColumnWidth}, 1fr))`
+  const branchGridWidth = `${Math.max(columns.length, 4) * 20 * roadmapZoom}rem`
 
   return (
     <main className="min-h-screen bg-surface pt-32 md:pt-36 text-on-surface">
@@ -306,8 +308,38 @@ function RoadmapPage() {
               Building roadmap...
             </div>
           ) : (
-            <div className="relative mx-auto mt-0 max-w-[96rem] overflow-x-auto pb-4">
-              <div style={{ minWidth: branchGridMinWidth }}>
+            <div className="relative mx-auto mt-0 max-w-[96rem]">
+              <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  className="inline-flex items-center gap-2 border border-outline-variant bg-surface-container-lowest px-4 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface hover:border-secondary disabled:opacity-40"
+                  disabled={roadmapZoom <= 0.7}
+                  onClick={() => setRoadmapZoom((current) => Math.max(0.7, Number((current - 0.1).toFixed(2))))}
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-base">zoom_out</span>
+                  Shrink
+                </button>
+                <button
+                  className="inline-flex items-center gap-2 border border-secondary bg-secondary/10 px-4 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-secondary"
+                  onClick={() => setRoadmapZoom(1)}
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-base">center_focus_strong</span>
+                  {Math.round(roadmapZoom * 100)}%
+                </button>
+                <button
+                  className="inline-flex items-center gap-2 border border-outline-variant bg-surface-container-lowest px-4 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface hover:border-secondary disabled:opacity-40"
+                  disabled={roadmapZoom >= 1.3}
+                  onClick={() => setRoadmapZoom((current) => Math.min(1.3, Number((current + 0.1).toFixed(2))))}
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-base">zoom_in</span>
+                  Expand
+                </button>
+              </div>
+
+              <div className="overflow-x-auto pb-4">
+              <div className="mx-auto" style={{ width: branchGridWidth }}>
               <div className="mx-auto hidden h-10 w-[3px] bg-secondary/65 shadow-[0_0_18px_rgba(102,217,239,0.25)] lg:block"></div>
               {foundationTargetRoom ? (
                 <Link
@@ -340,7 +372,7 @@ function RoadmapPage() {
                   </div>
                 </Link>
               ) : null}
-              <div className="relative mx-auto hidden h-32 max-w-[96rem] lg:block">
+              <div className="relative mx-auto hidden h-32 w-full lg:block">
                 <div className="absolute left-1/2 -top-px h-full w-[5px] -translate-x-1/2 bg-secondary shadow-[0_0_26px_rgba(102,217,239,0.45)]"></div>
                 <div className="absolute left-0 right-0 bottom-0 h-[5px] bg-secondary shadow-[0_0_22px_rgba(102,217,239,0.32)]"></div>
                 <div className="absolute inset-x-0 bottom-0 grid translate-y-full gap-8" style={{ gridTemplateColumns: branchGridColumns }}>
@@ -479,6 +511,7 @@ function RoadmapPage() {
                     <span className="material-symbols-outlined text-base">arrow_forward</span>
                   </Link>
                 ) : null}
+              </div>
               </div>
               </div>
             </div>
