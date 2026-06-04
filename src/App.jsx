@@ -36,6 +36,7 @@ import ModuleDetailPage from './pages/ModuleDetailPage'
 import NotesPage from './pages/NotesPage'
 import NotFoundPage from './pages/NotFoundPage'
 import ProfilePage from './pages/ProfilePage'
+import RoadmapPage from './pages/RoadmapPage'
 import ScoreboardPage from './pages/ScoreboardPage'
 import SettingsPage from './pages/SettingsPage'
 import RegistrationPage from './pages/RegistrationPage'
@@ -435,6 +436,10 @@ function App() {
           <Route
             path="/notes"
             element={<NotesPage />}
+          />
+          <Route
+            path="/roadmap"
+            element={<RoadmapPage />}
           />
           <Route
             path="/scoreboard"

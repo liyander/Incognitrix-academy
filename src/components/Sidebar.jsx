@@ -127,6 +127,10 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
             <span className="material-symbols-outlined">edit_note</span>
             <span className="nav-label">Notes</span>
           </NavLink>
+          <NavLink className={navLinkClass} onClick={onClose} to="/roadmap">
+            <span className="material-symbols-outlined">route</span>
+            <span className="nav-label">Roadmap</span>
+          </NavLink>
           <NavLink className={navLinkClass} onClick={onClose} to="/scoreboard">
             <span className="material-symbols-outlined">leaderboard</span>
             <span className="nav-label">Scoreboard</span>
@@ -304,6 +308,18 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
           <span className="material-symbols-outlined">edit_note</span>
           <span className="font-headline text-[8px] font-bold uppercase tracking-widest">
             Notes
+          </span>
+        </NavLink>
+        <NavLink
+          className={({ isActive }) =>
+            `min-w-16 flex flex-col items-center gap-1 ${isActive ? 'text-primary' : 'text-on-surface-variant'}`
+          }
+          onClick={onClose}
+          to="/roadmap"
+        >
+          <span className="material-symbols-outlined">route</span>
+          <span className="font-headline text-[8px] font-bold uppercase tracking-widest">
+            Map
           </span>
         </NavLink>
         <NavLink
