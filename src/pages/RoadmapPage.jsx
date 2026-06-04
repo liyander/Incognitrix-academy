@@ -20,6 +20,11 @@ function isCybersecurityIntroRoom(room) {
   return /introduction[-_\s]+to[-_\s]+cybersecurity|intro[-_\s]+to[-_\s]+cybersecurity|cybersecurity[-_\s]+introduction|cybersecurity[-_\s]+101/.test(text)
 }
 
+function isCybersecurityIntroPath(path) {
+  const text = `${path?.title || ''} ${path?.slug || ''} ${path?.id || ''}`.toLowerCase()
+  return /introduction[-_\s]+to[-_\s]+cybersecurity|intro[-_\s]+to[-_\s]+cybersecurity|cybersecurity[-_\s]+introduction|cybersecurity[-_\s]+101/.test(text)
+}
+
 function getIconForTrack(value) {
   const text = String(value || '').toLowerCase()
   if (/soc|defen|blue|analyst|incident/.test(text)) return 'security'
@@ -217,12 +222,22 @@ function RoadmapPage() {
   const completedRooms = allRooms.filter((room) => progressMap[room.id]?.completedAt).length
   const inProgressRooms = allRooms.filter((room) => progressMap[room.id]?.startedAt && !progressMap[room.id]?.completedAt).length
   const nextRoom = allRooms.find((room) => getRoomStatus(progressMap[room.id]) !== 'completed')
-  const foundationRoom = allRooms.find(isCybersecurityIntroRoom)
+  const foundationPath = roadmap.find(isCybersecurityIntroPath)
+  const foundationPathRooms = foundationPath?.modules?.flatMap((module) =>
+    module.rooms.map((room) => ({ ...room, moduleTitle: module.title })),
+  ) || []
+  const foundationRoom = foundationPathRooms.find(isCybersecurityIntroRoom) || allRooms.find(isCybersecurityIntroRoom)
   const foundationTargetRoom = foundationRoom
     || allRooms.find((room) => /foundation|basic|intro/i.test(room.title || room.category || ''))
     || allRooms[0]
   const completionPercent = allRooms.length ? Math.round((completedRooms / allRooms.length) * 100) : 0
-  const columns = roadmap.map((path, index) => {
+  const foundationFlowRooms = foundationPathRooms.filter((room) => (
+    room.id !== foundationTargetRoom?.id && !isCybersecurityIntroRoom(room)
+  ))
+  const branchPaths = foundationPath
+    ? roadmap.filter((path) => path.id !== foundationPath.id)
+    : roadmap
+  const columns = branchPaths.map((path, index) => {
     const roomsForPath = path.modules
       .flatMap((module) => module.rooms.map((room) => ({ ...room, moduleTitle: module.title })))
       .filter((room) => room.id !== foundationTargetRoom?.id && !isCybersecurityIntroRoom(room))
@@ -420,6 +435,60 @@ function RoadmapPage() {
                     </span>
                   </div>
                 </Link>
+              ) : null}
+              {foundationFlowRooms.length ? (
+                <div className="mx-auto max-w-2xl">
+                  <div className="mx-auto hidden h-8 w-[5px] bg-secondary shadow-[0_0_18px_rgba(102,217,239,0.28)] lg:block"></div>
+                  <div className="space-y-0">
+                    {foundationFlowRooms.map((room, roomIndex) => {
+                      const status = getRoomStatus(progressMap[room.id])
+                      const isActive = nextRoom?.id === room.id
+
+                      return (
+                        <div className="relative" key={`foundation-${room.id}`}>
+                          {roomIndex > 0 ? (
+                            <div className="mx-auto hidden h-4 w-[3px] bg-secondary/70 lg:block"></div>
+                          ) : null}
+                          <Link
+                            className={`group relative z-10 flex min-h-24 overflow-hidden border bg-surface-container-lowest shadow-lg transition-transform hover:-translate-y-0.5 ${
+                              isActive
+                                ? 'border-secondary shadow-[0_0_30px_rgba(102,217,239,0.14)]'
+                                : status === 'completed'
+                                  ? 'border-secondary/60'
+                                  : 'border-secondary/40'
+                            }`}
+                            to={`/learn/lab/${room.slug || room.id}`}
+                          >
+                            {isActive ? (
+                              <span className="absolute left-0 top-0 z-20 bg-secondary px-3 py-1 font-headline text-[9px] font-bold uppercase tracking-widest text-on-secondary">
+                                Next
+                              </span>
+                            ) : null}
+                            <div className="grid w-24 shrink-0 place-items-center bg-secondary/20">
+                              <span className="material-symbols-outlined text-4xl text-secondary">
+                                {getIconForTrack(room.category || room.moduleTitle)}
+                              </span>
+                            </div>
+                            <div className="flex min-w-0 flex-1 flex-col justify-center p-4 pr-14">
+                              <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-primary">
+                                {room.moduleTitle || 'Foundation Module'}
+                              </p>
+                              <h4 className="mt-1 line-clamp-2 font-headline text-sm font-black uppercase tracking-wide text-on-background">
+                                {room.title}
+                              </h4>
+                            </div>
+                            {status === 'completed' ? (
+                              <div className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-secondary text-on-secondary">
+                                <span className="material-symbols-outlined text-xl">check</span>
+                              </div>
+                            ) : null}
+                          </Link>
+                          <div className="mx-auto hidden h-4 w-[3px] bg-secondary/70 lg:block"></div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
               ) : null}
               <div className="relative mx-auto hidden h-32 w-full lg:block">
                 <div className="absolute left-1/2 -top-px h-full w-[5px] -translate-x-1/2 bg-secondary shadow-[0_0_26px_rgba(102,217,239,0.45)]"></div>
