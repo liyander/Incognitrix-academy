@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ConfirmModal } from '../../components/ConfirmModal'
 import { createRoomCategory, fetchRoomCategories, getRoomCategories, removeRoomCategory } from '../../data/categoriesData'
 import { getRoomsData } from '../../data/roomsData'
 
 function AdminCategoriesPage() {
   const navigate = useNavigate()
   const [categoryInput, setCategoryInput] = useState('')
+  const [categoryToDelete, setCategoryToDelete] = useState(null)
+  const [deleteError, setDeleteError] = useState('')
   const [categories, setCategories] = useState(() =>
     getRoomCategories(getRoomsData().map((room) => room.category)),
   )
@@ -45,9 +48,28 @@ function AdminCategoriesPage() {
     setCategoryInput('')
   }
 
-  const handleDeleteCategory = async (category) => {
-    await removeRoomCategory(category)
-    await refreshCategories()
+  const handleDeleteCategory = (category, roomCount) => {
+    setDeleteError('')
+    if (roomCount > 0) {
+      setDeleteError(`"${category}" is assigned to ${roomCount} room${roomCount === 1 ? '' : 's'}. Reassign those rooms before deleting this category.`)
+      return
+    }
+
+    setCategoryToDelete(category)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!categoryToDelete) {
+      return
+    }
+
+    try {
+      await removeRoomCategory(categoryToDelete)
+      await refreshCategories()
+      setCategoryToDelete(null)
+    } catch (error) {
+      setDeleteError(error?.message || 'Unable to delete category.')
+    }
   }
 
   return (
@@ -108,13 +130,19 @@ function AdminCategoriesPage() {
                 Available Categories
               </h2>
               <p className="text-xs text-on-surface-variant mt-1">
-                Deleting a category moves its rooms to Uncategorized so old room records stay valid.
+                Categories assigned to rooms are locked until those rooms are reassigned.
               </p>
             </div>
             <span className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">
               {categories.length} Total
             </span>
           </div>
+
+          {deleteError ? (
+            <div className="mb-5 border-l-4 border-l-error bg-error/10 px-4 py-3 text-sm text-error">
+              {deleteError}
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {categories.map((category) => {
@@ -133,9 +161,10 @@ function AdminCategoriesPage() {
                     </p>
                   </div>
                   <button
-                    className="text-on-surface-variant hover:text-primary"
-                    onClick={() => void handleDeleteCategory(category)}
-                    title={roomCount > 0 ? 'Delete and move rooms to Uncategorized' : 'Delete category'}
+                    className="text-on-surface-variant hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+                    disabled={roomCount > 0}
+                    onClick={() => handleDeleteCategory(category, roomCount)}
+                    title={roomCount > 0 ? 'Category is assigned to rooms' : 'Delete category'}
                     type="button"
                   >
                     <span className="material-symbols-outlined">delete</span>
@@ -146,6 +175,14 @@ function AdminCategoriesPage() {
           </div>
         </section>
       </section>
+
+      <ConfirmModal
+        isOpen={Boolean(categoryToDelete)}
+        message={`Delete "${categoryToDelete}" from the category list? This will not affect rooms because this category is not currently assigned.`}
+        onCancel={() => setCategoryToDelete(null)}
+        onConfirm={() => void handleConfirmDelete()}
+        title="Delete Category"
+      />
     </main>
   )
 }

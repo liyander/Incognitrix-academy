@@ -23,6 +23,7 @@ import AdminUpcomingCtfManagementPage from './pages/admin/AdminUpcomingCtfManage
 import AdminCvesManagementPage from './pages/admin/AdminCvesManagementPage'
 import AdminCveEditorPage from './pages/admin/AdminCveEditorPage'
 import AdminAiControlPage from './pages/admin/AdminAiControlPage'
+import AdminInterviewQuestionsPage from './pages/admin/AdminInterviewQuestionsPage'
 import DashboardPage from './pages/DashboardPage'
 import CvesPage from './pages/CvesPage'
 import CveDetailPage from './pages/CveDetailPage'
@@ -298,6 +299,7 @@ function App() {
           <Route path="/admin/registrations/:userId" element={<AdminRegistrationDetailPage />} />
           <Route path="/admin/upcoming-ctf" element={<AdminUpcomingCtfManagementPage />} />
           <Route path="/admin/ai-control" element={<AdminAiControlPage />} />
+          <Route path="/admin/interview-questions" element={<AdminInterviewQuestionsPage />} />
           <Route path="*" element={<NotFoundPage variant="admin" />} />
         </Routes>
       </>

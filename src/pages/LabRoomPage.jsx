@@ -124,6 +124,8 @@ function LabRoomPage() {
   const [dockerAction, setDockerAction] = useState('')
   const [dockerError, setDockerError] = useState('')
   const [isTerminalOpen, setIsTerminalOpen] = useState(false)
+  const [terminalLayout, setTerminalLayout] = useState('overlay')
+  const [isTerminalMinimized, setIsTerminalMinimized] = useState(false)
   const contentRootRef = useRef(null)
   const xtermHostRef = useRef(null)
   const xtermRef = useRef(null)
@@ -133,6 +135,9 @@ function LabRoomPage() {
   const roomType = normalizeRoomType(room?.roomType)
   const isPracticalRoom = roomType === 'practical'
   const dockerAvailable = isPracticalRoom
+  const isTerminalVisible = isTerminalOpen && !isTerminalMinimized
+  const isTerminalOverlay = isTerminalVisible && terminalLayout === 'overlay'
+  const isTerminalSplit = isTerminalVisible && terminalLayout === 'split'
   const questionsEnabled =
     !isPracticalRoom ||
     Boolean(room?.content?.questionsEnabled || room?.content?.aiQuestionsEnabled)
@@ -403,7 +408,7 @@ function LabRoomPage() {
       : 0
     const terminalServiceActive = dockerStatus.running && (!dockerExpiresAtForTerminal || dockerRemainingMsForTerminal > 0)
 
-    if (!isTerminalOpen || !terminalServiceActive || !xtermHostRef.current || xtermRef.current) {
+    if (!isTerminalVisible || !terminalServiceActive || !xtermHostRef.current || xtermRef.current) {
       return undefined
     }
 
@@ -579,7 +584,7 @@ function LabRoomPage() {
       xtermRef.current = null
       terminalSocketRef.current = null
     }
-  }, [dockerStatus.expiresAt, dockerStatus.running, isTerminalOpen, roomId])
+  }, [dockerStatus.expiresAt, dockerStatus.running, isTerminalVisible, roomId, terminalLayout])
 
   if (isLoadingRoom) {
     return (
@@ -973,8 +978,8 @@ function LabRoomPage() {
           </p>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          <div className="lg:col-span-8 space-y-12">
+        <div className={`grid grid-cols-1 ${isTerminalSplit ? 'xl:grid-cols-[minmax(0,1fr)_minmax(32rem,0.9fr)] gap-6' : 'lg:grid-cols-12 gap-12'}`}>
+          <div className={`${isTerminalSplit ? 'min-w-0 space-y-12' : 'lg:col-span-8 space-y-12'}`}>
             <section className="bg-surface-container-lowest p-8 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 -rotate-45 translate-x-16 -translate-y-16"></div>
               <h2 className="font-headline text-2xl font-bold mb-6 flex items-center gap-3">
@@ -1058,7 +1063,78 @@ function LabRoomPage() {
             </section>
           </div>
 
-          <div className="lg:col-span-4 space-y-8">
+          {isTerminalSplit ? (
+            <div className="min-h-[640px] xl:sticky xl:top-24 xl:h-[calc(100vh-7rem)]">
+              <div className="flex h-full flex-col border border-outline-variant bg-surface-container-lowest text-on-surface shadow-2xl">
+                <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-4 py-3 dark:border-[#24313a] dark:bg-[#10161a]">
+                  <div className="flex items-center gap-3">
+                    <span className="h-3 w-3 rounded-full bg-primary"></span>
+                    <span className="h-3 w-3 rounded-full bg-secondary"></span>
+                    <span className="h-3 w-3 rounded-full bg-outline-variant"></span>
+                    <div>
+                      <p className="font-headline text-[9px] font-bold uppercase tracking-[0.25em] text-primary">
+                        Split Terminal
+                      </p>
+                      <h3 className="font-headline text-lg font-black uppercase tracking-tight text-on-background">
+                        Sandbox Shell
+                      </h3>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="grid h-9 w-9 place-items-center border border-outline-variant text-on-background hover:border-secondary hover:text-secondary"
+                      onClick={() => setTerminalLayout('overlay')}
+                      title="Open full screen"
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined text-lg">open_in_full</span>
+                    </button>
+                    <button
+                      className="grid h-9 w-9 place-items-center border border-outline-variant text-on-background hover:border-primary hover:text-primary"
+                      onClick={() => setIsTerminalMinimized(true)}
+                      title="Minimize terminal"
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined text-lg">minimize</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex min-h-0 flex-1 flex-col p-4">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border border-outline-variant bg-surface-container-lowest px-4 py-3 dark:border-[#233039] dark:bg-[#0b0f12]">
+                    <p className="font-space text-xs text-on-surface-variant dark:text-[#9ed8e8]">
+                      Commands run inside your personal challenge sandbox.
+                    </p>
+                    {dockerStatus.access?.url && isDockerServiceActive ? (
+                      <p className="font-space text-xs text-secondary break-all">
+                        target: {dockerStatus.access.url}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="min-h-0 flex-1 overflow-hidden border border-outline-variant bg-surface-container-lowest p-3 shadow-[inset_0_0_28px_rgba(25,28,30,0.08)] dark:border-[#26343d] dark:bg-[#020405]">
+                    {isDockerServiceActive ? (
+                      <div
+                        className="h-full w-full pb-6 [&_.xterm]:h-full [&_.xterm-screen]:!h-full [&_.xterm-viewport]:!bg-[#fbfcfd] dark:[&_.xterm-viewport]:!bg-[#020405]"
+                        onClick={() => xtermRef.current?.focus()}
+                        ref={xtermHostRef}
+                      ></div>
+                    ) : (
+                      <div className="space-y-3 p-5 font-space text-sm text-on-surface-variant dark:text-[#9ed8e8]">
+                        <pre className="whitespace-pre-wrap text-secondary">
+{`Welcome to Incognitrix Academy
+Interactive sandbox terminal waiting for Docker spawn.`}
+                        </pre>
+                        <p>Spawn the Docker service, then open terminal access for a real interactive shell.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <div className={`${isTerminalSplit ? 'xl:col-span-2 space-y-8' : 'lg:col-span-4 space-y-8'}`}>
             <div className="bg-secondary text-on-secondary p-8">
               <h2 className="font-headline text-xl font-bold mb-6 flex items-center gap-3 uppercase tracking-tight">
                 <span className="material-symbols-outlined">shield_with_heart</span>{' '}
@@ -1152,7 +1228,11 @@ function LabRoomPage() {
               <button
                 className="w-full group relative bg-primary hover:bg-primary-container text-on-primary p-6 transition-all disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={!dockerAvailable}
-                onClick={() => setIsTerminalOpen((current) => !current)}
+                onClick={() => {
+                  setTerminalLayout('overlay')
+                  setIsTerminalMinimized(false)
+                  setIsTerminalOpen(true)
+                }}
                 type="button"
               >
                 <div className="flex justify-between items-center">
@@ -1160,17 +1240,56 @@ function LabRoomPage() {
                     Access Terminal
                   </span>
                   <span className="material-symbols-outlined group-hover:translate-x-2 transition-transform">
-                    {isTerminalOpen ? 'keyboard_arrow_up' : 'arrow_forward'}
+                    open_in_full
                   </span>
                 </div>
                 <div className="absolute bottom-0 left-0 h-1 bg-white/20 w-full"></div>
               </button>
+              {dockerAvailable ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    className="bg-surface-container-high px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface hover:text-secondary disabled:opacity-60"
+                    disabled={!dockerAvailable}
+                    onClick={() => {
+                      setTerminalLayout('split')
+                      setIsTerminalMinimized(false)
+                      setIsTerminalOpen(true)
+                    }}
+                    type="button"
+                  >
+                    Split Screen
+                  </button>
+                  <button
+                    className="bg-surface-container-high px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface hover:text-primary disabled:opacity-60"
+                    disabled={!isTerminalOpen}
+                    onClick={() => setIsTerminalMinimized(true)}
+                    type="button"
+                  >
+                    Minimize
+                  </button>
+                </div>
+              ) : null}
+              {isTerminalOpen && isTerminalMinimized ? (
+                <button
+                  className="w-full border border-outline-variant bg-surface-container-high px-4 py-3 text-left font-headline text-[10px] font-bold uppercase tracking-widest text-secondary hover:border-secondary"
+                  onClick={() => {
+                    setIsTerminalMinimized(false)
+                    setTerminalLayout(terminalLayout || 'overlay')
+                  }}
+                  type="button"
+                >
+                  <span className="inline-flex w-full items-center justify-between gap-3">
+                    Terminal minimized
+                    <span className="material-symbols-outlined text-lg">keyboard_arrow_up</span>
+                  </span>
+                </button>
+              ) : null}
               <p className="text-[10px] font-headline text-on-surface-variant text-center tracking-[0.15em] uppercase">
                 Ready for deployment? Ensure secure connection protocols are
                 active.
               </p>
 
-              {isTerminalOpen ? (
+              {isTerminalOverlay ? (
                 <div className="fixed inset-0 z-[120] bg-surface text-on-surface">
                   <div className="flex h-full flex-col">
                     <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-5 py-3 dark:border-[#24313a] dark:bg-[#10161a]">
@@ -1192,8 +1311,27 @@ function LabRoomPage() {
                           {isDockerServiceActive ? 'Ready' : 'Spawn Required'}
                         </span>
                         <button
+                          className="grid h-10 w-10 place-items-center border border-outline-variant text-on-background hover:border-secondary hover:text-secondary"
+                          onClick={() => setTerminalLayout('split')}
+                          title="Split screen"
+                          type="button"
+                        >
+                          <span className="material-symbols-outlined">splitscreen</span>
+                        </button>
+                        <button
                           className="grid h-10 w-10 place-items-center border border-outline-variant text-on-background hover:border-primary hover:text-primary"
-                          onClick={() => setIsTerminalOpen(false)}
+                          onClick={() => setIsTerminalMinimized(true)}
+                          title="Minimize terminal"
+                          type="button"
+                        >
+                          <span className="material-symbols-outlined">minimize</span>
+                        </button>
+                        <button
+                          className="grid h-10 w-10 place-items-center border border-outline-variant text-on-background hover:border-primary hover:text-primary"
+                          onClick={() => {
+                            setIsTerminalOpen(false)
+                            setIsTerminalMinimized(false)
+                          }}
                           type="button"
                         >
                           <span className="material-symbols-outlined">close</span>

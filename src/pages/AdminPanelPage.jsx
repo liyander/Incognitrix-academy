@@ -336,6 +336,32 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
               </a>
             </div>
 
+            <div className="bg-surface-container-lowest border-l-4 border-primary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+              <a className="block" href="/admin/interview-questions">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-primary" style={{ fontSize: '32px' }}>
+                      record_voice_over
+                    </span>
+                    <div>
+                      <h3 className="font-headline text-lg font-bold uppercase">
+                        Interview Questions
+                      </h3>
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
+                        AI Room Matching
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-on-surface-variant">
+                    chevron_right
+                  </span>
+                </div>
+                <p className="text-sm text-on-surface-variant">
+                  Add custom interview questions and let AI insert them into the best matching rooms as optional bonus challenges.
+                </p>
+              </a>
+            </div>
+
             {/* Admin AI */}
             <div className="bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
               <a className="block" href="/admin/ai-control">

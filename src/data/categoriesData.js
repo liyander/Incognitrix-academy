@@ -102,6 +102,7 @@ export async function removeRoomCategory(category) {
     await apiFetch(`/categories/${encodeURIComponent(target)}`, { method: 'DELETE' })
   } catch (error) {
     console.error('Failed to delete room category from backend:', error)
+    throw error
   }
 
   return deleteRoomCategory(target)

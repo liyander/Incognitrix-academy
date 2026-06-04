@@ -899,9 +899,14 @@ async function generateTheoreticalQuestions(room, userId, attemptSalt = '') {
       .filter((question) => question.id && question.prompt)
 
     const requiredQuestions = normalized.filter((question) => !question.bonus && !question.optional).slice(0, 5)
-    const bonusQuestion = normalized.find((question) => question.bonus || question.sourceType === 'interview')
+    const customInterviewQuestions = parseCustomInterviewQuestions(room).slice(0, 3)
+    const bonusQuestion = customInterviewQuestions[0] || normalized.find((question) => question.bonus || question.sourceType === 'interview')
     const finalQuestions = bonusQuestion
-      ? [...requiredQuestions, { ...bonusQuestion, optional: true, bonus: true, sourceType: 'interview' }]
+      ? [
+          ...requiredQuestions,
+          ...customInterviewQuestions,
+          ...(customInterviewQuestions.length ? [] : [{ ...bonusQuestion, optional: true, bonus: true, sourceType: 'interview' }]),
+        ]
       : requiredQuestions
 
     return requiredQuestions.length >= 5
@@ -1268,6 +1273,26 @@ function formatAiQuestionForClient(question, passed = false, answers = {}, evalu
   }
 }
 
+function parseCustomInterviewQuestions(room) {
+  const questions = Array.isArray(room?.content?.questions) ? room.content.questions : []
+  return questions
+    .filter((question) => question?.sourceType === 'interview' || question?.bonus || question?.optional)
+    .map((question, index) => ({
+      id: String(question?.id || `custom-interview-${index + 1}`).trim(),
+      prompt: String(question?.prompt || '').trim(),
+      rubric: String(question?.rubric || question?.hint || 'Optional interview bonus. Award margin for clear, room-aligned reasoning.').trim(),
+      sourceType: 'interview',
+      company: String(question?.company || 'General cybersecurity interview practice').trim(),
+      interview: String(question?.interview || 'Custom admin interview question').trim(),
+      sourceInfo: String(question?.sourceInfo || 'Custom interview question added by admin.').trim(),
+      learnerVariant: String(question?.learnerVariant || `${room.id || room.slug}-custom-interview-${index + 1}`).trim(),
+      contentAnchorVersion: 'content-anchored-v2',
+      optional: true,
+      bonus: true,
+    }))
+    .filter((question) => question.id && question.prompt)
+}
+
 async function fetchRoomById(id) {
   const [roomRows] = await pool.query('SELECT * FROM rooms WHERE id = ? OR slug = ? LIMIT 1', [id, id])
   if (!roomRows.length) {
@@ -1332,6 +1357,197 @@ router.get('/', optionalAuthenticate, async (req, res) => {
   }
 
   return res.json(rooms)
+})
+
+function normalizeInterviewQuestionInput(value) {
+  return String(value || '')
+    .split(/\n{2,}|\r?\n(?=\s*(?:[-*]|\d+[.)])\s+)/)
+    .map((item) => item.replace(/^\s*(?:[-*]|\d+[.)])\s+/, '').trim())
+    .filter(Boolean)
+}
+
+function scoreRoomMatch(question, room) {
+  const questionTokens = new Set(tokenizeForAssessment(question))
+  const roomTokens = tokenizeForAssessment([
+    room.title,
+    room.category,
+    room.difficulty,
+    room.description,
+    room.content?.markdown,
+    room.content?.missionOverview,
+    room.content?.technicalDeepDive,
+    room.content?.vulnerabilityBriefing?.definition,
+    room.content?.vulnerabilityBriefing?.impact,
+  ].filter(Boolean).join(' '))
+  const overlap = roomTokens.filter((token) => questionTokens.has(token)).length
+  const titleOverlap = tokenizeForAssessment(room.title).filter((token) => questionTokens.has(token)).length * 3
+  const categoryOverlap = tokenizeForAssessment(room.category).filter((token) => questionTokens.has(token)).length * 2
+  return overlap + titleOverlap + categoryOverlap
+}
+
+async function fetchRoomsForInterviewMatching() {
+  const [rows] = await pool.query('SELECT id FROM rooms ORDER BY title ASC')
+  const rooms = []
+  for (const row of rows) {
+    const room = await fetchRoomById(row.id)
+    if (room) rooms.push(room)
+  }
+  return rooms
+}
+
+async function matchInterviewQuestionsToRooms(questions, rooms) {
+  if (!questions.length || !rooms.length) return []
+
+  try {
+    const aiConfig = await getAiRuntimeConfig()
+    if (!aiConfig.apiKey) throw new Error('AI API key is not configured.')
+    const client = new OpenAI({
+      baseURL: aiConfig.baseUrl,
+      apiKey: aiConfig.apiKey,
+    })
+    const response = await client.chat.completions.create({
+      model: aiConfig.model,
+      temperature: 0.1,
+      top_p: aiConfig.topP,
+      max_tokens: Math.min(aiConfig.maxTokens, 1800),
+      stream: false,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'Match custom cybersecurity interview questions to the single best room. Return strict JSON only: {"matches":[{"questionIndex":0,"roomId":"string","reason":"short reason","company":"string","interview":"string","sourceInfo":"string","rubric":"string"}]}. Pick only from provided room ids. Prefer exact content/topic alignment. If company/interview is not provided, use "General cybersecurity interview practice".',
+        },
+        {
+          role: 'user',
+          content: JSON.stringify({
+            questions,
+            rooms: rooms.map((room) => ({
+              id: room.id,
+              title: room.title,
+              category: room.category,
+              difficulty: room.difficulty || room.level,
+              description: room.description,
+              contentPreview: buildQuestionContentContext(room).slice(0, 1200),
+            })),
+          }),
+        },
+      ],
+    })
+
+    const parsed = extractJsonObject(extractMessageText(response?.choices?.[0]?.message))
+    const matches = Array.isArray(parsed?.matches) ? parsed.matches : []
+    const roomIds = new Set(rooms.map((room) => room.id))
+    const aiMatches = questions.map((question, index) => {
+      const match = matches.find((item) => Number(item?.questionIndex) === index && roomIds.has(String(item?.roomId)))
+      return match
+        ? {
+            question,
+            roomId: String(match.roomId),
+            reason: String(match.reason || 'AI matched this question to the closest room content.'),
+            company: String(match.company || 'General cybersecurity interview practice'),
+            interview: String(match.interview || 'Custom admin interview question'),
+            sourceInfo: String(match.sourceInfo || match.reason || 'Custom interview question matched by Admin AI.'),
+            rubric: String(match.rubric || 'Optional interview bonus. Award margin for clear, room-aligned reasoning.'),
+            matchedBy: 'ai',
+          }
+        : null
+    })
+
+    if (aiMatches.every(Boolean)) return aiMatches
+  } catch (error) {
+    console.error('Failed to AI-match interview questions:', error)
+  }
+
+  return questions.map((question) => {
+    const bestRoom = rooms
+      .map((room) => ({ room, score: scoreRoomMatch(question, room) }))
+      .sort((a, b) => b.score - a.score || a.room.title.localeCompare(b.room.title))[0]?.room
+    return {
+      question,
+      roomId: bestRoom?.id || rooms[0].id,
+      reason: 'Matched locally by overlapping room title, category, and content keywords.',
+      company: 'General cybersecurity interview practice',
+      interview: 'Custom admin interview question',
+      sourceInfo: 'Custom interview question matched locally because AI matching was unavailable.',
+      rubric: 'Optional interview bonus. Award margin for clear, room-aligned reasoning.',
+      matchedBy: 'local',
+    }
+  })
+}
+
+router.post('/admin/interview-questions', authenticate, requireAdmin, async (req, res) => {
+  const rawQuestions = Array.isArray(req.body?.questions)
+    ? req.body.questions.map((item) => String(item || '').trim()).filter(Boolean)
+    : normalizeInterviewQuestionInput(req.body?.questionsText)
+  const questions = rawQuestions.slice(0, 50)
+
+  if (!questions.length) {
+    return res.status(400).json({ message: 'At least one interview question is required.' })
+  }
+
+  const roomsForMatching = await fetchRoomsForInterviewMatching()
+  if (!roomsForMatching.length) {
+    return res.status(400).json({ message: 'No rooms are available for matching.' })
+  }
+
+  const matches = await matchInterviewQuestionsToRooms(questions, roomsForMatching)
+  const roomsById = new Map(roomsForMatching.map((room) => [room.id, room]))
+  const inserted = []
+
+  for (const [index, match] of matches.entries()) {
+    const room = roomsById.get(match.roomId)
+    if (!room) continue
+    const existingQuestions = Array.isArray(room.content?.questions) ? room.content.questions : []
+    const exists = existingQuestions.some(
+      (question) => String(question?.prompt || '').trim().toLowerCase() === match.question.toLowerCase(),
+    )
+    const nextQuestion = {
+      id: `custom-interview-${Date.now().toString(36)}-${index + 1}`,
+      prompt: match.question,
+      answer: '',
+      hint: match.rubric,
+      rubric: match.rubric,
+      sourceType: 'interview',
+      company: match.company,
+      interview: match.interview,
+      sourceInfo: match.sourceInfo,
+      learnerVariant: `${room.id}-admin-custom-${Date.now().toString(36)}-${index + 1}`,
+      contentAnchorVersion: 'content-anchored-v2',
+      optional: true,
+      bonus: true,
+    }
+    const nextQuestions = exists ? existingQuestions : [...existingQuestions, nextQuestion]
+    if (!exists) {
+      await pool.query(
+        `UPDATE rooms
+         SET questions_enabled = true,
+             questions_json = ?
+         WHERE id = ?`,
+        [JSON.stringify(nextQuestions), room.id],
+      )
+      await pool.query(
+        `DELETE FROM user_room_theoretical_attempts
+         WHERE room_id = ?
+           AND evaluated_at IS NULL
+           AND passed = false`,
+        [room.id],
+      )
+    }
+    inserted.push({
+      question: match.question,
+      inserted: !exists,
+      duplicate: exists,
+      roomId: room.id,
+      roomTitle: room.title,
+      category: room.category,
+      matchedBy: match.matchedBy,
+      reason: match.reason,
+      company: match.company,
+      interview: match.interview,
+    })
+  }
+
+  return res.status(201).json({ inserted })
 })
 
 router.get('/progress', authenticate, async (req, res) => {
