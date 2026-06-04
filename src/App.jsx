@@ -16,6 +16,7 @@ import AdminDockerConfigPage from './pages/admin/AdminDockerConfigPage'
 import AdminRunningMachinesPage from './pages/admin/AdminRunningMachinesPage'
 import AdminCareerPathsManagementPage from './pages/admin/AdminCareerPathsManagementPage'
 import AdminCareerPathEditorPage from './pages/admin/AdminCareerPathEditorPage'
+import AdminRoadmapBuilderPage from './pages/admin/AdminRoadmapBuilderPage'
 import AdminNotificationsManagementPage from './pages/admin/AdminNotificationsManagementPage'
 import AdminRegistrationsManagementPage from './pages/admin/AdminRegistrationsManagementPage'
 import AdminRegistrationDetailPage from './pages/admin/AdminRegistrationDetailPage'
@@ -295,6 +296,7 @@ function App() {
           <Route path="/admin/career-paths" element={<AdminCareerPathsManagementPage />} />
           <Route path="/admin/career-paths/new" element={<AdminCareerPathEditorPage />} />
           <Route path="/admin/career-paths/:pathId" element={<AdminCareerPathEditorPage />} />
+          <Route path="/admin/roadmap" element={<AdminRoadmapBuilderPage />} />
           <Route path="/admin/notifications" element={<AdminNotificationsManagementPage />} />
           <Route path="/admin/registrations" element={<AdminRegistrationsManagementPage />} />
           <Route path="/admin/registrations/:userId" element={<AdminRegistrationDetailPage />} />
