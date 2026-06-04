@@ -87,6 +87,26 @@ export const DEFAULT_PLATFORM_CONFIG = {
       },
     ],
   },
+  api: {
+    ai: {
+      baseUrl: '',
+      apiKeyConfigured: false,
+      temperature: '',
+      topP: '',
+      maxTokens: '',
+    },
+    ctftime: {
+      enabled: true,
+      baseUrl: 'https://ctftime.org/api/v1',
+      userAgent: 'Incognitrix-Academy/1.0 CTFtime upcoming event sync',
+      limit: 100,
+      horizonDays: 365,
+    },
+    publicApi: {
+      keysConfigured: false,
+      keyCount: 0,
+    },
+  },
 }
 
 function mergeConfig(input) {
@@ -105,6 +125,22 @@ function mergeConfig(input) {
       availableModels: Array.isArray(input?.ai?.availableModels)
         ? input.ai.availableModels
         : DEFAULT_PLATFORM_CONFIG.ai.availableModels,
+    },
+    api: {
+      ...DEFAULT_PLATFORM_CONFIG.api,
+      ...(input?.api ?? {}),
+      ai: {
+        ...DEFAULT_PLATFORM_CONFIG.api.ai,
+        ...(input?.api?.ai ?? {}),
+      },
+      ctftime: {
+        ...DEFAULT_PLATFORM_CONFIG.api.ctftime,
+        ...(input?.api?.ctftime ?? {}),
+      },
+      publicApi: {
+        ...DEFAULT_PLATFORM_CONFIG.api.publicApi,
+        ...(input?.api?.publicApi ?? {}),
+      },
     },
   }
 }

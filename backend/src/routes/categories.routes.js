@@ -37,13 +37,16 @@ router.delete('/:name', authenticate, requireAdmin, async (req, res) => {
     return res.status(400).json({ message: 'Category name is required.' })
   }
 
-  const [[usage]] = await pool.query('SELECT COUNT(*) AS count FROM rooms WHERE category = ?', [name])
-  if (Number(usage?.count || 0) > 0) {
-    return res.status(409).json({ message: 'Category is used by existing rooms.' })
-  }
-
+  const fallbackCategory = 'Uncategorized'
+  await pool.query(
+    `INSERT INTO room_categories (name)
+     VALUES (?)
+     ON DUPLICATE KEY UPDATE name = VALUES(name)`,
+    [fallbackCategory],
+  )
+  const [usageResult] = await pool.query('UPDATE rooms SET category = ? WHERE category = ?', [fallbackCategory, name])
   await pool.query('DELETE FROM room_categories WHERE name = ?', [name])
-  return res.json({ deleted: true, name })
+  return res.json({ deleted: true, name, reassignedRooms: Number(usageResult?.affectedRows || 0), fallbackCategory })
 })
 
 export default router

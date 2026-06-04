@@ -634,26 +634,36 @@ function buildFallbackTheoreticalQuestions(room, userId, attemptSalt = '') {
       `Using only this room's content, explain the main idea behind "${topic}".`,
       `From the room content, list two risks or impacts connected to "${topic}".`,
       `Name one mitigation or careful practice mentioned or implied by this room for "${topic}".`,
+      `Describe one simple example or scenario for "${topic}" that stays within this room's content.`,
+      `What should a beginner remember most from this room about "${topic}"?`,
     ],
     [
       `Define "${topic}" at the same depth as this room explains it.`,
       `What evidence or clues from the room content help you understand this issue?`,
       `Summarize the room's remediation idea for "${topic}" in simple steps.`,
+      `Explain why "${topic}" matters for security based only on this room.`,
+      `List two room-specific terms or ideas that are important for understanding "${topic}".`,
     ],
     [
       `What assumption or mistake does this room warn about in "${topic}"?`,
       `Explain one prevention idea and one detection or verification idea that match this room.`,
       `Write a short note explaining the likely impact described by this room.`,
+      `How would you explain the safe or correct approach for "${topic}" to a new learner?`,
+      `What part of the room content would you use as evidence for your answer about "${topic}"?`,
     ],
     [
       `Explain "${topic}" to a beginner using only concepts covered in this room.`,
       `Describe a basic triage process for "${topic}" based on this room's examples or explanation.`,
       `What beginner mistake could happen with "${topic}", and how does the room suggest avoiding it?`,
+      `What is one consequence of ignoring the room's guidance about "${topic}"?`,
+      `Give one short checklist item that follows from this room's explanation of "${topic}".`,
     ],
     [
       `Describe a simple threat scenario for "${topic}" without adding concepts outside this room.`,
       `How would you verify that the issue in "${topic}" is understood or fixed, based on this room?`,
       `Give one practical recommendation that follows directly from this room content.`,
+      `What is the difference between the unsafe and safer approach described or implied by this room?`,
+      `Summarize the room's key lesson about "${topic}" in two or three sentences.`,
     ],
   ]
 
@@ -841,13 +851,13 @@ async function generateTheoreticalQuestions(room, userId, attemptSalt = '') {
       model: aiConfig.model,
       temperature: Math.max(0.75, Number(aiConfig.temperature || 0.9)),
       top_p: aiConfig.topP,
-      max_tokens: 1200,
+      max_tokens: Math.max(1800, Math.min(aiConfig.maxTokens, 2600)),
       stream: false,
       messages: [
         {
           role: 'system',
           content:
-            'Generate assessment questions for a cybersecurity learning room. Return strict JSON only: {"questions":[{"id":"string","prompt":"string","rubric":"string","sourceType":"generated|interview","company":"string","interview":"string","sourceInfo":"string","learnerVariant":"string","contentAnchorVersion":"content-anchored-v2","optional":false,"bonus":false}]}. Create exactly 3 required open-ended theoretical questions plus exactly 1 optional bonus interview question. HARD RULE: every question must be answerable using only the supplied room content. Do not ask about tools, algorithms, exploitation details, historical examples, companies, interview trivia, or advanced concepts unless they are explicitly present in the room content. Match the selected room difficulty exactly; for Easy/basic rooms, ask concept, purpose, impact, and simple mitigation questions only. Avoid expert-level wording. The 3 required questions must use sourceType "generated", optional false, bonus false. The 1 optional bonus question must use sourceType "interview", optional true, bonus true, and must still be content-aligned. For the bonus question, include company and interview context if this resembles a known public company interview pattern; otherwise use company "General cybersecurity interview practice" and explain that it is interview-style practice in sourceInfo. Do not include answers.',
+            'Generate assessment questions for a cybersecurity learning room. Return strict JSON only: {"questions":[{"id":"string","prompt":"string","rubric":"string","sourceType":"generated|interview","company":"string","interview":"string","sourceInfo":"string","learnerVariant":"string","contentAnchorVersion":"content-anchored-v2","optional":false,"bonus":false}]}. Create exactly 5 required open-ended theoretical questions plus exactly 1 optional bonus interview question. HARD RULE: every question must be answerable using only the supplied room content. Do not ask about tools, algorithms, exploitation details, historical examples, companies, interview trivia, or advanced concepts unless they are explicitly present in the room content. Match the selected room difficulty exactly; for Easy/basic rooms, ask concept, purpose, impact, and simple mitigation questions only. Avoid expert-level wording. The 5 required questions must use sourceType "generated", optional false, bonus false. The 1 optional bonus question must use sourceType "interview", optional true, bonus true, and must still be content-aligned. For the bonus question, include company and interview context if this resembles a known public company interview pattern; otherwise use company "General cybersecurity interview practice" and explain that it is interview-style practice in sourceInfo. Do not include answers.',
         },
         {
           role: 'user',
@@ -888,13 +898,13 @@ async function generateTheoreticalQuestions(room, userId, attemptSalt = '') {
       }))
       .filter((question) => question.id && question.prompt)
 
-    const requiredQuestions = normalized.filter((question) => !question.bonus).slice(0, 3)
+    const requiredQuestions = normalized.filter((question) => !question.bonus && !question.optional).slice(0, 5)
     const bonusQuestion = normalized.find((question) => question.bonus || question.sourceType === 'interview')
     const finalQuestions = bonusQuestion
       ? [...requiredQuestions, { ...bonusQuestion, optional: true, bonus: true, sourceType: 'interview' }]
       : requiredQuestions
 
-    return requiredQuestions.length === 3
+    return requiredQuestions.length >= 5
       ? finalQuestions
       : buildFallbackTheoreticalQuestions(room, userId, attemptSalt)
   } catch (error) {
@@ -905,6 +915,11 @@ async function generateTheoreticalQuestions(room, userId, attemptSalt = '') {
 
 function shouldRefreshTheoreticalQuestions(questions, attempt) {
   if (!Array.isArray(questions) || questions.length === 0) {
+    return true
+  }
+
+  const requiredQuestions = questions.filter((question) => !question.bonus && !question.optional)
+  if (requiredQuestions.length < 5) {
     return true
   }
 
@@ -2261,6 +2276,42 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
   const validationError = validateDockerConfig(config)
   if (validationError) {
     return res.status(400).json({ message: validationError })
+  }
+
+  const [otherInstanceRows] = await pool.query(
+    `SELECT
+       i.id,
+       i.room_id,
+       i.container_name,
+       i.host_port,
+       i.created_at,
+       r.title AS room_title
+     FROM user_room_docker_instances i
+     LEFT JOIN rooms r ON r.id = i.room_id
+     WHERE i.user_id = ?
+       AND i.room_id <> ?
+       AND i.status = 'running'
+     ORDER BY i.created_at DESC`,
+    [req.user.id, room.id],
+  )
+
+  for (const activeInstance of otherInstanceRows) {
+    const inspectedActive = await inspectDockerContainer(activeInstance.container_name)
+    if (inspectedActive.running) {
+      return res.status(409).json({
+        message: `You already have an active Docker machine for "${activeInstance.room_title || activeInstance.room_id}". Stop or revert it before spawning another lab.`,
+        activeRoomId: activeInstance.room_id,
+        activeRoomTitle: activeInstance.room_title || activeInstance.room_id,
+        hostPort: Number(activeInstance.host_port || 0) || null,
+      })
+    }
+
+    await pool.query(
+      `UPDATE user_room_docker_instances
+       SET status = ?
+       WHERE id = ?`,
+      [inspectedActive.exists ? 'stopped' : 'missing', activeInstance.id],
+    )
   }
 
   const containerName = buildDockerContainerName(req.user.id, room.id)

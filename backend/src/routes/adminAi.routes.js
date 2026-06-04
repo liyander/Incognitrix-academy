@@ -197,6 +197,7 @@ async function fetchPlayerPerformanceProfiles() {
     `SELECT
        u.id,
        u.username,
+       u.registration_number,
        u.email,
        u.role,
        r.id AS room_id,
@@ -223,6 +224,7 @@ async function fetchPlayerPerformanceProfiles() {
       players.set(row.id, {
         id: row.id,
         username: row.username || `user-${row.id}`,
+        registrationNumber: row.registration_number || '',
         email: row.email || '',
         completedRooms: 0,
         technicalScores: [],
@@ -295,6 +297,128 @@ async function fetchPlayerPerformanceProfiles() {
       categories,
     }
   })
+}
+
+function extractPlayerLookupToken(text) {
+  const value = String(text || '').trim()
+  if (!value) return ''
+
+  const email = value.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0]
+  if (email) return email
+
+  const labeled = value.match(
+    /\b(?:reg(?:istration)?(?:\s*number)?|id|email|username|user|player|operator|name)\s*(?:is|=|:)?\s*([a-z0-9._@-]{3,})\b/i,
+  )?.[1]
+  if (labeled) return labeled
+
+  const quoted = value.match(/["'`]([^"'`]{3,})["'`]/)?.[1]
+  if (quoted) return quoted.trim()
+
+  return ''
+}
+
+function isSinglePlayerInsightQuestion(text) {
+  return /\b(insights?|analysis|profile|progress|stats?|performance|suitable|strengths?|improve|completed|rooms?)\b[\s\S]*\b(player|user|operator|candidate|reg(?:istration)?|email|username|name)\b/i.test(text) ||
+    /\b(player|user|operator|candidate|reg(?:istration)?|email|username|name)\b[\s\S]*\b(insights?|analysis|profile|progress|stats?|performance|suitable|strengths?|improve|completed|rooms?)\b/i.test(text)
+}
+
+async function fetchPlayerProfileByLookup(text) {
+  const token = extractPlayerLookupToken(text)
+  if (!token) return null
+  const likeToken = `%${token}%`
+  const [rows] = await pool.query(
+    `SELECT id, username, registration_number, email, role, is_active
+     FROM users
+     WHERE username = ?
+        OR email = ?
+        OR registration_number = ?
+        OR username LIKE ?
+        OR email LIKE ?
+        OR registration_number LIKE ?
+     ORDER BY
+       CASE
+         WHEN username = ? OR email = ? OR registration_number = ? THEN 0
+         ELSE 1
+       END,
+       username ASC
+     LIMIT 1`,
+    [token, token, token, likeToken, likeToken, likeToken, token, token, token],
+  )
+
+  if (!rows.length) return null
+  return rows[0]
+}
+
+async function buildSinglePlayerInsightAnswer(text) {
+  const user = await fetchPlayerProfileByLookup(text)
+  if (!user) {
+    return 'I could not find a matching player. Use the exact username, email, or registration number.'
+  }
+
+  const profiles = await fetchPlayerPerformanceProfiles()
+  const profile = profiles.find((item) => Number(item.id) === Number(user.id))
+  const [roomRows] = await pool.query(
+    `SELECT
+       r.title,
+       r.category,
+       r.room_type,
+       urp.status,
+       urp.completed_at,
+       uta.technical_score,
+       uta.grammar_score,
+       uta.feedback
+     FROM user_room_progress urp
+     JOIN rooms r ON r.id = urp.room_id
+     LEFT JOIN user_room_theoretical_attempts uta
+       ON uta.user_id = urp.user_id AND uta.room_id = urp.room_id
+     WHERE urp.user_id = ?
+     ORDER BY COALESCE(urp.completed_at, urp.started_at) DESC
+     LIMIT 12`,
+    [user.id],
+  )
+
+  const completed = roomRows.filter((row) => row.completed_at)
+  const inProgress = roomRows.filter((row) => !row.completed_at)
+  const topCategories = profile?.categories?.length
+    ? profile.categories
+        .slice()
+        .sort((a, b) => b.completedRooms - a.completedRooms || b.averageTechnical - a.averageTechnical)
+        .slice(0, 3)
+    : []
+  const strengths = topCategories.length
+    ? topCategories.map((category) => `${category.category} (${category.completedRooms} completion(s), tech avg ${category.averageTechnical})`)
+    : ['Not enough completed room data yet.']
+  const improvementSignals = roomRows
+    .filter((row) => Number(row.technical_score || 0) > 0 && Number(row.technical_score || 0) < 85)
+    .slice(0, 3)
+    .map((row) => `${row.title}: raise technical accuracy from ${Number(row.technical_score || 0)}`)
+
+  return [
+    `Player insight: ${user.username}`,
+    `- Registration: ${user.registration_number || 'Not set'}`,
+    `- Email: ${user.email || 'Not set'}`,
+    `- Status: ${user.is_active ? 'active' : 'inactive'}; role: ${user.role || 'operator'}`,
+    `- Completed rooms: ${completed.length}`,
+    `- In-progress rooms: ${inProgress.length}`,
+    `- Average technical score: ${profile?.averageTechnical || 0}`,
+    `- Average grammar score: ${profile?.averageGrammar || 0}`,
+    `- Suitable role signal: ${profile?.recommendedRole || 'Needs more completed rooms'}`,
+    '',
+    'Strengths:',
+    ...strengths.map((item) => `- ${item}`),
+    '',
+    'Improve next:',
+    ...(improvementSignals.length
+      ? improvementSignals.map((item) => `- ${item}`)
+      : ['- Complete more rooms and answer theoretical questions with specific, room-based details.']),
+    '',
+    'Recent rooms:',
+    ...(roomRows.length
+      ? roomRows.slice(0, 6).map((row) =>
+          `- ${row.title} (${row.category || 'Uncategorized'}): ${row.completed_at ? 'completed' : row.status || 'in progress'}${Number(row.technical_score || 0) ? `, tech ${Number(row.technical_score)}` : ''}`,
+        )
+      : ['- No room activity found.']),
+  ].join('\n')
 }
 
 function isUserCountQuestion(text) {
@@ -453,6 +577,14 @@ async function tryHandleDirectAdminQuery(message, insights) {
         'Top risks right now:',
         ...risks.map((risk, index) => `${index + 1}. ${risk}`),
       ].join('\n'),
+      action: { type: 'none', status: 'ignored', message: 'No action requested.' },
+    }
+  }
+
+  if (isSinglePlayerInsightQuestion(text)) {
+    return {
+      role: 'assistant',
+      content: await buildSinglePlayerInsightAnswer(text),
       action: { type: 'none', status: 'ignored', message: 'No action requested.' },
     }
   }
@@ -1782,8 +1914,9 @@ router.get('/insights', async (_req, res, next) => {
 
 router.post('/chat', async (req, res, next) => {
   try {
-    if (!env.nvidiaApiKey) {
-      return res.status(503).json({ message: 'NVIDIA_API_KEY is not configured.' })
+    const aiConfig = await getAiRuntimeConfig()
+    if (!aiConfig.apiKey) {
+      return res.status(503).json({ message: 'AI API key is not configured.' })
     }
 
     const message = String(req.body?.message || '').trim()
@@ -1830,7 +1963,6 @@ router.post('/chat', async (req, res, next) => {
       })
     }
 
-    const aiConfig = await getAiRuntimeConfig()
     const client = new OpenAI({
       baseURL: aiConfig.baseUrl,
       apiKey: aiConfig.apiKey,

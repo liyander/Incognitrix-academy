@@ -579,7 +579,7 @@ async function fetchSummary() {
     api: {
       name: 'Incognitrix Public Data API',
       version: '1.0.0',
-      keyAuth: getPublicApiKeyState(),
+      keyAuth: await getPublicApiKeyState(),
     },
     totals: {
       users: Number(userTotals[0]?.total_users || 0),
@@ -825,16 +825,20 @@ router.get('/health', (_req, res) => {
   })
 })
 
-router.get('/meta', requirePublicApiKey, (_req, res) => {
-  return res.json({
-    service: 'Incognitrix Public Data API',
-    version: '1.0.0',
-    auth: {
-      header: 'x-api-key',
-      alsoAccepted: ['Authorization: Bearer <key>', 'Authorization: ApiKey <key>'],
-    },
-    keyState: getPublicApiKeyState(),
-  })
+router.get('/meta', requirePublicApiKey, async (_req, res, next) => {
+  try {
+    return res.json({
+      service: 'Incognitrix Public Data API',
+      version: '1.0.0',
+      auth: {
+        header: 'x-api-key',
+        alsoAccepted: ['Authorization: Bearer <key>', 'Authorization: ApiKey <key>'],
+      },
+      keyState: await getPublicApiKeyState(),
+    })
+  } catch (error) {
+    return next(error)
+  }
 })
 
 router.get('/summary', requirePublicApiKey, async (_req, res, next) => {

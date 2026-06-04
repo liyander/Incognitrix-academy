@@ -34,6 +34,26 @@ export const defaultPlatformConfig = {
   ai: {
     model: 'moonshotai/kimi-k2-thinking',
   },
+  api: {
+    ai: {
+      baseUrl: '',
+      apiKeyConfigured: false,
+      temperature: '',
+      topP: '',
+      maxTokens: '',
+    },
+    ctftime: {
+      enabled: true,
+      baseUrl: 'https://ctftime.org/api/v1',
+      userAgent: 'Incognitrix-Academy/1.0 CTFtime upcoming event sync',
+      limit: 100,
+      horizonDays: 365,
+    },
+    publicApi: {
+      keysConfigured: false,
+      keyCount: 0,
+    },
+  },
 }
 
 export const defaultRooms = [

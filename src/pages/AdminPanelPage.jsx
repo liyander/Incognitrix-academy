@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 function ToggleRow({ checked, description, label, onChange }) {
   return (
     <label className="flex items-start justify-between gap-6 py-4 border-b border-outline-variant/20">
@@ -18,6 +20,9 @@ function ToggleRow({ checked, description, label, onChange }) {
 }
 
 function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
+  const [aiApiKeyDraft, setAiApiKeyDraft] = useState('')
+  const [publicApiKeysDraft, setPublicApiKeysDraft] = useState('')
+
   const setRouteValue = (key, value) => {
     onConfigChange({
       ...config,
@@ -39,11 +44,25 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
     })
   }
 
+  const setApiValue = (section, key, value) => {
+    onConfigChange({
+      ...config,
+      api: {
+        ...(config.api || {}),
+        [section]: {
+          ...(config.api?.[section] || {}),
+          [key]: value,
+        },
+      },
+    })
+  }
+
   const availableAiModels = Array.isArray(config.ai?.availableModels) ? config.ai.availableModels : []
   const selectableAiModels = Array.isArray(config.ai?.selectableModels) && config.ai.selectableModels.length
     ? config.ai.selectableModels
     : availableAiModels
   const selectedAiModel = config.ai?.model || selectableAiModels[0]?.id || availableAiModels[0]?.id || ''
+  const apiConfig = config.api || {}
 
   return (
     <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
@@ -459,7 +478,7 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                   Active AI Model
                 </h3>
                 <p className="mt-2 text-sm text-on-surface-variant">
-                  Choose the model used by room question generation, evaluation, profile analysis, Cyber AI, and Admin AI. API keys and base URL still come from backend environment settings.
+                  Choose the model used by room question generation, evaluation, profile analysis, Cyber AI, and Admin AI. Runtime API settings can be controlled below.
                 </p>
               </div>
 
@@ -482,6 +501,188 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                   Current model id: {selectedAiModel || 'Not configured'}
                 </p>
               </label>
+            </div>
+
+            <div className="mt-8 grid grid-cols-1 xl:grid-cols-3 gap-4">
+              <div className="bg-surface-container-high p-5">
+                <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">
+                  AI API
+                </p>
+                <h4 className="mt-1 font-headline text-lg font-black uppercase">Runtime Settings</h4>
+                <label className="mt-4 block">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                    Base URL
+                  </span>
+                  <input
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-4 outline-none"
+                    onChange={(event) => setApiValue('ai', 'baseUrl', event.target.value)}
+                    placeholder="https://integrate.api.nvidia.com/v1"
+                    type="text"
+                    value={apiConfig.ai?.baseUrl || ''}
+                  />
+                </label>
+                <label className="mt-4 block">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                    API Key
+                  </span>
+                  <input
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-4 outline-none"
+                    onBlur={(event) => {
+                      setApiValue('ai', 'apiKey', event.target.value)
+                      setAiApiKeyDraft('')
+                    }}
+                    onChange={(event) => setAiApiKeyDraft(event.target.value)}
+                    placeholder={apiConfig.ai?.apiKeyConfigured ? 'Configured. Enter a new key to replace.' : 'Paste AI API key'}
+                    type="password"
+                    value={aiApiKeyDraft}
+                  />
+                  <p className="mt-1 text-xs text-on-surface-variant">
+                    {apiConfig.ai?.apiKeyConfigured ? 'A key is currently configured.' : 'No AI API key configured.'}
+                  </p>
+                </label>
+                <div className="mt-4 grid grid-cols-3 gap-3">
+                  <label className="block">
+                    <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                      Temp
+                    </span>
+                    <input
+                      className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-3 outline-none"
+                      max="2"
+                      min="0"
+                      onChange={(event) => setApiValue('ai', 'temperature', event.target.value)}
+                      step="0.1"
+                      type="number"
+                      value={apiConfig.ai?.temperature ?? ''}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                      Top P
+                    </span>
+                    <input
+                      className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-3 outline-none"
+                      max="1"
+                      min="0"
+                      onChange={(event) => setApiValue('ai', 'topP', event.target.value)}
+                      step="0.05"
+                      type="number"
+                      value={apiConfig.ai?.topP ?? ''}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                      Tokens
+                    </span>
+                    <input
+                      className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-3 outline-none"
+                      min="256"
+                      onChange={(event) => setApiValue('ai', 'maxTokens', event.target.value)}
+                      step="256"
+                      type="number"
+                      value={apiConfig.ai?.maxTokens ?? ''}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="bg-surface-container-high p-5">
+                <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">
+                  CTFtime API
+                </p>
+                <h4 className="mt-1 font-headline text-lg font-black uppercase">Event Sync</h4>
+                <label className="mt-4 flex items-center gap-3">
+                  <input
+                    checked={apiConfig.ctftime?.enabled !== false}
+                    className="h-4 w-4 accent-[#b6171e]"
+                    onChange={(event) => setApiValue('ctftime', 'enabled', event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                    Enable Sync
+                  </span>
+                </label>
+                <label className="mt-4 block">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                    Base URL
+                  </span>
+                  <input
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-4 outline-none"
+                    onChange={(event) => setApiValue('ctftime', 'baseUrl', event.target.value)}
+                    placeholder="https://ctftime.org/api/v1"
+                    type="text"
+                    value={apiConfig.ctftime?.baseUrl || ''}
+                  />
+                </label>
+                <label className="mt-4 block">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                    User Agent
+                  </span>
+                  <input
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-4 outline-none"
+                    onChange={(event) => setApiValue('ctftime', 'userAgent', event.target.value)}
+                    type="text"
+                    value={apiConfig.ctftime?.userAgent || ''}
+                  />
+                </label>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                      Limit
+                    </span>
+                    <input
+                      className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-3 outline-none"
+                      max="500"
+                      min="1"
+                      onChange={(event) => setApiValue('ctftime', 'limit', event.target.value)}
+                      type="number"
+                      value={apiConfig.ctftime?.limit ?? 100}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                      Horizon Days
+                    </span>
+                    <input
+                      className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-3 outline-none"
+                      max="1095"
+                      min="1"
+                      onChange={(event) => setApiValue('ctftime', 'horizonDays', event.target.value)}
+                      type="number"
+                      value={apiConfig.ctftime?.horizonDays ?? 365}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="bg-surface-container-high p-5">
+                <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">
+                  Public API
+                </p>
+                <h4 className="mt-1 font-headline text-lg font-black uppercase">Access Keys</h4>
+                <label className="mt-4 block">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                    API Keys
+                  </span>
+                  <textarea
+                    className="mt-2 min-h-32 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-4 outline-none"
+                    onBlur={(event) => {
+                      setApiValue('publicApi', 'keys', event.target.value)
+                      setPublicApiKeysDraft('')
+                    }}
+                    onChange={(event) => setPublicApiKeysDraft(event.target.value)}
+                    placeholder={apiConfig.publicApi?.keysConfigured ? 'Configured. Enter comma-separated keys to replace.' : 'key-one, key-two'}
+                    value={publicApiKeysDraft}
+                  ></textarea>
+                  <p className="mt-1 text-xs text-on-surface-variant">
+                    {apiConfig.publicApi?.keysConfigured
+                      ? `${apiConfig.publicApi?.keyCount || 0} public API key(s) configured.`
+                      : 'No public API keys configured.'}
+                  </p>
+                </label>
+                <p className="mt-4 text-xs leading-relaxed text-on-surface-variant">
+                  Docker daemon settings remain in the dedicated Docker Configuration page because they include certificate uploads and live image discovery.
+                </p>
+              </div>
             </div>
 
             {availableAiModels.length ? (

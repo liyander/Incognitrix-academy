@@ -58,19 +58,49 @@ function getCtfTimeEventUrl(event) {
   return ''
 }
 
+function parseJsonField(value, fallback = {}) {
+  if (!value) return fallback
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value)
+    } catch {
+      return fallback
+    }
+  }
+  return typeof value === 'object' ? value : fallback
+}
+
+async function getCtfTimeConfig() {
+  const [rows] = await pool.query('SELECT api_json FROM platform_config WHERE id = 1 LIMIT 1')
+  const apiConfig = parseJsonField(rows[0]?.api_json, {})
+  const ctftime = apiConfig?.ctftime || {}
+  return {
+    enabled: ctftime.enabled !== false,
+    baseUrl: String(ctftime.baseUrl || 'https://ctftime.org/api/v1').replace(/\/+$/, ''),
+    userAgent: String(ctftime.userAgent || 'Incognitrix-Academy/1.0 CTFtime upcoming event sync'),
+    limit: Math.max(1, Math.min(500, Number(ctftime.limit || 100))),
+    horizonDays: Math.max(1, Math.min(1095, Number(ctftime.horizonDays || 365))),
+  }
+}
+
 async function fetchWeightedUpcomingCtfTimeEvents() {
   if (typeof fetch !== 'function') {
     throw new Error('Runtime fetch is not available')
   }
 
+  const config = await getCtfTimeConfig()
+  if (!config.enabled) {
+    throw new Error('CTFtime sync is disabled in API settings.')
+  }
+
   const now = Math.floor(Date.now() / 1000)
-  const finish = now + 365 * 24 * 60 * 60
-  const url = `https://ctftime.org/api/v1/events/?limit=100&start=${now}&finish=${finish}`
+  const finish = now + config.horizonDays * 24 * 60 * 60
+  const url = `${config.baseUrl}/events/?limit=${config.limit}&start=${now}&finish=${finish}`
 
   const response = await fetch(url, {
     headers: {
       Accept: 'application/json',
-      'User-Agent': 'Incognitrix-Academy/1.0 CTFtime upcoming event sync',
+      'User-Agent': config.userAgent,
     },
   })
 

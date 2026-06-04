@@ -108,7 +108,7 @@ function AdminCategoriesPage() {
                 Available Categories
               </h2>
               <p className="text-xs text-on-surface-variant mt-1">
-                Categories currently used by rooms cannot be removed from the list view.
+                Deleting a category moves its rooms to Uncategorized so old room records stay valid.
               </p>
             </div>
             <span className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">
@@ -133,10 +133,9 @@ function AdminCategoriesPage() {
                     </p>
                   </div>
                   <button
-                    className="text-on-surface-variant hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
-                    disabled={roomCount > 0}
+                    className="text-on-surface-variant hover:text-primary"
                     onClick={() => void handleDeleteCategory(category)}
-                    title={roomCount > 0 ? 'Category is used by rooms' : 'Delete category'}
+                    title={roomCount > 0 ? 'Delete and move rooms to Uncategorized' : 'Delete category'}
                     type="button"
                   >
                     <span className="material-symbols-outlined">delete</span>

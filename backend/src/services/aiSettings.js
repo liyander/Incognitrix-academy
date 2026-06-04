@@ -272,22 +272,33 @@ function normalizeModelId(value) {
 
 export async function getAiRuntimeConfig() {
   let selectedModel = env.aiModel
+  let apiConfig = {}
 
   try {
-    const [rows] = await pool.query('SELECT ai_json FROM platform_config WHERE id = 1 LIMIT 1')
+    const [rows] = await pool.query('SELECT ai_json, api_json FROM platform_config WHERE id = 1 LIMIT 1')
     const aiConfig = parseJsonField(rows[0]?.ai_json, {})
+    apiConfig = parseJsonField(rows[0]?.api_json, {})
     selectedModel = normalizeModelId(aiConfig.model)
   } catch {
     selectedModel = env.aiModel
+    apiConfig = {}
   }
 
+  const apiAiConfig = apiConfig?.ai || {}
+
   return {
-    baseUrl: env.aiBaseUrl,
-    apiKey: env.nvidiaApiKey,
+    baseUrl: String(apiAiConfig.baseUrl || env.aiBaseUrl),
+    apiKey: String(apiAiConfig.apiKey || env.nvidiaApiKey),
     model: selectedModel,
-    temperature: env.aiTemperature,
-    topP: env.aiTopP,
-    maxTokens: env.aiMaxTokens,
+    temperature: apiAiConfig.temperature === '' || apiAiConfig.temperature === undefined
+      ? env.aiTemperature
+      : Number(apiAiConfig.temperature),
+    topP: apiAiConfig.topP === '' || apiAiConfig.topP === undefined
+      ? env.aiTopP
+      : Number(apiAiConfig.topP),
+    maxTokens: apiAiConfig.maxTokens === '' || apiAiConfig.maxTokens === undefined
+      ? env.aiMaxTokens
+      : Number(apiAiConfig.maxTokens),
     availableModels: availableAiModels,
     selectableModels: selectableAiModelOptions,
   }
