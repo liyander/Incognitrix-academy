@@ -237,7 +237,7 @@ function RoadmapPage() {
   })
 
   return (
-    <main className="min-h-screen bg-surface pt-20 text-on-surface">
+    <main className="min-h-screen bg-surface pt-32 md:pt-36 text-on-surface">
       <section className="relative overflow-hidden px-4 py-10 sm:px-8 lg:px-12">
         <div
           className="absolute inset-0 opacity-[0.22]"
@@ -263,7 +263,7 @@ function RoadmapPage() {
           </header>
 
           <div className="relative mx-auto mt-12 max-w-3xl">
-            <div className="absolute left-1/2 top-0 hidden h-full w-px -translate-x-1/2 bg-outline-variant/60 sm:block"></div>
+            <div className="absolute left-1/2 top-0 hidden h-full w-[3px] -translate-x-1/2 bg-secondary/40 sm:block"></div>
             {[
               {
                 label: 'Phase 00',
@@ -285,8 +285,8 @@ function RoadmapPage() {
               },
             ].map((phase, index) => (
               <div className="relative flex justify-center" key={phase.title}>
-                {index > 0 ? <div className="h-10 w-px bg-outline-variant/70"></div> : null}
-                <div className="w-full max-w-xl border border-outline-variant/50 bg-surface-container-lowest p-5 shadow-xl">
+                {index > 0 ? <div className="h-10 w-[3px] bg-secondary/55"></div> : null}
+                <div className="relative z-10 w-full max-w-xl border border-outline-variant/60 bg-surface-container-lowest p-5 shadow-xl">
                   <div className="flex items-start gap-4">
                     <span className="grid h-12 w-12 shrink-0 place-items-center bg-primary/10 text-primary">
                       <span className="material-symbols-outlined">{phase.icon}</span>
@@ -308,23 +308,29 @@ function RoadmapPage() {
             ))}
           </div>
 
+          <div className="mx-auto hidden h-16 w-[3px] bg-secondary/65 shadow-[0_0_18px_rgba(102,217,239,0.25)] lg:block"></div>
+
           {isLoading ? (
             <div className="mx-auto mt-16 max-w-lg border border-outline-variant/50 bg-surface-container-lowest p-6 text-center font-headline text-xs uppercase tracking-widest text-on-surface-variant">
               Building roadmap...
             </div>
           ) : (
-            <div className="relative mx-auto mt-16 max-w-[96rem]">
-              <div className="relative hidden h-16 lg:block">
-                <div className="absolute left-1/2 top-0 h-16 w-[3px] -translate-x-1/2 bg-secondary/70 shadow-[0_0_18px_rgba(102,217,239,0.25)]"></div>
-                <div className="absolute left-[12.5%] right-[12.5%] bottom-0 h-[3px] bg-secondary/45 shadow-[0_0_18px_rgba(102,217,239,0.16)]"></div>
+            <div className="relative mx-auto mt-0 max-w-[96rem]">
+              <div className="relative mx-auto hidden h-20 max-w-[78rem] lg:block">
+                <div className="absolute left-1/2 top-0 h-full w-[3px] -translate-x-1/2 bg-secondary/70 shadow-[0_0_18px_rgba(102,217,239,0.25)]"></div>
+                <div className="absolute left-0 right-0 bottom-0 h-[3px] bg-secondary/55 shadow-[0_0_18px_rgba(102,217,239,0.16)]"></div>
+                <div className="absolute bottom-0 left-[12.5%] h-10 w-[3px] translate-y-full bg-secondary/55"></div>
+                <div className="absolute bottom-0 left-[37.5%] h-10 w-[3px] translate-y-full bg-secondary/55"></div>
+                <div className="absolute bottom-0 left-[62.5%] h-10 w-[3px] translate-y-full bg-secondary/55"></div>
+                <div className="absolute bottom-0 left-[87.5%] h-10 w-[3px] translate-y-full bg-secondary/55"></div>
               </div>
 
-              <div className="grid gap-8 lg:grid-cols-4 lg:items-start">
+              <div className="grid gap-8 lg:mt-10 lg:grid-cols-4 lg:items-start">
                 {columns.map((column) => (
                   <section className="relative pt-10" key={column.id || column.title}>
                     <div className={`absolute left-1/2 top-0 hidden h-full w-[3px] -translate-x-1/2 ${column.tone.line} lg:block`}></div>
-                    <div className="absolute left-1/2 top-0 hidden h-10 w-[3px] -translate-x-1/2 bg-secondary/65 lg:block"></div>
-                    <div className="relative z-10 mx-auto mb-6 min-h-40 border border-outline-variant/60 bg-surface-container-lowest p-5 text-center shadow-xl">
+                    <div className="absolute left-1/2 top-0 hidden h-10 w-[3px] -translate-x-1/2 bg-secondary/70 lg:block"></div>
+                    <div className="relative z-10 mx-auto min-h-40 border border-outline-variant/60 bg-surface-container-lowest p-5 text-center shadow-xl">
                       <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-primary">
                         Specialization
                       </p>
@@ -339,6 +345,8 @@ function RoadmapPage() {
                       </div>
                     </div>
 
+                    <div className={`relative z-10 mx-auto hidden h-6 w-[3px] ${column.tone.line} lg:block`}></div>
+
                     <div className="relative z-10 space-y-0">
                       {column.rooms.length ? column.rooms.map((room, roomIndex) => {
                         const status = getRoomStatus(progressMap[room.id])
@@ -350,10 +358,9 @@ function RoadmapPage() {
                             : 0
 
                         return (
-                          <div className="relative pb-5" key={room.id}>
-                            <div className={`absolute left-1/2 top-0 hidden h-full w-[3px] -translate-x-1/2 ${column.tone.line} lg:block`}></div>
+                          <div className="relative" key={room.id}>
                             {roomIndex > 0 ? (
-                              <div className={`mx-auto hidden h-5 w-[3px] ${column.tone.line} lg:block`}></div>
+                              <div className={`mx-auto hidden h-4 w-[3px] ${column.tone.line} lg:block`}></div>
                             ) : null}
                             <Link
                               className={`group relative z-10 flex min-h-28 overflow-hidden border bg-surface-container-lowest shadow-lg transition-transform hover:-translate-y-0.5 ${
@@ -375,7 +382,7 @@ function RoadmapPage() {
                                   {getIconForTrack(room.category || column.title)}
                                 </span>
                               </div>
-                              <div className="flex min-w-0 flex-1 flex-col justify-center p-4 pr-14">
+                              <div className="flex min-w-0 flex-1 flex-col justify-center p-4 pr-16">
                                 <h4 className="line-clamp-2 font-headline text-sm font-black uppercase tracking-wide text-on-background">
                                   {room.title}
                                 </h4>
@@ -405,7 +412,7 @@ function RoadmapPage() {
                               ) : null}
                             </Link>
                             {roomIndex < column.rooms.length - 1 ? (
-                              <div className={`mx-auto hidden h-5 w-[3px] ${column.tone.line} lg:block`}></div>
+                              <div className={`mx-auto hidden h-4 w-[3px] ${column.tone.line} lg:block`}></div>
                             ) : null}
                             </div>
                         )
@@ -423,8 +430,7 @@ function RoadmapPage() {
                   No rooms are available for a roadmap yet.
                 </div>
               ) : null}
-              <div className="mx-auto mt-10 hidden h-14 max-w-[72rem] border-x-[3px] border-b-[3px] border-secondary/45 lg:block"></div>
-              <div className="mx-auto hidden h-16 w-[3px] bg-secondary/65 lg:block"></div>
+              <div className="mx-auto mt-10 hidden h-12 w-[3px] bg-secondary/65 shadow-[0_0_18px_rgba(102,217,239,0.18)] lg:block"></div>
               <div className="mx-auto max-w-xl border border-outline-variant/50 bg-surface-container-lowest p-6 text-center shadow-xl">
                 <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-secondary">
                   Current Mission Focus
