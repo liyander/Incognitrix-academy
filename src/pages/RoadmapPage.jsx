@@ -224,13 +224,14 @@ function RoadmapPage() {
   const inProgressRooms = allRooms.filter((room) => progressMap[room.id]?.startedAt && !progressMap[room.id]?.completedAt).length
   const nextRoom = allRooms.find((room) => getRoomStatus(progressMap[room.id]) !== 'completed')
   const foundationRoom = allRooms.find((room) => /intro.*cyber|cyber.*intro|cyber\s*security\s*101|cybersecurity\s*101/i.test(room.title || ''))
-    || allRooms.find((room) => /intro|foundation|basic/i.test(room.title || room.category || ''))
+  const foundationTargetRoom = foundationRoom
+    || allRooms.find((room) => /foundation|basic|intro/i.test(room.title || room.category || ''))
     || allRooms[0]
   const completionPercent = allRooms.length ? Math.round((completedRooms / allRooms.length) * 100) : 0
   const columns = roadmap.slice(0, 4).map((path, index) => {
     const roomsForPath = path.modules
       .flatMap((module) => module.rooms.map((room) => ({ ...room, moduleTitle: module.title })))
-      .filter((room) => room.id !== foundationRoom?.id)
+      .filter((room) => room.id !== foundationTargetRoom?.id)
       .slice(0, 6)
 
     return {
@@ -319,10 +320,10 @@ function RoadmapPage() {
           ) : (
             <div className="relative mx-auto mt-0 max-w-[96rem]">
               <div className="mx-auto hidden h-10 w-[3px] bg-secondary/65 shadow-[0_0_18px_rgba(102,217,239,0.25)] lg:block"></div>
-              {foundationRoom ? (
+              {foundationTargetRoom ? (
                 <Link
                   className="group relative z-10 mx-auto flex max-w-2xl border border-secondary/70 bg-surface-container-lowest p-5 shadow-[0_0_34px_rgba(102,217,239,0.12)] transition-transform hover:-translate-y-0.5"
-                  to={`/learn/lab/${foundationRoom.slug || foundationRoom.id}`}
+                  to={`/learn/lab/${foundationTargetRoom.slug || foundationTargetRoom.id}`}
                 >
                   <div className="grid h-20 w-20 shrink-0 place-items-center bg-secondary/20 text-secondary">
                     <span className="material-symbols-outlined text-4xl">
@@ -334,15 +335,15 @@ function RoadmapPage() {
                       Foundation Entry
                     </p>
                     <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
-                      {foundationRoom.title || 'Intro to Cybersecurity'}
+                      Intro to Cybersecurity
                     </h2>
                     <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-on-surface-variant">
-                      {foundationRoom.description || 'Begin here before branching into academy specializations.'}
+                      {foundationRoom?.description || 'Begin here before branching into academy specializations, practical labs, and role-based paths.'}
                     </p>
                   </div>
                   <div className="hidden min-w-24 flex-col items-end justify-center sm:flex">
                     <span className="font-space text-3xl font-black text-secondary">
-                      {getRoomStatus(progressMap[foundationRoom.id]) === 'completed' ? 100 : 0}%
+                      {getRoomStatus(progressMap[foundationTargetRoom.id]) === 'completed' ? 100 : 0}%
                     </span>
                     <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                       Complete
@@ -350,14 +351,14 @@ function RoadmapPage() {
                   </div>
                 </Link>
               ) : null}
-              <div className="mx-auto hidden h-14 w-[3px] bg-secondary/65 shadow-[0_0_18px_rgba(102,217,239,0.25)] lg:block"></div>
+              <div className="mx-auto hidden h-14 w-[3px] bg-secondary/80 shadow-[0_0_24px_rgba(102,217,239,0.35)] lg:block"></div>
               <div className="relative mx-auto hidden h-20 max-w-[78rem] lg:block">
-                <div className="absolute left-1/2 top-0 h-full w-[3px] -translate-x-1/2 bg-secondary/70 shadow-[0_0_18px_rgba(102,217,239,0.25)]"></div>
-                <div className="absolute left-0 right-0 bottom-0 h-[3px] bg-secondary/55 shadow-[0_0_18px_rgba(102,217,239,0.16)]"></div>
-                <div className="absolute bottom-0 left-[12.5%] h-10 w-[3px] translate-y-full bg-secondary/55"></div>
-                <div className="absolute bottom-0 left-[37.5%] h-10 w-[3px] translate-y-full bg-secondary/55"></div>
-                <div className="absolute bottom-0 left-[62.5%] h-10 w-[3px] translate-y-full bg-secondary/55"></div>
-                <div className="absolute bottom-0 left-[87.5%] h-10 w-[3px] translate-y-full bg-secondary/55"></div>
+                <div className="absolute left-1/2 top-0 h-full w-[3px] -translate-x-1/2 bg-secondary/85 shadow-[0_0_24px_rgba(102,217,239,0.35)]"></div>
+                <div className="absolute left-0 right-0 bottom-0 h-[3px] bg-secondary/75 shadow-[0_0_20px_rgba(102,217,239,0.24)]"></div>
+                <div className="absolute bottom-0 left-[12.5%] h-10 w-[3px] translate-y-full bg-secondary/75 shadow-[0_0_14px_rgba(102,217,239,0.2)]"></div>
+                <div className="absolute bottom-0 left-[37.5%] h-10 w-[3px] translate-y-full bg-secondary/75 shadow-[0_0_14px_rgba(102,217,239,0.2)]"></div>
+                <div className="absolute bottom-0 left-[62.5%] h-10 w-[3px] translate-y-full bg-secondary/75 shadow-[0_0_14px_rgba(102,217,239,0.2)]"></div>
+                <div className="absolute bottom-0 left-[87.5%] h-10 w-[3px] translate-y-full bg-secondary/75 shadow-[0_0_14px_rgba(102,217,239,0.2)]"></div>
               </div>
 
               <div className="grid gap-8 lg:mt-10 lg:grid-cols-4 lg:items-start">
