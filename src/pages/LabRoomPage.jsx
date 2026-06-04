@@ -130,6 +130,7 @@ function LabRoomPage() {
   const xtermHostRef = useRef(null)
   const xtermRef = useRef(null)
   const terminalSocketRef = useRef(null)
+  const terminalTranscriptRef = useRef('')
   const roomId = room?.id || ''
   const roomDocker = room?.content?.docker || {}
   const roomType = normalizeRoomType(room?.roomType)
@@ -477,10 +478,15 @@ function LabRoomPage() {
         terminal.scrollToBottom()
       }, 50)
     }
+    const appendTerminalTranscript = (text) => {
+      terminalTranscriptRef.current = `${terminalTranscriptRef.current}${text}`.slice(-120000)
+    }
     const writeTerminal = (text) => {
+      appendTerminalTranscript(text)
       terminal.write(text, settleTerminalView)
     }
     const writeLine = (text = '') => {
+      appendTerminalTranscript(`${text}\r\n`)
       terminal.writeln(text)
       settleTerminalView()
     }
@@ -530,8 +536,12 @@ function LabRoomPage() {
     })
     resizeObserver.observe(terminalHost)
     fitTerminalToHost()
-    writeLine('Welcome to Incognitrix Academy')
-    writeLine('Opening interactive sandbox shell...')
+    if (terminalTranscriptRef.current) {
+      terminal.write(terminalTranscriptRef.current, settleTerminalView)
+    } else {
+      writeLine('Welcome to Incognitrix Academy')
+      writeLine('Opening interactive sandbox shell...')
+    }
     xtermRef.current = terminal
 
     const token = encodeURIComponent(getAuthToken())
@@ -634,6 +644,9 @@ function LabRoomPage() {
     isLoadingQuestions && questionsEnabled && (roomType === 'theoretical' || Boolean(room.content?.aiQuestionsEnabled))
   const requiredAssessmentQuestions = questionStatus.questions.filter((question) => !question.bonus && !question.optional)
   const bonusAssessmentQuestions = questionStatus.questions.filter((question) => question.bonus || question.optional)
+  const remainingPracticalQuestions = requiredAssessmentQuestions.filter(
+    (question) => question.questionType === 'manual' && !question.answeredCorrectly,
+  ).length
   const isAiEvaluatingAnswers = isSubmittingQuestions && isAiQuestionMode
   const dockerExpiresAt = dockerStatus.expiresAt ? new Date(dockerStatus.expiresAt).getTime() : 0
   const dockerRemainingMs = dockerStatus.running && dockerExpiresAt ? Math.max(0, dockerExpiresAt - dockerNow) : 0
@@ -682,6 +695,11 @@ function LabRoomPage() {
   }
 
   const handleQuestionAnswerChange = (questionId, value) => {
+    const question = questionStatus.questions.find((item) => String(item.id) === String(questionId))
+    if (isPracticalRoom && question?.questionType === 'manual' && question?.answeredCorrectly) {
+      return
+    }
+
     setQuestionAnswers((prev) => ({
       ...prev,
       [questionId]: value,
@@ -1064,78 +1082,78 @@ function LabRoomPage() {
             </section>
           </div>
 
-          {isTerminalSplit ? (
-            <div className={`${isTerminalMinimized ? 'hidden' : ''} min-h-[640px] xl:sticky xl:top-24 xl:h-[calc(100vh-7rem)] xl:self-start`}>
-              <div className="flex h-full flex-col border border-outline-variant bg-surface-container-lowest text-on-surface shadow-2xl">
-                <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-4 py-3 dark:border-[#24313a] dark:bg-[#10161a]">
-                  <div className="flex items-center gap-3">
-                    <span className="h-3 w-3 rounded-full bg-primary"></span>
-                    <span className="h-3 w-3 rounded-full bg-secondary"></span>
-                    <span className="h-3 w-3 rounded-full bg-outline-variant"></span>
-                    <div>
-                      <p className="font-headline text-[9px] font-bold uppercase tracking-[0.25em] text-primary">
-                        Split Terminal
-                      </p>
-                      <h3 className="font-headline text-lg font-black uppercase tracking-tight text-on-background">
-                        Sandbox Shell
-                      </h3>
+          <div className={`${isTerminalSplitLayout ? 'xl:col-start-2 space-y-8' : 'lg:col-span-4 space-y-8'}`}>
+            {isTerminalSplit ? (
+              <div className={`${isTerminalMinimized ? 'fixed -left-[10000px] top-0 h-[640px] w-[640px] overflow-hidden opacity-0 pointer-events-none' : 'min-h-[560px] xl:min-h-[640px]'}`}>
+                <div className="flex h-[min(72vh,48rem)] min-h-[560px] flex-col border border-outline-variant bg-surface-container-lowest text-on-surface shadow-2xl xl:h-[calc(100vh-7rem)]">
+                  <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-4 py-3 dark:border-[#24313a] dark:bg-[#10161a]">
+                    <div className="flex items-center gap-3">
+                      <span className="h-3 w-3 rounded-full bg-primary"></span>
+                      <span className="h-3 w-3 rounded-full bg-secondary"></span>
+                      <span className="h-3 w-3 rounded-full bg-outline-variant"></span>
+                      <div>
+                        <p className="font-headline text-[9px] font-bold uppercase tracking-[0.25em] text-primary">
+                          Split Terminal
+                        </p>
+                        <h3 className="font-headline text-lg font-black uppercase tracking-tight text-on-background">
+                          Sandbox Shell
+                        </h3>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        className="grid h-9 w-9 place-items-center border border-outline-variant text-on-background hover:border-secondary hover:text-secondary"
+                        onClick={() => setTerminalLayout('overlay')}
+                        title="Open full screen"
+                        type="button"
+                      >
+                        <span className="material-symbols-outlined text-lg">open_in_full</span>
+                      </button>
+                      <button
+                        className="grid h-9 w-9 place-items-center border border-outline-variant text-on-background hover:border-primary hover:text-primary"
+                        onClick={() => setIsTerminalMinimized(true)}
+                        title="Minimize terminal"
+                        type="button"
+                      >
+                        <span className="material-symbols-outlined text-lg">minimize</span>
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      className="grid h-9 w-9 place-items-center border border-outline-variant text-on-background hover:border-secondary hover:text-secondary"
-                      onClick={() => setTerminalLayout('overlay')}
-                      title="Open full screen"
-                      type="button"
-                    >
-                      <span className="material-symbols-outlined text-lg">open_in_full</span>
-                    </button>
-                    <button
-                      className="grid h-9 w-9 place-items-center border border-outline-variant text-on-background hover:border-primary hover:text-primary"
-                      onClick={() => setIsTerminalMinimized(true)}
-                      title="Minimize terminal"
-                      type="button"
-                    >
-                      <span className="material-symbols-outlined text-lg">minimize</span>
-                    </button>
-                  </div>
-                </div>
 
-                <div className="flex min-h-0 flex-1 flex-col p-4">
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border border-outline-variant bg-surface-container-lowest px-4 py-3 dark:border-[#233039] dark:bg-[#0b0f12]">
-                    <p className="font-space text-xs text-on-surface-variant dark:text-[#9ed8e8]">
-                      Commands run inside your personal challenge sandbox.
-                    </p>
-                    {dockerStatus.access?.url && isDockerServiceActive ? (
-                      <p className="font-space text-xs text-secondary break-all">
-                        target: {dockerStatus.access.url}
+                  <div className="flex min-h-0 flex-1 flex-col p-4">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border border-outline-variant bg-surface-container-lowest px-4 py-3 dark:border-[#233039] dark:bg-[#0b0f12]">
+                      <p className="font-space text-xs text-on-surface-variant dark:text-[#9ed8e8]">
+                        Commands run inside your personal challenge sandbox.
                       </p>
-                    ) : null}
-                  </div>
+                      {dockerStatus.access?.url && isDockerServiceActive ? (
+                        <p className="font-space text-xs text-secondary break-all">
+                          target: {dockerStatus.access.url}
+                        </p>
+                      ) : null}
+                    </div>
 
-                  <div className="min-h-0 flex-1 overflow-hidden border border-outline-variant bg-surface-container-lowest p-3 shadow-[inset_0_0_28px_rgba(25,28,30,0.08)] dark:border-[#26343d] dark:bg-[#020405]">
-                    {isDockerServiceActive ? (
-                      <div
-                        className="h-full w-full pb-6 [&_.xterm]:h-full [&_.xterm-screen]:!h-full [&_.xterm-viewport]:!bg-[#fbfcfd] dark:[&_.xterm-viewport]:!bg-[#020405]"
-                        onClick={() => xtermRef.current?.focus()}
-                        ref={xtermHostRef}
-                      ></div>
-                    ) : (
-                      <div className="space-y-3 p-5 font-space text-sm text-on-surface-variant dark:text-[#9ed8e8]">
-                        <pre className="whitespace-pre-wrap text-secondary">
+                    <div className="min-h-0 flex-1 overflow-hidden border border-outline-variant bg-surface-container-lowest p-3 shadow-[inset_0_0_28px_rgba(25,28,30,0.08)] dark:border-[#26343d] dark:bg-[#020405]">
+                      {isDockerServiceActive ? (
+                        <div
+                          className="h-full w-full pb-6 [&_.xterm]:h-full [&_.xterm-screen]:!h-full [&_.xterm-viewport]:!bg-[#fbfcfd] dark:[&_.xterm-viewport]:!bg-[#020405]"
+                          onClick={() => xtermRef.current?.focus()}
+                          ref={xtermHostRef}
+                        ></div>
+                      ) : (
+                        <div className="space-y-3 p-5 font-space text-sm text-on-surface-variant dark:text-[#9ed8e8]">
+                          <pre className="whitespace-pre-wrap text-secondary">
 {`Welcome to Incognitrix Academy
 Interactive sandbox terminal waiting for Docker spawn.`}
-                        </pre>
-                        <p>Spawn the Docker service, then open terminal access for a real interactive shell.</p>
-                      </div>
-                    )}
+                          </pre>
+                          <p>Spawn the Docker service, then open terminal access for a real interactive shell.</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
 
-          <div className={`${isTerminalSplitLayout ? 'xl:col-start-2 xl:row-start-2 space-y-8' : 'lg:col-span-4 space-y-8'}`}>
             <div className="bg-secondary text-on-secondary p-8">
               <h2 className="font-headline text-xl font-bold mb-6 flex items-center gap-3 uppercase tracking-tight">
                 <span className="material-symbols-outlined">shield_with_heart</span>{' '}
@@ -1291,7 +1309,10 @@ Interactive sandbox terminal waiting for Docker spawn.`}
               </p>
 
               {isTerminalOverlay ? (
-                <div className={`${isTerminalMinimized ? 'hidden' : ''} fixed inset-0 z-[120] bg-surface text-on-surface`}>
+                <div className={isTerminalMinimized
+                  ? 'fixed -left-[10000px] top-0 z-[-1] h-[640px] w-[640px] overflow-hidden bg-surface text-on-surface opacity-0 pointer-events-none'
+                  : 'fixed inset-0 z-[120] bg-surface text-on-surface'}
+                >
                   <div className="flex h-full flex-col">
                     <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-5 py-3 dark:border-[#24313a] dark:bg-[#10161a]">
                       <div className="flex items-center gap-3">
@@ -1528,11 +1549,18 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                     <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                       Question Challenge
                     </span>
-                    <span className="text-[10px] font-headline font-bold uppercase tracking-widest px-2 py-1 bg-secondary/15 text-secondary">
-                      {isAiQuestionMode
-                        ? `Tech ${questionStatus.technicalScore}/100`
-                        : `${questionStatus.correct}/${questionStatus.total} Correct`}
-                    </span>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      {isPracticalRoom && remainingPracticalQuestions > 0 ? (
+                        <span className="text-[10px] font-headline font-bold uppercase tracking-widest px-2 py-1 bg-primary/10 text-primary">
+                          {remainingPracticalQuestions} Remaining
+                        </span>
+                      ) : null}
+                      <span className="text-[10px] font-headline font-bold uppercase tracking-widest px-2 py-1 bg-secondary/15 text-secondary">
+                        {isAiQuestionMode
+                          ? `Tech ${questionStatus.technicalScore}/100`
+                          : `${questionStatus.correct}/${questionStatus.total} Correct`}
+                      </span>
+                    </div>
                   </div>
 
                   {isAiQuestionMode ? (
@@ -1557,11 +1585,34 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                   ) : null}
 
                   <div className="space-y-3">
-                    {requiredAssessmentQuestions.map((question, index) => (
-                      <div key={question.id || `question-${index}`} className="bg-surface-container-high p-3">
-                        <p className="text-[11px] font-headline font-bold text-on-surface uppercase tracking-wide mb-2">
-                          Q{index + 1}. {question.prompt}
-                        </p>
+                    {requiredAssessmentQuestions.map((question, index) => {
+                      const isManualSolved =
+                        isPracticalRoom && question.questionType === 'manual' && question.answeredCorrectly
+
+                      return (
+                      <div
+                        key={question.id || `question-${index}`}
+                        className={`relative overflow-hidden border p-3 transition-colors ${
+                          isManualSolved
+                            ? 'border-secondary/50 bg-secondary/10'
+                            : 'border-transparent bg-surface-container-high'
+                        }`}
+                      >
+                        {isManualSolved ? (
+                          <div className="pointer-events-none absolute inset-0 bg-secondary/5"></div>
+                        ) : null}
+                        <div className="relative">
+                          <div className="mb-2 flex items-start justify-between gap-3">
+                            <p className="text-[11px] font-headline font-bold text-on-surface uppercase tracking-wide">
+                              Q{index + 1}. {question.prompt}
+                            </p>
+                            {isManualSolved ? (
+                              <span className="shrink-0 inline-flex items-center gap-1 bg-secondary/20 px-2 py-1 font-headline text-[9px] font-bold uppercase tracking-widest text-secondary">
+                                <span className="material-symbols-outlined text-sm">check_circle</span>
+                                Permanent
+                              </span>
+                            ) : null}
+                          </div>
                         {question.hint ? (
                           <p className="text-[10px] text-on-surface-variant mb-2">Hint: {question.hint}</p>
                         ) : null}
@@ -1596,17 +1647,29 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                           ></textarea>
                         ) : (
                           <input
-                            className="w-full bg-surface-container-lowest border border-outline-variant/40 text-sm py-2 px-3 outline-none"
+                            className={`w-full border text-sm py-2 px-3 outline-none ${
+                              isManualSolved
+                                ? 'bg-secondary/10 border-secondary/30 text-secondary font-bold cursor-not-allowed'
+                                : 'bg-surface-container-lowest border-outline-variant/40'
+                            }`}
+                            disabled={isManualSolved}
                             onChange={(e) => handleQuestionAnswerChange(question.id, e.target.value)}
                             onDrop={blockClipboardInput}
                             onPaste={blockClipboardInput}
-                            placeholder="Enter your answer"
+                            placeholder={isManualSolved ? 'Answer locked after correct submission' : 'Enter your answer'}
                             type="text"
                             value={questionAnswers[question.id] || ''}
                           />
                         )}
+                        {isManualSolved ? (
+                          <p className="mt-2 text-[10px] font-headline font-bold uppercase tracking-widest text-secondary">
+                            Correct answer saved. Continue with the remaining questions.
+                          </p>
+                        ) : null}
+                        </div>
                       </div>
-                    ))}
+                      )
+                    })}
                     {bonusAssessmentQuestions.map((question) => (
                       <div key={question.id || 'bonus-interview'} className="bg-primary/10 border border-primary/30 p-3">
                         <div className="mb-3 flex items-start justify-between gap-3">

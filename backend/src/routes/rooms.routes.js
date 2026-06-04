@@ -1877,13 +1877,18 @@ router.get('/:id/questions/status', authenticate, async (req, res) => {
   }
 
   const [rows] = await pool.query(
-    `SELECT question_id, answered_correctly, answered_at
+    `SELECT question_id, answer_text, answered_correctly, answered_at
      FROM user_room_question_progress
      WHERE user_id = ? AND room_id = ?`,
     [req.user.id, room.id],
   )
 
   const progressMap = new Map(rows.map((row) => [String(row.question_id), row]))
+  const manualAnswers = Object.fromEntries(
+    rows
+      .filter((row) => String(row.answer_text || '').trim())
+      .map((row) => [String(row.question_id), String(row.answer_text || '')]),
+  )
   const manualQuestionStatus = manualQuestions.map((question) => {
     const progress = progressMap.get(question.id)
     return {
@@ -1893,6 +1898,7 @@ router.get('/:id/questions/status', authenticate, async (req, res) => {
       questionType: 'manual',
       answeredCorrectly: Boolean(progress?.answered_correctly),
       answeredAt: progress?.answered_at ? new Date(progress.answered_at).toISOString() : null,
+      locked: Boolean(progress?.answered_correctly),
     }
   })
 
@@ -1924,7 +1930,10 @@ router.get('/:id/questions/status', authenticate, async (req, res) => {
     technicalScore: Number(aiAttempt?.technical_score || 0),
     grammarScore: Number(aiAttempt?.grammar_score || 0),
     feedback: aiAttempt?.feedback || '',
-    answers: aiAnswers,
+    answers: {
+      ...manualAnswers,
+      ...aiAnswers,
+    },
     questions: [
       ...manualQuestionStatus,
       ...aiQuestions.map((question) =>
@@ -2033,7 +2042,23 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
   try {
     await conn.beginTransaction()
 
+    const [existingRows] = await conn.query(
+      `SELECT question_id, answered_correctly
+       FROM user_room_question_progress
+       WHERE user_id = ? AND room_id = ?`,
+      [req.user.id, room.id],
+    )
+    const alreadyCorrectSet = new Set(
+      existingRows
+        .filter((row) => Boolean(row.answered_correctly))
+        .map((row) => String(row.question_id)),
+    )
+
     for (const question of manualQuestions) {
+      if (alreadyCorrectSet.has(String(question.id))) {
+        continue
+      }
+
       const providedAnswer = String(answers[question.id] || '').trim()
       const isCorrect =
         providedAnswer.length > 0 &&
@@ -2071,7 +2096,7 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
   }
 
   const [rows] = await pool.query(
-    `SELECT question_id, answered_correctly
+    `SELECT question_id, answer_text, answered_correctly
      FROM user_room_question_progress
      WHERE user_id = ? AND room_id = ?`,
     [req.user.id, room.id],
@@ -2083,6 +2108,11 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
 
   const manualCorrect = manualQuestions.filter((question) => completedSet.has(question.id)).length
   const manualPassed = manualQuestions.length === 0 || manualCorrect === manualQuestions.length
+  const manualAnswers = Object.fromEntries(
+    rows
+      .filter((row) => String(row.answer_text || '').trim())
+      .map((row) => [String(row.question_id), String(row.answer_text || '')]),
+  )
 
   let aiResult = {
     passed: true,
@@ -2165,7 +2195,10 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
     baseTechnicalScore: aiResult.baseTechnicalScore,
     bonusScore: aiResult.bonusScore,
     feedback: aiResult.feedback,
-    answers: aiResult.answers,
+    answers: {
+      ...manualAnswers,
+      ...aiResult.answers,
+    },
     questions: [
       ...manualQuestions.map((question) => ({
         id: question.id,
@@ -2174,6 +2207,7 @@ router.post('/:id/questions/submit', authenticate, async (req, res) => {
         questionType: 'manual',
         answeredCorrectly: completedSet.has(question.id),
         answeredAt: completedSet.has(question.id) ? new Date().toISOString() : null,
+        locked: completedSet.has(question.id),
       })),
       ...aiResult.questions.map((question) =>
         formatAiQuestionForClient(question, aiResult.passed, aiResult.answers, aiResult.passed ? new Date() : null),
