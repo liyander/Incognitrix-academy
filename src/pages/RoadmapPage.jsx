@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getCareerPathsData, hydrateCareerPathsData } from '../data/careerPathsData'
 import { getRoomsData, hydrateRoomsData } from '../data/roomsData'
@@ -13,6 +13,11 @@ function getRoomStatus(progress) {
   if (progress?.completedAt) return 'completed'
   if (progress?.startedAt) return 'in-progress'
   return 'queued'
+}
+
+function isCybersecurityIntroRoom(room) {
+  const text = `${room?.title || ''} ${room?.slug || ''} ${room?.id || ''}`.toLowerCase()
+  return /introduction[-_\s]+to[-_\s]+cybersecurity|intro[-_\s]+to[-_\s]+cybersecurity|cybersecurity[-_\s]+introduction|cybersecurity[-_\s]+101/.test(text)
 }
 
 function getIconForTrack(value) {
@@ -100,6 +105,7 @@ function RoadmapPage() {
   const [progressMap, setProgressMap] = useState(() => getLabProgressMap())
   const [isLoading, setIsLoading] = useState(true)
   const [roadmapZoom, setRoadmapZoom] = useState(1)
+  const pinchStateRef = useRef({ distance: 0, zoom: 1 })
 
   useEffect(() => {
     let cancelled = false
@@ -211,7 +217,7 @@ function RoadmapPage() {
   const completedRooms = allRooms.filter((room) => progressMap[room.id]?.completedAt).length
   const inProgressRooms = allRooms.filter((room) => progressMap[room.id]?.startedAt && !progressMap[room.id]?.completedAt).length
   const nextRoom = allRooms.find((room) => getRoomStatus(progressMap[room.id]) !== 'completed')
-  const foundationRoom = allRooms.find((room) => /intro.*cyber|cyber.*intro|cyber\s*security\s*101|cybersecurity\s*101/i.test(room.title || ''))
+  const foundationRoom = allRooms.find(isCybersecurityIntroRoom)
   const foundationTargetRoom = foundationRoom
     || allRooms.find((room) => /foundation|basic|intro/i.test(room.title || room.category || ''))
     || allRooms[0]
@@ -219,7 +225,7 @@ function RoadmapPage() {
   const columns = roadmap.map((path, index) => {
     const roomsForPath = path.modules
       .flatMap((module) => module.rooms.map((room) => ({ ...room, moduleTitle: module.title })))
-      .filter((room) => room.id !== foundationTargetRoom?.id)
+      .filter((room) => room.id !== foundationTargetRoom?.id && !isCybersecurityIntroRoom(room))
 
     return {
       ...path,
@@ -230,6 +236,42 @@ function RoadmapPage() {
   const branchColumnWidth = `${Math.max(12, 18 * roadmapZoom).toFixed(2)}rem`
   const branchGridColumns = `repeat(${Math.max(columns.length, 1)}, minmax(${branchColumnWidth}, 1fr))`
   const branchGridWidth = `${Math.max(columns.length, 4) * 20 * roadmapZoom}rem`
+  const setClampedRoadmapZoom = (value) => {
+    setRoadmapZoom(Math.max(0.7, Math.min(1.3, Number(value.toFixed(2)))))
+  }
+
+  const getTouchDistance = (touches) => {
+    if (!touches || touches.length < 2) return 0
+    const [first, second] = touches
+    return Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY)
+  }
+
+  const handlePinchStart = (event) => {
+    if (event.touches.length !== 2) return
+    pinchStateRef.current = {
+      distance: getTouchDistance(event.touches),
+      zoom: roadmapZoom,
+    }
+  }
+
+  const handlePinchMove = (event) => {
+    if (event.touches.length !== 2 || !pinchStateRef.current.distance) return
+    event.preventDefault()
+    const nextDistance = getTouchDistance(event.touches)
+    const scale = nextDistance / pinchStateRef.current.distance
+    setClampedRoadmapZoom(pinchStateRef.current.zoom * scale)
+  }
+
+  const handlePinchEnd = () => {
+    pinchStateRef.current = { distance: 0, zoom: roadmapZoom }
+  }
+
+  const handleWheelZoom = (event) => {
+    if (!event.ctrlKey && !event.metaKey) return
+    event.preventDefault()
+    const direction = event.deltaY > 0 ? -0.08 : 0.08
+    setClampedRoadmapZoom(roadmapZoom + direction)
+  }
 
   return (
     <main className="min-h-screen bg-surface pt-32 md:pt-36 text-on-surface">
@@ -338,7 +380,14 @@ function RoadmapPage() {
                 </button>
               </div>
 
-              <div className="overflow-x-auto pb-4">
+              <div
+                className="overflow-x-auto pb-4 [touch-action:pan-x_pan-y]"
+                onTouchCancel={handlePinchEnd}
+                onTouchEnd={handlePinchEnd}
+                onTouchMove={handlePinchMove}
+                onTouchStart={handlePinchStart}
+                onWheel={handleWheelZoom}
+              >
               <div className="mx-auto" style={{ width: branchGridWidth }}>
               <div className="mx-auto hidden h-10 w-[3px] bg-secondary/65 shadow-[0_0_18px_rgba(102,217,239,0.25)] lg:block"></div>
               {foundationTargetRoom ? (
@@ -356,7 +405,7 @@ function RoadmapPage() {
                       Foundation Entry
                     </p>
                     <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
-                      Intro to Cybersecurity
+                      Introduction to Cybersecurity
                     </h2>
                     <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-on-surface-variant">
                       {foundationRoom?.description || 'Begin here before branching into academy specializations, practical labs, and role-based paths.'}

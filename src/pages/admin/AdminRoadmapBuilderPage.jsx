@@ -44,6 +44,7 @@ function AdminRoadmapBuilderPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
+  const [removedModules, setRemovedModules] = useState([])
   const [newBranchForm, setNewBranchForm] = useState({
     title: '',
     description: '',
@@ -82,15 +83,21 @@ function AdminRoadmapBuilderPage() {
   }, [])
 
   const modulePool = useMemo(
-    () => paths.flatMap((path) =>
-      (path.modules || []).map((module, index) => ({
+    () => [
+      ...paths.flatMap((path) =>
+        (path.modules || []).map((module, index) => ({
+          ...module,
+          sourcePathId: path.id,
+          sourcePathTitle: path.title,
+          sourceIndex: index,
+        })),
+      ),
+      ...removedModules.map((module) => ({
         ...module,
-        sourcePathId: path.id,
-        sourcePathTitle: path.title,
-        sourceIndex: index,
+        sourcePathTitle: 'Detached from roadmap',
       })),
-    ),
-    [paths],
+    ],
+    [paths, removedModules],
   )
 
   const totalModules = modulePool.length
@@ -100,6 +107,7 @@ function AdminRoadmapBuilderPage() {
     const payload = {
       moduleId: module.id,
       sourcePathId: module.sourcePathId,
+      module,
     }
     setDraggedModule(payload)
     event.dataTransfer.effectAllowed = 'move'
@@ -127,7 +135,7 @@ function AdminRoadmapBuilderPage() {
       const sourcePath = nextPaths.find((path) => path.id === payload.sourcePathId)
       const fallbackPath = nextPaths.find((path) => (path.modules || []).some((module) => module.id === payload.moduleId))
       const moduleSource = sourcePath || fallbackPath
-      const movingModule = moduleSource?.modules?.find((module) => module.id === payload.moduleId)
+      const movingModule = moduleSource?.modules?.find((module) => module.id === payload.moduleId) || payload.module
       if (!movingModule) return currentPaths
 
       nextPaths.forEach((path) => {
@@ -150,6 +158,7 @@ function AdminRoadmapBuilderPage() {
 
       return nextPaths
     })
+    setRemovedModules((current) => current.filter((module) => module.id !== payload.moduleId))
 
     setMessage('Roadmap layout updated. Save changes to publish the branch assignment.')
     window.setTimeout(() => setMessage(''), 2400)
@@ -176,6 +185,37 @@ function AdminRoadmapBuilderPage() {
       }
     }))
     setMessage('Module order updated. Save changes to publish the new sequence.')
+    window.setTimeout(() => setMessage(''), 2400)
+  }
+
+  const removeModuleFromBranch = (pathId, module) => {
+    const moduleId = module?.id
+    if (!moduleId) return
+    setPaths((currentPaths) => clonePaths(currentPaths).map((path) => {
+      if (path.id !== pathId) return path
+
+      return {
+        ...path,
+        modules: (path.modules || [])
+          .filter((module) => module.id !== moduleId)
+          .map((module, index) => ({
+            ...module,
+            phase: normalizePhase(index),
+          })),
+      }
+    }))
+    setRemovedModules((current) => {
+      if (current.some((item) => item.id === moduleId)) return current
+      return [
+        ...current,
+        {
+          ...module,
+          sourcePathId: pathId,
+          sourceIndex: null,
+        },
+      ]
+    })
+    setMessage('Module removed from this roadmap path only. Save changes to publish.')
     window.setTimeout(() => setMessage(''), 2400)
   }
 
@@ -471,6 +511,15 @@ function AdminRoadmapBuilderPage() {
                                 type="button"
                               >
                                 <span className="material-symbols-outlined text-base">keyboard_arrow_down</span>
+                              </button>
+                              <button
+                                aria-label={`Remove ${module.title} from roadmap path`}
+                                className="grid h-8 w-8 place-items-center border border-error/50 bg-error/10 text-error hover:bg-error/20"
+                                onClick={() => removeModuleFromBranch(path.id, module)}
+                                type="button"
+                                title="Remove from this roadmap path only"
+                              >
+                                <span className="material-symbols-outlined text-base">playlist_remove</span>
                               </button>
                             </div>
                           </div>
