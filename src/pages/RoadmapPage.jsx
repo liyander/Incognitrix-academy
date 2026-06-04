@@ -237,93 +237,108 @@ function RoadmapPage() {
   })
 
   return (
-    <main className="min-h-screen bg-[#121924] pt-20 text-white">
+    <main className="min-h-screen bg-surface pt-20 text-on-surface">
       <section className="relative overflow-hidden px-4 py-10 sm:px-8 lg:px-12">
         <div
-          className="absolute inset-0 opacity-45"
+          className="absolute inset-0 opacity-[0.22]"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(148,163,184,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.12) 1px, transparent 1px)',
-            backgroundSize: '44px 44px',
+              'linear-gradient(rgba(102,217,239,0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(102,217,239,0.16) 1px, transparent 1px)',
+            backgroundSize: '42px 42px',
           }}
         ></div>
-        <div className="absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-blue-500/10 to-transparent"></div>
+        <div className="absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-primary/10 to-transparent"></div>
 
         <div className="relative mx-auto max-w-[104rem]">
           <header className="mx-auto max-w-5xl text-center">
             <p className="font-headline text-xs font-bold uppercase tracking-[0.35em] text-primary">
-              Personalized Progression
+              Operator Progression Matrix
             </p>
-            <h1 className="mt-4 font-headline text-4xl font-black text-white sm:text-5xl lg:text-6xl">
-              Cyber Security Learning Roadmap
+            <h1 className="mt-4 font-headline text-4xl font-black uppercase tracking-tight text-on-background sm:text-5xl lg:text-6xl">
+              Incognitrix Roadmap
             </h1>
-            <p className="mx-auto mt-5 max-w-3xl text-base font-semibold leading-relaxed text-slate-200 sm:text-lg">
-              From fundamentals to specialized tracks, this roadmap uses your rooms, paths, and progress to show the next clear step.
+            <p className="mx-auto mt-5 max-w-3xl text-base font-medium leading-relaxed text-on-surface-variant sm:text-lg">
+              A live mission route built from academy rooms, career paths, Docker/practical labs, and your completion state.
             </p>
           </header>
 
-          <div className="mx-auto mt-14 flex max-w-[34rem] flex-col items-center">
-            <div className="w-full rounded-md border border-slate-500/45 bg-slate-700/70 p-6 text-center shadow-xl">
-              <h2 className="font-headline text-xl font-black">Computer Science Basics</h2>
-              <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-200">
-                Acquire core computing, networking, Linux, and problem-solving skills required to get started.
-              </p>
-            </div>
-            <div className="h-14 w-1 bg-slate-500/70"></div>
-            <div className="flex w-full overflow-hidden rounded-md border border-slate-500/45 bg-slate-700/70 shadow-xl">
-              <div className="grid w-28 shrink-0 place-items-center bg-gradient-to-br from-lime-400/60 to-emerald-900/80">
-                <span className="material-symbols-outlined text-5xl text-white">route</span>
-              </div>
-              <div className="flex flex-1 flex-col justify-center p-5">
-                <h3 className="font-headline text-lg font-black">Pre Security</h3>
-                <div className="mt-3 flex items-center gap-3">
-                  <span className="material-symbols-outlined text-sm text-lime-400">signal_cellular_alt</span>
-                  <span className="rounded-full bg-blue-500/30 px-4 py-1 text-xs font-bold text-blue-100">Path</span>
+          <div className="relative mx-auto mt-12 max-w-3xl">
+            <div className="absolute left-1/2 top-0 hidden h-full w-px -translate-x-1/2 bg-outline-variant/60 sm:block"></div>
+            {[
+              {
+                label: 'Phase 00',
+                title: 'Platform Orientation',
+                body: 'Understand the academy workflow: read room content, use notes, answer assessments, and spawn isolated lab machines.',
+                icon: 'explore',
+              },
+              {
+                label: 'Phase 01',
+                title: 'Core Operator Skills',
+                body: 'Build enough Linux, networking, web, and security vocabulary to move through beginner and intermediate rooms.',
+                icon: 'terminal',
+              },
+              {
+                label: 'Phase 02',
+                title: 'Specialization Routing',
+                body: `Choose a path from the active curriculum. Overall mapped completion is ${completionPercent}%.`,
+                icon: 'route',
+              },
+            ].map((phase, index) => (
+              <div className="relative flex justify-center" key={phase.title}>
+                {index > 0 ? <div className="h-10 w-px bg-outline-variant/70"></div> : null}
+                <div className="w-full max-w-xl border border-outline-variant/50 bg-surface-container-lowest p-5 shadow-xl">
+                  <div className="flex items-start gap-4">
+                    <span className="grid h-12 w-12 shrink-0 place-items-center bg-primary/10 text-primary">
+                      <span className="material-symbols-outlined">{phase.icon}</span>
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-primary">
+                        {phase.label}
+                      </p>
+                      <h2 className="mt-1 font-headline text-xl font-black uppercase tracking-tight text-on-background">
+                        {phase.title}
+                      </h2>
+                      <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">
+                        {phase.body}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="h-14 w-1 bg-slate-500/70"></div>
-            <div className="w-full rounded-md border border-slate-500/45 bg-slate-700/70 p-6 text-center shadow-xl">
-              <h2 className="font-headline text-xl font-black">Cyber Security Foundations</h2>
-              <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-200">
-                Develop the baseline security skills needed to enter any career track in the academy.
-              </p>
-            </div>
-          </div>
-
-          <div className="mx-auto flex max-w-[34rem] flex-col items-center">
-            <div className="h-20 w-1 bg-slate-500/70"></div>
-            <div className="w-full rounded-md border border-slate-500/45 bg-slate-700/70 p-6 text-center shadow-xl">
-              <h2 className="font-headline text-xl font-black">Cyber Security Career Skills</h2>
-              <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-200">
-                Master the specific skills for your chosen career direction. Current completion: <span className="text-secondary">{completionPercent}%</span>.
-              </p>
-            </div>
+            ))}
           </div>
 
           {isLoading ? (
-            <div className="mx-auto mt-16 max-w-lg rounded-md border border-slate-500/45 bg-slate-700/70 p-6 text-center font-headline text-xs uppercase tracking-widest text-slate-200">
+            <div className="mx-auto mt-16 max-w-lg border border-outline-variant/50 bg-surface-container-lowest p-6 text-center font-headline text-xs uppercase tracking-widest text-on-surface-variant">
               Building roadmap...
             </div>
           ) : (
-            <div className="relative mx-auto mt-20 max-w-[96rem]">
-              <div className="absolute left-1/2 top-0 hidden h-24 w-1 -translate-x-1/2 bg-slate-500/70 lg:block"></div>
-              <div className="absolute left-[12%] right-[12%] top-24 hidden h-1 bg-slate-500/70 lg:block"></div>
+            <div className="relative mx-auto mt-16 max-w-[96rem]">
+              <div className="relative hidden h-12 lg:block">
+                <div className="absolute left-1/2 top-0 h-12 w-px -translate-x-1/2 bg-outline-variant/70"></div>
+                <div className="absolute left-[12.5%] right-[12.5%] bottom-0 h-px bg-outline-variant/70"></div>
+              </div>
 
-              <div className="grid gap-10 lg:grid-cols-4">
+              <div className="grid gap-6 lg:grid-cols-4 lg:items-start">
                 {columns.map((column) => (
-                  <section className="relative pt-16" key={column.id || column.title}>
-                    <div className={`absolute left-1/2 top-0 hidden h-full w-1 -translate-x-1/2 ${column.tone.line} lg:block`}></div>
-                    <div className="relative z-10 mb-7 text-center">
-                      <h3 className="font-headline text-xl font-black text-white">
+                  <section className="relative" key={column.id || column.title}>
+                    <div className="absolute left-1/2 top-0 hidden h-full w-px -translate-x-1/2 bg-outline-variant/40 lg:block"></div>
+                    <div className="relative z-10 mx-auto mb-5 min-h-36 border border-outline-variant/50 bg-surface-container-lowest p-5 text-center shadow-xl">
+                      <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-primary">
+                        Specialization
+                      </p>
+                      <h3 className="mt-2 font-headline text-xl font-black uppercase tracking-tight text-on-background">
                         {column.title}
                       </h3>
-                      <p className="mx-auto mt-2 max-w-xs text-sm font-semibold leading-relaxed text-slate-300">
+                      <p className="mx-auto mt-2 line-clamp-3 max-w-xs text-sm leading-relaxed text-on-surface-variant">
                         {column.description || `${column.completedRooms}/${column.totalRooms} rooms completed in this specialization.`}
                       </p>
+                      <div className="mt-4 h-1.5 bg-surface-container-high">
+                        <div className="h-full bg-secondary" style={{ width: `${column.pathCompletion}%` }}></div>
+                      </div>
                     </div>
 
-                    <div className={`relative z-10 space-y-5 ${column.tone.glow}`}>
+                    <div className="relative z-10 space-y-4">
                       {column.rooms.length ? column.rooms.map((room, roomIndex) => {
                         const status = getRoomStatus(progressMap[room.id])
                         const isActive = nextRoom?.id === room.id
@@ -335,51 +350,51 @@ function RoadmapPage() {
 
                         return (
                           <Link
-                            className={`group relative flex min-h-24 overflow-hidden rounded-md border bg-slate-700/85 shadow-lg transition-transform hover:-translate-y-1 ${
+                            className={`group relative flex min-h-24 overflow-hidden border bg-surface-container-lowest shadow-lg transition-transform hover:-translate-y-0.5 ${
                               isActive
-                                ? 'border-lime-400 shadow-[0_0_34px_rgba(163,230,53,0.18)]'
+                                ? 'border-secondary shadow-[0_0_30px_rgba(102,217,239,0.14)]'
                                 : status === 'completed'
-                                  ? 'border-emerald-400/60'
+                                  ? 'border-secondary/60'
                                   : column.tone.border
                             }`}
                             key={room.id}
                             to={`/learn/lab/${room.slug || room.id}`}
                           >
                             {isActive ? (
-                              <span className="absolute left-1/2 top-0 z-20 -translate-x-1/2 bg-lime-400 px-5 py-1 text-[10px] font-bold text-black">
-                                Next recommended
+                              <span className="absolute left-0 top-0 z-20 bg-secondary px-3 py-1 font-headline text-[9px] font-bold uppercase tracking-widest text-on-secondary">
+                                Next
                               </span>
                             ) : null}
-                            <div className={`grid w-28 shrink-0 place-items-center bg-gradient-to-br ${column.tone.panel}`}>
-                              <span className="material-symbols-outlined text-5xl text-white">
+                            <div className={`grid w-24 shrink-0 place-items-center bg-gradient-to-br ${column.tone.panel}`}>
+                              <span className="material-symbols-outlined text-4xl text-on-background">
                                 {getIconForTrack(room.category || column.title)}
                               </span>
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col justify-center p-4">
-                              <h4 className="line-clamp-2 font-headline text-base font-black text-white">
+                              <h4 className="line-clamp-2 font-headline text-sm font-black uppercase tracking-wide text-on-background">
                                 {room.title}
                               </h4>
                               <div className="mt-3 flex flex-wrap items-center gap-2">
-                                <span className={`material-symbols-outlined text-base ${status === 'completed' ? 'text-emerald-400' : column.tone.text}`}>
+                                <span className={`material-symbols-outlined text-base ${status === 'completed' ? 'text-secondary' : column.tone.text}`}>
                                   {status === 'completed' ? 'check_circle' : 'signal_cellular_alt'}
                                 </span>
-                                <span className="rounded-full bg-blue-500/30 px-4 py-1 text-xs font-bold text-blue-100">
+                                <span className="bg-surface-container-high px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                                   {room.roomType === 'practical' ? 'Lab' : 'Path'}
                                 </span>
-                                {roomIndex > 2 ? (
-                                  <span className="rounded-full bg-blue-500/20 px-3 py-1 text-xs font-bold text-blue-200">
-                                    Add-on
+                                {roomIndex > 2 || room.moduleTitle ? (
+                                  <span className="max-w-28 truncate bg-primary/10 px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
+                                    {room.moduleTitle || 'Extension'}
                                   </span>
                                 ) : null}
                               </div>
                             </div>
                             {progress > 0 && status !== 'completed' ? (
-                              <div className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full border-2 border-slate-300 text-xs font-black text-slate-100">
+                              <div className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border-2 border-primary text-[10px] font-black text-primary">
                                 {progress}%
                               </div>
                             ) : null}
                             {status === 'completed' ? (
-                              <div className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-green-500 text-black">
+                              <div className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-secondary text-on-secondary">
                                 <span className="material-symbols-outlined text-xl">check</span>
                               </div>
                             ) : null}
@@ -395,25 +410,30 @@ function RoadmapPage() {
                 ))}
               </div>
               {columns.length === 0 ? (
-                <div className="rounded-md border border-slate-600 bg-slate-700/70 p-8 text-center text-slate-300">
+                <div className="border border-outline-variant/50 bg-surface-container-lowest p-8 text-center text-on-surface-variant">
                   No rooms are available for a roadmap yet.
                 </div>
               ) : null}
-              <div className="mx-auto mt-12 h-20 max-w-[70rem] border-x-4 border-b-4 border-slate-500/70"></div>
-              <div className="mx-auto h-24 w-1 bg-slate-500/70"></div>
-              <div className="mx-auto max-w-lg rounded-md border border-slate-500/45 bg-slate-700/70 p-6 text-center shadow-xl">
-                <h2 className="font-headline text-xl font-black">Current Mission Focus</h2>
-                <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-200">
+              <div className="mx-auto mt-12 hidden h-14 max-w-[72rem] border-x border-b border-outline-variant/70 lg:block"></div>
+              <div className="mx-auto hidden h-16 w-px bg-outline-variant/70 lg:block"></div>
+              <div className="mx-auto max-w-xl border border-outline-variant/50 bg-surface-container-lowest p-6 text-center shadow-xl">
+                <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-secondary">
+                  Current Mission Focus
+                </p>
+                <h2 className="mt-2 font-headline text-xl font-black uppercase tracking-tight text-on-background">
+                  {nextRoom?.title || 'All Mapped Missions Cleared'}
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">
                   {nextRoom
-                    ? `Next up: ${nextRoom.title}.`
+                    ? nextRoom.description
                     : 'Every mapped room is complete. Watch for new missions from the academy.'}
                 </p>
                 {nextRoom ? (
                   <Link
-                    className="mt-5 inline-flex items-center justify-center gap-2 rounded bg-primary px-5 py-3 font-headline text-xs font-black uppercase text-on-primary"
+                    className="mt-5 inline-flex items-center justify-center gap-2 bg-primary px-5 py-3 font-headline text-xs font-black uppercase tracking-widest text-on-primary"
                     to={`/learn/lab/${nextRoom.slug || nextRoom.id}`}
                   >
-                    Continue
+                    Enter Mission
                     <span className="material-symbols-outlined text-base">arrow_forward</span>
                   </Link>
                 ) : null}
@@ -421,22 +441,18 @@ function RoadmapPage() {
             </div>
           )}
 
-          <div className="fixed bottom-6 right-6 z-20 hidden h-14 w-14 place-items-center rounded-full bg-slate-700/90 text-lime-400 shadow-xl sm:grid">
-            <span className="material-symbols-outlined">route</span>
-          </div>
-
-          <div className="relative mx-auto mt-14 grid max-w-4xl gap-4 rounded-md border border-slate-500/30 bg-slate-800/70 p-5 sm:grid-cols-3">
+          <div className="relative mx-auto mt-14 grid max-w-4xl gap-4 border border-outline-variant/40 bg-surface-container-lowest p-5 sm:grid-cols-3">
             <div>
-              <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-slate-400">Cleared</p>
+              <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Cleared</p>
               <p className="mt-1 font-space text-3xl font-black text-secondary">{completedRooms}</p>
             </div>
             <div>
-              <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-slate-400">In Progress</p>
+              <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">In Progress</p>
               <p className="mt-1 font-space text-3xl font-black text-primary">{inProgressRooms}</p>
             </div>
             <div>
-              <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-slate-400">Total Nodes</p>
-              <p className="mt-1 font-space text-3xl font-black text-white">{allRooms.length}</p>
+              <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Mapped Rooms</p>
+              <p className="mt-1 font-space text-3xl font-black text-on-background">{allRooms.length}</p>
             </div>
           </div>
         </div>
