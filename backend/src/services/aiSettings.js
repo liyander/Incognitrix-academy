@@ -82,6 +82,148 @@ const curatedAiModels = [
   },
 ]
 
+const selectableAiModels = [
+  ...curatedAiModels,
+  {
+    id: 'openai/gpt-4o',
+    label: 'GPT-4o',
+    provider: 'OpenAI',
+    description: 'OpenAI multimodal flagship model option.',
+  },
+  {
+    id: 'openai/gpt-4o-mini',
+    label: 'GPT-4o Mini',
+    provider: 'OpenAI',
+    description: 'Smaller OpenAI model option for fast assistant tasks.',
+  },
+  {
+    id: 'openai/gpt-4.1',
+    label: 'GPT-4.1',
+    provider: 'OpenAI',
+    description: 'OpenAI model option for deep instruction following and coding.',
+  },
+  {
+    id: 'openai/gpt-4.1-mini',
+    label: 'GPT-4.1 Mini',
+    provider: 'OpenAI',
+    description: 'Compact OpenAI model option for lower-latency workflows.',
+  },
+  {
+    id: 'openai/gpt-5',
+    label: 'GPT-5',
+    provider: 'OpenAI',
+    description: 'OpenAI advanced reasoning model option where supported by the configured gateway.',
+  },
+  {
+    id: 'openai/gpt-5-mini',
+    label: 'GPT-5 Mini',
+    provider: 'OpenAI',
+    description: 'OpenAI compact GPT-5 option where supported by the configured gateway.',
+  },
+  {
+    id: 'meta/llama-3.1-8b-instruct',
+    label: 'Llama 3.1 8B Instruct',
+    provider: 'Meta',
+    description: 'Small Meta Llama instruction model option.',
+  },
+  {
+    id: 'meta/llama-3.1-70b-instruct',
+    label: 'Llama 3.1 70B Instruct',
+    provider: 'Meta',
+    description: 'Meta Llama model for general instruction following.',
+  },
+  {
+    id: 'meta/llama-3.1-405b-instruct',
+    label: 'Llama 3.1 405B Instruct',
+    provider: 'Meta',
+    description: 'Large Meta Llama model option for complex tasks.',
+  },
+  {
+    id: 'meta/llama-3.2-11b-vision-instruct',
+    label: 'Llama 3.2 11B Vision Instruct',
+    provider: 'Meta',
+    description: 'Meta Llama vision-capable model option.',
+  },
+  {
+    id: 'meta/llama-3.2-90b-vision-instruct',
+    label: 'Llama 3.2 90B Vision Instruct',
+    provider: 'Meta',
+    description: 'Larger Meta Llama vision-capable model option.',
+  },
+  {
+    id: 'meta/llama-4-scout-17b-16e-instruct',
+    label: 'Llama 4 Scout 17B 16E Instruct',
+    provider: 'Meta',
+    description: 'Meta Llama 4 Scout option where supported by the configured gateway.',
+  },
+  {
+    id: 'meta/llama-4-maverick-17b-128e-instruct',
+    label: 'Llama 4 Maverick 17B 128E Instruct',
+    provider: 'Meta',
+    description: 'Meta Llama 4 Maverick option where supported by the configured gateway.',
+  },
+  {
+    id: 'google/gemma-2-9b-it',
+    label: 'Gemma 2 9B IT',
+    provider: 'Google',
+    description: 'Google Gemma instruction model option.',
+  },
+  {
+    id: 'google/gemma-2-27b-it',
+    label: 'Gemma 2 27B IT',
+    provider: 'Google',
+    description: 'Larger Google Gemma instruction model option.',
+  },
+  {
+    id: 'google/gemma-3-27b-it',
+    label: 'Gemma 3 27B IT',
+    provider: 'Google',
+    description: 'Google Gemma 3 instruction model option where supported.',
+  },
+  {
+    id: 'google/gemma-3n-e4b-it',
+    label: 'Gemma 3n E4B IT',
+    provider: 'Google',
+    description: 'Efficient Google Gemma 3n model option where supported.',
+  },
+  {
+    id: 'moonshotai/kimi-k2-instruct',
+    label: 'Kimi K2 Instruct',
+    provider: 'Kimi',
+    description: 'Kimi instruction model option.',
+  },
+  {
+    id: 'qwen/qwen2.5-7b-instruct',
+    label: 'Qwen2.5 7B Instruct',
+    provider: 'Qwen',
+    description: 'Small Qwen instruction model option.',
+  },
+  {
+    id: 'qwen/qwen2.5-72b-instruct',
+    label: 'Qwen2.5 72B Instruct',
+    provider: 'Qwen',
+    description: 'Large Qwen instruction model option.',
+  },
+  {
+    id: 'qwen/qwen2.5-coder-32b-instruct',
+    label: 'Qwen2.5 Coder 32B Instruct',
+    provider: 'Qwen',
+    description: 'Qwen coding model option.',
+  },
+  {
+    id: 'qwen/qwen3-32b',
+    label: 'Qwen3 32B',
+    provider: 'Qwen',
+    description: 'Qwen3 model option for general reasoning.',
+  },
+  {
+    id: 'qwen/qwen3-235b-a22b',
+    label: 'Qwen3 235B A22B',
+    provider: 'Qwen',
+    description: 'High-capacity Qwen3 mixture model option where supported.',
+  },
+]
+
 export const availableAiModels = curatedAiModels.some((model) => model.id === env.aiModel)
   ? curatedAiModels
   : [
@@ -92,6 +234,18 @@ export const availableAiModels = curatedAiModels.some((model) => model.id === en
         description: 'Model currently configured in backend .env.',
       },
       ...curatedAiModels,
+    ]
+
+export const selectableAiModelOptions = selectableAiModels.some((model) => model.id === env.aiModel)
+  ? selectableAiModels
+  : [
+      {
+        id: env.aiModel,
+        label: `${env.aiModel} (Environment Default)`,
+        provider: 'Configured',
+        description: 'Model currently configured in backend .env.',
+      },
+      ...selectableAiModels,
     ]
 
 function parseJsonField(value, fallback = {}) {
@@ -111,6 +265,7 @@ function normalizeModelId(value) {
   const allowedModels = new Set([
     env.aiModel,
     ...availableAiModels.map((item) => item.id),
+    ...selectableAiModelOptions.map((item) => item.id),
   ])
   return allowedModels.has(model) ? model : env.aiModel
 }
@@ -134,6 +289,7 @@ export async function getAiRuntimeConfig() {
     topP: env.aiTopP,
     maxTokens: env.aiMaxTokens,
     availableModels: availableAiModels,
+    selectableModels: selectableAiModelOptions,
   }
 }
 
@@ -141,5 +297,6 @@ export function buildAiPlatformConfig(input = {}) {
   return {
     model: normalizeModelId(input.model),
     availableModels: availableAiModels,
+    selectableModels: selectableAiModelOptions,
   }
 }

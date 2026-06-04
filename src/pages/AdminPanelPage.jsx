@@ -40,7 +40,10 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
   }
 
   const availableAiModels = Array.isArray(config.ai?.availableModels) ? config.ai.availableModels : []
-  const selectedAiModel = config.ai?.model || availableAiModels[0]?.id || ''
+  const selectableAiModels = Array.isArray(config.ai?.selectableModels) && config.ai.selectableModels.length
+    ? config.ai.selectableModels
+    : availableAiModels
+  const selectedAiModel = config.ai?.model || selectableAiModels[0]?.id || availableAiModels[0]?.id || ''
 
   return (
     <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
@@ -469,9 +472,9 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                   onChange={(event) => setAiValue('model', event.target.value)}
                   value={selectedAiModel}
                 >
-                  {availableAiModels.map((model) => (
+                  {selectableAiModels.map((model) => (
                     <option key={model.id} value={model.id}>
-                      {model.label || model.id}
+                      {model.provider ? `${model.provider} - ` : ''}{model.label || model.id}
                     </option>
                   ))}
                 </select>
