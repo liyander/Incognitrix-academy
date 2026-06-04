@@ -351,14 +351,13 @@ function RoadmapPage() {
                   </div>
                 </Link>
               ) : null}
-              <div className="mx-auto hidden h-14 w-[3px] bg-secondary/80 shadow-[0_0_24px_rgba(102,217,239,0.35)] lg:block"></div>
-              <div className="relative mx-auto hidden h-20 max-w-[96rem] lg:block">
-                <div className="absolute left-1/2 top-0 h-full w-[3px] -translate-x-1/2 bg-secondary/85 shadow-[0_0_24px_rgba(102,217,239,0.35)]"></div>
-                <div className="absolute left-0 right-0 bottom-0 h-[3px] bg-secondary/75 shadow-[0_0_20px_rgba(102,217,239,0.24)]"></div>
+              <div className="relative mx-auto hidden h-32 max-w-[96rem] lg:block">
+                <div className="absolute left-1/2 -top-px h-full w-[5px] -translate-x-1/2 bg-secondary shadow-[0_0_26px_rgba(102,217,239,0.45)]"></div>
+                <div className="absolute left-0 right-0 bottom-0 h-[5px] bg-secondary shadow-[0_0_22px_rgba(102,217,239,0.32)]"></div>
                 <div className="absolute inset-x-0 bottom-0 grid translate-y-full grid-cols-4 gap-8">
                   {columns.map((column) => (
                     <div className="h-10" key={`root-link-${column.id || column.title}`}>
-                      <div className="mx-auto h-full w-[3px] bg-secondary/75 shadow-[0_0_14px_rgba(102,217,239,0.2)]"></div>
+                      <div className="mx-auto h-full w-[5px] bg-secondary shadow-[0_0_18px_rgba(102,217,239,0.28)]"></div>
                     </div>
                   ))}
                 </div>
@@ -368,7 +367,7 @@ function RoadmapPage() {
                 {columns.map((column) => (
                   <section className="relative pt-10" key={column.id || column.title}>
                     <div className={`absolute left-1/2 top-0 hidden h-full w-[3px] -translate-x-1/2 ${column.tone.line} lg:block`}></div>
-                    <div className="absolute left-1/2 top-0 hidden h-10 w-[3px] -translate-x-1/2 bg-secondary/70 lg:block"></div>
+                    <div className="absolute left-1/2 top-0 hidden h-10 w-[5px] -translate-x-1/2 bg-secondary shadow-[0_0_16px_rgba(102,217,239,0.22)] lg:block"></div>
                     <div className="relative z-10 mx-auto min-h-40 border border-outline-variant/60 bg-surface-container-lowest p-5 text-center shadow-xl">
                       <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-primary">
                         Specialization
