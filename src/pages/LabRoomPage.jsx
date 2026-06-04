@@ -978,7 +978,7 @@ function LabRoomPage() {
           </p>
         </header>
 
-        <div className={`grid grid-cols-1 ${isTerminalSplit ? 'xl:grid-cols-[minmax(0,1fr)_minmax(32rem,0.9fr)] gap-6' : 'lg:grid-cols-12 gap-12'}`}>
+        <div className={`grid grid-cols-1 ${isTerminalSplit ? 'xl:grid-cols-[minmax(0,1fr)_minmax(34rem,0.9fr)] gap-8 items-start' : 'lg:grid-cols-12 gap-12'}`}>
           <div className={`${isTerminalSplit ? 'min-w-0 space-y-12' : 'lg:col-span-8 space-y-12'}`}>
             <section className="bg-surface-container-lowest p-8 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 -rotate-45 translate-x-16 -translate-y-16"></div>
@@ -1064,7 +1064,7 @@ function LabRoomPage() {
           </div>
 
           {isTerminalSplit ? (
-            <div className="min-h-[640px] xl:sticky xl:top-24 xl:h-[calc(100vh-7rem)]">
+            <div className="min-h-[640px] xl:sticky xl:top-24 xl:h-[calc(100vh-7rem)] xl:self-start">
               <div className="flex h-full flex-col border border-outline-variant bg-surface-container-lowest text-on-surface shadow-2xl">
                 <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-4 py-3 dark:border-[#24313a] dark:bg-[#10161a]">
                   <div className="flex items-center gap-3">
@@ -1134,7 +1134,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
             </div>
           ) : null}
 
-          <div className={`${isTerminalSplit ? 'xl:col-span-2 space-y-8' : 'lg:col-span-4 space-y-8'}`}>
+          <div className={`${isTerminalSplit ? 'xl:col-start-2 space-y-8' : 'lg:col-span-4 space-y-8'}`}>
             <div className="bg-secondary text-on-secondary p-8">
               <h2 className="font-headline text-xl font-bold mb-6 flex items-center gap-3 uppercase tracking-tight">
                 <span className="material-symbols-outlined">shield_with_heart</span>{' '}

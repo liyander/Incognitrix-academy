@@ -362,7 +362,7 @@ async function buildSinglePlayerInsightAnswer(text) {
        r.title,
        r.category,
        r.room_type,
-       urp.status,
+       urp.started_at,
        urp.completed_at,
        uta.technical_score,
        uta.grammar_score,
@@ -415,7 +415,7 @@ async function buildSinglePlayerInsightAnswer(text) {
     'Recent rooms:',
     ...(roomRows.length
       ? roomRows.slice(0, 6).map((row) =>
-          `- ${row.title} (${row.category || 'Uncategorized'}): ${row.completed_at ? 'completed' : row.status || 'in progress'}${Number(row.technical_score || 0) ? `, tech ${Number(row.technical_score)}` : ''}`,
+          `- ${row.title} (${row.category || 'Uncategorized'}): ${row.completed_at ? 'completed' : row.started_at ? 'in progress' : 'not started'}${Number(row.technical_score || 0) ? `, tech ${Number(row.technical_score)}` : ''}`,
         )
       : ['- No room activity found.']),
   ].join('\n')
