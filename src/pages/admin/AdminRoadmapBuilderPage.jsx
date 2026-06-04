@@ -11,6 +11,13 @@ function clonePaths(paths) {
   }))
 }
 
+function sortPathsByRoadmapOrder(paths) {
+  return [...paths].sort((a, b) =>
+    (a.roadmapSortOrder ?? 0) - (b.roadmapSortOrder ?? 0)
+    || String(a.title || '').localeCompare(String(b.title || '')),
+  )
+}
+
 function normalizePhase(index) {
   return `Module ${String(index + 1).padStart(2, '0')}`
 }
@@ -37,7 +44,7 @@ function getBranchIcon(path) {
 
 function AdminRoadmapBuilderPage() {
   const navigate = useNavigate()
-  const [paths, setPaths] = useState(() => clonePaths(getCareerPathsData()))
+  const [paths, setPaths] = useState(() => clonePaths(sortPathsByRoadmapOrder(getCareerPathsData())))
   const [draggedModule, setDraggedModule] = useState(null)
   const [activeBranchId, setActiveBranchId] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -61,12 +68,12 @@ function AdminRoadmapBuilderPage() {
         const nextPaths = Array.isArray(data) ? data : []
         hydrateCareerPathsData(nextPaths)
         if (!cancelled) {
-          setPaths(clonePaths(nextPaths))
+          setPaths(clonePaths(sortPathsByRoadmapOrder(nextPaths)))
         }
       } catch (error) {
         if (!cancelled) {
           setErrorMessage(error?.message || 'Unable to load roadmap branches. Using local cached data.')
-          setPaths(clonePaths(getCareerPathsData()))
+          setPaths(clonePaths(sortPathsByRoadmapOrder(getCareerPathsData())))
         }
       } finally {
         if (!cancelled) {
@@ -272,10 +279,12 @@ function AdminRoadmapBuilderPage() {
     setMessage('')
     try {
       const savedPaths = []
-      for (const path of paths) {
+      for (let index = 0; index < paths.length; index += 1) {
+        const path = paths[index]
         const normalized = {
           ...path,
           isNewRoadmapBranch: undefined,
+          roadmapSortOrder: index,
           modules: (path.modules || []).map((module, index) => ({
             ...module,
             phase: normalizePhase(index),

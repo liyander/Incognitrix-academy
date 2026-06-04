@@ -25,6 +25,13 @@ function isCybersecurityIntroPath(path) {
   return /introduction[-_\s]+to[-_\s]+cybersecurity|intro[-_\s]+to[-_\s]+cybersecurity|cybersecurity[-_\s]+introduction|cybersecurity[-_\s]+101/.test(text)
 }
 
+function sortPathsByRoadmapOrder(paths) {
+  return [...paths].sort((a, b) =>
+    (a.roadmapSortOrder ?? 0) - (b.roadmapSortOrder ?? 0)
+    || String(a.title || '').localeCompare(String(b.title || '')),
+  )
+}
+
 function getIconForTrack(value) {
   const text = String(value || '').toLowerCase()
   if (/soc|defen|blue|analyst|incident/.test(text)) return 'security'
@@ -182,7 +189,7 @@ function RoadmapPage() {
           modules: buildFallbackModules(rooms),
         }]
 
-    return sourcePaths
+    return sortPathsByRoadmapOrder(sourcePaths)
       .map((path) => {
         const modules = (hasConfiguredPaths ? (path.modules || []) : buildFallbackModules(rooms))
           .map((module) => {

@@ -58,7 +58,7 @@ async function fetchCareerPathById(id) {
 }
 
 router.get('/', async (_req, res) => {
-  const [rows] = await pool.query('SELECT * FROM career_paths ORDER BY created_at DESC')
+  const [rows] = await pool.query('SELECT * FROM career_paths ORDER BY roadmap_sort_order ASC, created_at ASC, title ASC')
   const result = []
 
   for (const row of rows) {
@@ -94,8 +94,8 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
     await conn.query(
       `INSERT INTO career_paths (
         id, slug, title, description, icon, learning_path_level,
-        difficulty, estimated_hours, enrolled_count, mastery, color, certificate_image_data
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
+        difficulty, estimated_hours, enrolled_count, mastery, color, roadmap_sort_order, certificate_image_data
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
       [
         id,
         id,
@@ -108,6 +108,7 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
         payload.enrolledCount || 0,
         payload.mastery || 0,
         payload.color || null,
+        payload.roadmapSortOrder ?? payload.roadmap_sort_order ?? 0,
         payload.certificateImageData || null,
       ],
     )
@@ -172,7 +173,7 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
     await conn.query(
       `UPDATE career_paths SET
         title = ?, description = ?, icon = ?, learning_path_level = ?, difficulty = ?,
-        estimated_hours = ?, enrolled_count = ?, mastery = ?, color = ?, certificate_image_data = ?
+        estimated_hours = ?, enrolled_count = ?, mastery = ?, color = ?, roadmap_sort_order = ?, certificate_image_data = ?
       WHERE id = ?`,
       [
         payload.title ?? existing.title,
@@ -184,6 +185,7 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
         payload.enrolledCount ?? existing.enrolledCount,
         payload.mastery ?? existing.mastery,
         payload.color ?? existing.color,
+        payload.roadmapSortOrder ?? payload.roadmap_sort_order ?? existing.roadmapSortOrder ?? 0,
         payload.certificateImageData ?? existing.certificateImageData,
         existing.id,
       ],

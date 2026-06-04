@@ -15,6 +15,7 @@ function normalizeCareerPath(path) {
     ...path,
     learningPathLevel: path.learningPathLevel || path.difficulty || 'Basic',
     difficulty: path.difficulty || path.learningPathLevel || 'Basic',
+    roadmapSortOrder: path.roadmapSortOrder ?? path.roadmap_sort_order ?? 0,
     modules: path.modules || [],
     resources: path.resources || [],
      certificateImageData: path.certificateImageData || null,

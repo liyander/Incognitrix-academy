@@ -226,6 +226,7 @@ async function ensureDatabase() {
       enrolled_count INT DEFAULT 0,
       mastery INT DEFAULT 0,
       color VARCHAR(50),
+      roadmap_sort_order INT DEFAULT 0,
       certificate_image_data LONGTEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -382,6 +383,7 @@ async function ensureDatabase() {
   await addColumnIfMissing('ctf_events', 'ctftime_url', 'TEXT NULL')
   await addColumnIfMissing('ctf_events', 'event_format', 'VARCHAR(120) NULL')
   await addColumnIfMissing('career_paths', 'certificate_image_data', 'LONGTEXT NULL')
+  await addColumnIfMissing('career_paths', 'roadmap_sort_order', 'INT DEFAULT 0')
   await addColumnIfMissing('rooms', 'youtube_video_url', 'TEXT NULL')
   await addColumnIfMissing('rooms', 'practical_ai_questions_enabled', 'BOOLEAN DEFAULT false')
   await addColumnIfMissing('rooms', 'attachment_name', 'VARCHAR(255) NULL')
