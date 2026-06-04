@@ -9,18 +9,6 @@ import {
 } from '../services/labProgress'
 import { apiFetch } from '../services/api'
 
-function parseXp(value) {
-  const numeric = String(value || '').replace(/[^0-9]/g, '')
-  return Number(numeric || 0)
-}
-
-function getDifficultyRank(room) {
-  const level = String(room?.difficulty || room?.level || '').toLowerCase()
-  if (/hard|critical|advanced/.test(level)) return 3
-  if (/medium|intermediate/.test(level)) return 2
-  return 1
-}
-
 function getRoomStatus(progress) {
   if (progress?.completedAt) return 'completed'
   if (progress?.startedAt) return 'in-progress'
@@ -172,6 +160,7 @@ function RoadmapPage() {
 
   const roadmap = useMemo(() => {
     const roomsById = new Map(rooms.map((room) => [room.id, room]))
+    const hasConfiguredPaths = paths.length > 0
     const sourcePaths = paths.length
       ? paths
       : [{
@@ -183,12 +172,11 @@ function RoadmapPage() {
 
     return sourcePaths
       .map((path) => {
-        const modules = (path.modules?.length ? path.modules : buildFallbackModules(rooms))
+        const modules = (hasConfiguredPaths ? (path.modules || []) : buildFallbackModules(rooms))
           .map((module) => {
             const moduleRooms = (module.rooms || [])
               .map((roomId) => roomsById.get(roomId))
               .filter(Boolean)
-              .sort((a, b) => getDifficultyRank(a) - getDifficultyRank(b) || parseXp(a.xp) - parseXp(b.xp))
 
             const completed = moduleRooms.filter((room) => progressMap[room.id]?.completedAt).length
             const inProgress = moduleRooms.filter((room) => progressMap[room.id]?.startedAt && !progressMap[room.id]?.completedAt).length
@@ -202,7 +190,6 @@ function RoadmapPage() {
               completion,
             }
           })
-          .filter((module) => module.rooms.length)
 
         const totalRooms = modules.reduce((sum, module) => sum + module.rooms.length, 0)
         const completedRooms = modules.reduce((sum, module) => sum + module.completed, 0)
@@ -216,7 +203,7 @@ function RoadmapPage() {
           pathCompletion,
         }
       })
-      .filter((path) => path.modules.length)
+      .filter((path) => hasConfiguredPaths || path.modules.length)
   }, [paths, progressMap, rooms])
 
   const allRooms = roadmap.flatMap((path) => path.modules.flatMap((module) => module.rooms))
@@ -228,11 +215,10 @@ function RoadmapPage() {
     || allRooms.find((room) => /foundation|basic|intro/i.test(room.title || room.category || ''))
     || allRooms[0]
   const completionPercent = allRooms.length ? Math.round((completedRooms / allRooms.length) * 100) : 0
-  const columns = roadmap.slice(0, 4).map((path, index) => {
+  const columns = roadmap.map((path, index) => {
     const roomsForPath = path.modules
       .flatMap((module) => module.rooms.map((room) => ({ ...room, moduleTitle: module.title })))
       .filter((room) => room.id !== foundationTargetRoom?.id)
-      .slice(0, 6)
 
     return {
       ...path,
@@ -240,6 +226,8 @@ function RoadmapPage() {
       rooms: roomsForPath,
     }
   })
+  const branchGridColumns = `repeat(${Math.max(columns.length, 1)}, minmax(18rem, 1fr))`
+  const branchGridMinWidth = `${Math.max(columns.length, 4) * 20}rem`
 
   return (
     <main className="min-h-screen bg-surface pt-32 md:pt-36 text-on-surface">
@@ -318,7 +306,8 @@ function RoadmapPage() {
               Building roadmap...
             </div>
           ) : (
-            <div className="relative mx-auto mt-0 max-w-[96rem]">
+            <div className="relative mx-auto mt-0 max-w-[96rem] overflow-x-auto pb-4">
+              <div style={{ minWidth: branchGridMinWidth }}>
               <div className="mx-auto hidden h-10 w-[3px] bg-secondary/65 shadow-[0_0_18px_rgba(102,217,239,0.25)] lg:block"></div>
               {foundationTargetRoom ? (
                 <Link
@@ -354,7 +343,7 @@ function RoadmapPage() {
               <div className="relative mx-auto hidden h-32 max-w-[96rem] lg:block">
                 <div className="absolute left-1/2 -top-px h-full w-[5px] -translate-x-1/2 bg-secondary shadow-[0_0_26px_rgba(102,217,239,0.45)]"></div>
                 <div className="absolute left-0 right-0 bottom-0 h-[5px] bg-secondary shadow-[0_0_22px_rgba(102,217,239,0.32)]"></div>
-                <div className="absolute inset-x-0 bottom-0 grid translate-y-full grid-cols-4 gap-8">
+                <div className="absolute inset-x-0 bottom-0 grid translate-y-full gap-8" style={{ gridTemplateColumns: branchGridColumns }}>
                   {columns.map((column) => (
                     <div className="h-10" key={`root-link-${column.id || column.title}`}>
                       <div className="mx-auto h-full w-[5px] bg-secondary shadow-[0_0_18px_rgba(102,217,239,0.28)]"></div>
@@ -363,7 +352,7 @@ function RoadmapPage() {
                 </div>
               </div>
 
-              <div className="grid gap-8 lg:mt-10 lg:grid-cols-4 lg:items-start">
+              <div className="grid gap-8 lg:mt-10 lg:items-start" style={{ gridTemplateColumns: branchGridColumns }}>
                 {columns.map((column) => (
                   <section className="relative pt-10" key={column.id || column.title}>
                     <div className={`absolute left-1/2 top-0 hidden h-full w-[3px] -translate-x-1/2 ${column.tone.line} lg:block`}></div>
@@ -490,6 +479,7 @@ function RoadmapPage() {
                     <span className="material-symbols-outlined text-base">arrow_forward</span>
                   </Link>
                 ) : null}
+              </div>
               </div>
             </div>
           )}

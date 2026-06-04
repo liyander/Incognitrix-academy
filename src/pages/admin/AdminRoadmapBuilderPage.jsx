@@ -15,6 +15,16 @@ function normalizePhase(index) {
   return `Module ${String(index + 1).padStart(2, '0')}`
 }
 
+function buildSlug(value) {
+  return String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
 function getBranchIcon(path) {
   const value = `${path.title || ''} ${path.description || ''}`.toLowerCase()
   if (/web|exploit|pen|red/.test(value)) return 'bug_report'
@@ -34,6 +44,11 @@ function AdminRoadmapBuilderPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
+  const [newBranchForm, setNewBranchForm] = useState({
+    title: '',
+    description: '',
+    learningPathLevel: 'Beginner',
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -79,6 +94,7 @@ function AdminRoadmapBuilderPage() {
   )
 
   const totalModules = modulePool.length
+  const branchGridColumns = `repeat(${Math.max(paths.length, 1)}, minmax(17rem, 1fr))`
 
   const handleDragStart = (event, module) => {
     const payload = {
@@ -139,6 +155,77 @@ function AdminRoadmapBuilderPage() {
     window.setTimeout(() => setMessage(''), 2400)
   }
 
+  const moveModuleWithinBranch = (pathId, moduleId, direction) => {
+    setPaths((currentPaths) => clonePaths(currentPaths).map((path) => {
+      if (path.id !== pathId) return path
+
+      const modules = [...(path.modules || [])]
+      const currentIndex = modules.findIndex((module) => module.id === moduleId)
+      const nextIndex = currentIndex + direction
+      if (currentIndex < 0 || nextIndex < 0 || nextIndex >= modules.length) return path
+
+      const [module] = modules.splice(currentIndex, 1)
+      modules.splice(nextIndex, 0, module)
+
+      return {
+        ...path,
+        modules: modules.map((item, index) => ({
+          ...item,
+          phase: normalizePhase(index),
+        })),
+      }
+    }))
+    setMessage('Module order updated. Save changes to publish the new sequence.')
+    window.setTimeout(() => setMessage(''), 2400)
+  }
+
+  const addBranch = () => {
+    const title = newBranchForm.title.trim()
+    if (!title) {
+      setErrorMessage('Branch title is required.')
+      return
+    }
+
+    const baseSlug = buildSlug(title)
+    if (!baseSlug) {
+      setErrorMessage('Branch title must contain letters or numbers.')
+      return
+    }
+
+    const existingIds = new Set(paths.map((path) => path.id))
+    let slug = baseSlug
+    let suffix = 2
+    while (existingIds.has(slug)) {
+      slug = `${baseSlug}-${suffix}`
+      suffix += 1
+    }
+
+    setPaths((currentPaths) => [
+      ...clonePaths(currentPaths),
+      {
+        id: slug,
+        slug,
+        title,
+        description: newBranchForm.description.trim() || `Roadmap branch for ${title}.`,
+        icon: 'account_tree',
+        learningPathLevel: newBranchForm.learningPathLevel || 'Beginner',
+        difficulty: newBranchForm.learningPathLevel || 'Beginner',
+        estimatedHours: 0,
+        enrolledCount: 0,
+        mastery: 0,
+        color: 'secondary',
+        certificateImageData: null,
+        modules: [],
+        resources: [],
+        isNewRoadmapBranch: true,
+      },
+    ])
+    setNewBranchForm({ title: '', description: '', learningPathLevel: 'Beginner' })
+    setErrorMessage('')
+    setMessage('New roadmap branch added. Drop modules into it, then publish.')
+    window.setTimeout(() => setMessage(''), 2400)
+  }
+
   const saveRoadmap = async () => {
     setIsSaving(true)
     setErrorMessage('')
@@ -148,13 +235,14 @@ function AdminRoadmapBuilderPage() {
       for (const path of paths) {
         const normalized = {
           ...path,
+          isNewRoadmapBranch: undefined,
           modules: (path.modules || []).map((module, index) => ({
             ...module,
-            phase: module.phase || normalizePhase(index),
+            phase: normalizePhase(index),
           })),
         }
-        const saved = await apiFetch(`/career-paths/${path.id}`, {
-          method: 'PUT',
+        const saved = await apiFetch(path.isNewRoadmapBranch ? '/career-paths' : `/career-paths/${path.id}`, {
+          method: path.isNewRoadmapBranch ? 'POST' : 'PUT',
           body: JSON.stringify(normalized),
         })
         savedPaths.push(saved)
@@ -217,6 +305,70 @@ function AdminRoadmapBuilderPage() {
         ) : null}
 
         <section className="mt-8 border border-outline-variant/50 bg-surface-container-lowest p-5 md:p-8">
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+            <div className="max-w-2xl">
+              <p className="font-headline text-[10px] font-bold uppercase tracking-[0.28em] text-primary">
+                Add Main Branch
+              </p>
+              <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                Create Separate Roadmap Path
+              </h2>
+              <p className="mt-2 text-sm text-on-surface-variant">
+                Create a new branch from Intro to Cybersecurity, then drag modules under it or reorder them inside the branch.
+              </p>
+            </div>
+            <div className="grid flex-1 gap-4 md:grid-cols-[1fr_1fr_12rem_auto]">
+              <label className="block">
+                <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                  Path Name
+                </span>
+                <input
+                  className="mt-2 w-full border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
+                  onChange={(event) => setNewBranchForm((current) => ({ ...current, title: event.target.value }))}
+                  placeholder="Cloud Security"
+                  type="text"
+                  value={newBranchForm.title}
+                />
+              </label>
+              <label className="block">
+                <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                  Description
+                </span>
+                <input
+                  className="mt-2 w-full border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
+                  onChange={(event) => setNewBranchForm((current) => ({ ...current, description: event.target.value }))}
+                  placeholder="Branch objective"
+                  type="text"
+                  value={newBranchForm.description}
+                />
+              </label>
+              <label className="block">
+                <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                  Level
+                </span>
+                <select
+                  className="mt-2 w-full border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
+                  onChange={(event) => setNewBranchForm((current) => ({ ...current, learningPathLevel: event.target.value }))}
+                  value={newBranchForm.learningPathLevel}
+                >
+                  <option>Beginner</option>
+                  <option>Intermediate</option>
+                  <option>Advanced</option>
+                  <option>Expert</option>
+                </select>
+              </label>
+              <button
+                className="self-end bg-secondary px-5 py-3 font-headline text-xs font-black uppercase tracking-widest text-on-secondary"
+                onClick={addBranch}
+                type="button"
+              >
+                Add Path
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-8 border border-outline-variant/50 bg-surface-container-lowest p-5 md:p-8">
           <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="font-headline text-[10px] font-bold uppercase tracking-[0.28em] text-primary">
@@ -232,7 +384,7 @@ function AdminRoadmapBuilderPage() {
           </div>
 
           <div className="relative overflow-x-auto pb-4">
-            <div className="min-w-[1100px]">
+            <div className="min-w-[1100px]" style={{ minWidth: `${Math.max(paths.length, 4) * 18}rem` }}>
               <div className="mx-auto max-w-2xl border border-secondary/70 bg-surface p-5 text-center shadow-[0_0_24px_rgba(102,217,239,0.10)]">
                 <p className="font-headline text-[10px] font-bold uppercase tracking-[0.28em] text-secondary">
                   Foundation Entry
@@ -249,7 +401,7 @@ function AdminRoadmapBuilderPage() {
                 <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-secondary/60"></div>
               </div>
 
-              <div className="grid grid-cols-4 gap-6">
+              <div className="grid gap-6" style={{ gridTemplateColumns: branchGridColumns }}>
                 {paths.map((path) => (
                   <section
                     className={`relative min-h-[28rem] border bg-surface p-4 transition-colors ${
@@ -300,6 +452,26 @@ function AdminRoadmapBuilderPage() {
                               <p className="mt-1 line-clamp-2 text-xs text-on-surface-variant">
                                 {module.description || 'No description supplied.'}
                               </p>
+                            </div>
+                            <div className="flex shrink-0 flex-col gap-2">
+                              <button
+                                aria-label={`Move ${module.title} up`}
+                                className="grid h-8 w-8 place-items-center border border-outline-variant bg-surface text-on-surface disabled:cursor-not-allowed disabled:opacity-35"
+                                disabled={index === 0}
+                                onClick={() => moveModuleWithinBranch(path.id, module.id, -1)}
+                                type="button"
+                              >
+                                <span className="material-symbols-outlined text-base">keyboard_arrow_up</span>
+                              </button>
+                              <button
+                                aria-label={`Move ${module.title} down`}
+                                className="grid h-8 w-8 place-items-center border border-outline-variant bg-surface text-on-surface disabled:cursor-not-allowed disabled:opacity-35"
+                                disabled={index === (path.modules || []).length - 1}
+                                onClick={() => moveModuleWithinBranch(path.id, module.id, 1)}
+                                type="button"
+                              >
+                                <span className="material-symbols-outlined text-base">keyboard_arrow_down</span>
+                              </button>
                             </div>
                           </div>
                         </article>
