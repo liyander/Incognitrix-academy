@@ -223,10 +223,14 @@ function RoadmapPage() {
   const completedRooms = allRooms.filter((room) => progressMap[room.id]?.completedAt).length
   const inProgressRooms = allRooms.filter((room) => progressMap[room.id]?.startedAt && !progressMap[room.id]?.completedAt).length
   const nextRoom = allRooms.find((room) => getRoomStatus(progressMap[room.id]) !== 'completed')
+  const foundationRoom = allRooms.find((room) => /intro.*cyber|cyber.*intro|cyber\s*security\s*101|cybersecurity\s*101/i.test(room.title || ''))
+    || allRooms.find((room) => /intro|foundation|basic/i.test(room.title || room.category || ''))
+    || allRooms[0]
   const completionPercent = allRooms.length ? Math.round((completedRooms / allRooms.length) * 100) : 0
   const columns = roadmap.slice(0, 4).map((path, index) => {
     const roomsForPath = path.modules
       .flatMap((module) => module.rooms.map((room) => ({ ...room, moduleTitle: module.title })))
+      .filter((room) => room.id !== foundationRoom?.id)
       .slice(0, 6)
 
     return {
@@ -308,14 +312,45 @@ function RoadmapPage() {
             ))}
           </div>
 
-          <div className="mx-auto hidden h-16 w-[3px] bg-secondary/65 shadow-[0_0_18px_rgba(102,217,239,0.25)] lg:block"></div>
-
           {isLoading ? (
             <div className="mx-auto mt-16 max-w-lg border border-outline-variant/50 bg-surface-container-lowest p-6 text-center font-headline text-xs uppercase tracking-widest text-on-surface-variant">
               Building roadmap...
             </div>
           ) : (
             <div className="relative mx-auto mt-0 max-w-[96rem]">
+              <div className="mx-auto hidden h-10 w-[3px] bg-secondary/65 shadow-[0_0_18px_rgba(102,217,239,0.25)] lg:block"></div>
+              {foundationRoom ? (
+                <Link
+                  className="group relative z-10 mx-auto flex max-w-2xl border border-secondary/70 bg-surface-container-lowest p-5 shadow-[0_0_34px_rgba(102,217,239,0.12)] transition-transform hover:-translate-y-0.5"
+                  to={`/learn/lab/${foundationRoom.slug || foundationRoom.id}`}
+                >
+                  <div className="grid h-20 w-20 shrink-0 place-items-center bg-secondary/20 text-secondary">
+                    <span className="material-symbols-outlined text-4xl">
+                      shield
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1 px-5">
+                    <p className="font-headline text-[10px] font-bold uppercase tracking-[0.28em] text-secondary">
+                      Foundation Entry
+                    </p>
+                    <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                      {foundationRoom.title || 'Intro to Cybersecurity'}
+                    </h2>
+                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-on-surface-variant">
+                      {foundationRoom.description || 'Begin here before branching into academy specializations.'}
+                    </p>
+                  </div>
+                  <div className="hidden min-w-24 flex-col items-end justify-center sm:flex">
+                    <span className="font-space text-3xl font-black text-secondary">
+                      {getRoomStatus(progressMap[foundationRoom.id]) === 'completed' ? 100 : 0}%
+                    </span>
+                    <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                      Complete
+                    </span>
+                  </div>
+                </Link>
+              ) : null}
+              <div className="mx-auto hidden h-14 w-[3px] bg-secondary/65 shadow-[0_0_18px_rgba(102,217,239,0.25)] lg:block"></div>
               <div className="relative mx-auto hidden h-20 max-w-[78rem] lg:block">
                 <div className="absolute left-1/2 top-0 h-full w-[3px] -translate-x-1/2 bg-secondary/70 shadow-[0_0_18px_rgba(102,217,239,0.25)]"></div>
                 <div className="absolute left-0 right-0 bottom-0 h-[3px] bg-secondary/55 shadow-[0_0_18px_rgba(102,217,239,0.16)]"></div>
