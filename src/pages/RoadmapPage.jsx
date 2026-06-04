@@ -25,6 +25,13 @@ function isCybersecurityIntroPath(path) {
   return /introduction[-_\s]+to[-_\s]+cybersecurity|intro[-_\s]+to[-_\s]+cybersecurity|cybersecurity[-_\s]+introduction|cybersecurity[-_\s]+101/.test(text)
 }
 
+function isCybersecurityIntroModule(module) {
+  const text = `${module?.title || ''} ${module?.phase || ''} ${module?.id || ''}`.toLowerCase()
+  const moduleTitleMatches = /introduction[-_\s]+to[-_\s]+cybersecurity|intro[-_\s]+to[-_\s]+cybersecurity|cybersecurity[-_\s]+introduction|cybersecurity[-_\s]+101/.test(text)
+  const moduleOnlyContainsIntro = (module?.rooms || []).length > 0 && (module.rooms || []).every(isCybersecurityIntroRoom)
+  return moduleTitleMatches || moduleOnlyContainsIntro
+}
+
 function sortPathsByRoadmapOrder(paths) {
   return [...paths].sort((a, b) =>
     (a.roadmapSortOrder ?? 0) - (b.roadmapSortOrder ?? 0)
@@ -230,29 +237,23 @@ function RoadmapPage() {
   const inProgressRooms = allRooms.filter((room) => progressMap[room.id]?.startedAt && !progressMap[room.id]?.completedAt).length
   const nextRoom = allRooms.find((room) => getRoomStatus(progressMap[room.id]) !== 'completed')
   const foundationPath = roadmap.find(isCybersecurityIntroPath)
-  const foundationPathRooms = foundationPath?.modules?.flatMap((module) =>
-    module.rooms.map((room) => ({ ...room, moduleTitle: module.title })),
-  ) || []
+  const foundationPathRooms = foundationPath?.modules?.flatMap((module) => module.rooms) || []
   const foundationRoom = foundationPathRooms.find(isCybersecurityIntroRoom) || allRooms.find(isCybersecurityIntroRoom)
   const foundationTargetRoom = foundationRoom
     || allRooms.find((room) => /foundation|basic|intro/i.test(room.title || room.category || ''))
     || allRooms[0]
   const completionPercent = allRooms.length ? Math.round((completedRooms / allRooms.length) * 100) : 0
-  const foundationFlowRooms = foundationPathRooms.filter((room) => (
-    room.id !== foundationTargetRoom?.id && !isCybersecurityIntroRoom(room)
-  ))
+  const foundationFlowModules = (foundationPath?.modules || []).filter((module) => !isCybersecurityIntroModule(module))
   const branchPaths = foundationPath
     ? roadmap.filter((path) => path.id !== foundationPath.id)
     : roadmap
   const columns = branchPaths.map((path, index) => {
-    const roomsForPath = path.modules
-      .flatMap((module) => module.rooms.map((room) => ({ ...room, moduleTitle: module.title })))
-      .filter((room) => room.id !== foundationTargetRoom?.id && !isCybersecurityIntroRoom(room))
+    const modulesForPath = path.modules.filter((module) => !isCybersecurityIntroModule(module))
 
     return {
       ...path,
       tone: getTrackTone(index, path.title),
-      rooms: roomsForPath,
+      modules: modulesForPath,
     }
   })
   const branchColumnWidth = `${Math.max(12, 18 * roadmapZoom).toFixed(2)}rem`
@@ -443,28 +444,33 @@ function RoadmapPage() {
                   </div>
                 </Link>
               ) : null}
-              {foundationFlowRooms.length ? (
+              {foundationFlowModules.length ? (
                 <div className="mx-auto max-w-2xl">
                   <div className="mx-auto hidden h-8 w-[5px] bg-secondary shadow-[0_0_18px_rgba(102,217,239,0.28)] lg:block"></div>
                   <div className="space-y-0">
-                    {foundationFlowRooms.map((room, roomIndex) => {
-                      const status = getRoomStatus(progressMap[room.id])
-                      const isActive = nextRoom?.id === room.id
+                    {foundationFlowModules.map((module, moduleIndex) => {
+                      const firstRoom = module.rooms?.[0]
+                      const isActive = module.rooms?.some((room) => nextRoom?.id === room.id)
+                      const moduleTarget = module.id
+                        ? `/learn/path/${foundationPath.slug || foundationPath.id}/module/${module.id}`
+                        : firstRoom
+                          ? `/learn/lab/${firstRoom.slug || firstRoom.id}`
+                          : `/learn/path/${foundationPath.slug || foundationPath.id}`
 
                       return (
-                        <div className="relative" key={`foundation-${room.id}`}>
-                          {roomIndex > 0 ? (
+                        <div className="relative" key={`foundation-${module.id}`}>
+                          {moduleIndex > 0 ? (
                             <div className="mx-auto hidden h-4 w-[3px] bg-secondary/70 lg:block"></div>
                           ) : null}
                           <Link
                             className={`group relative z-10 flex min-h-24 overflow-hidden border bg-surface-container-lowest shadow-lg transition-transform hover:-translate-y-0.5 ${
                               isActive
                                 ? 'border-secondary shadow-[0_0_30px_rgba(102,217,239,0.14)]'
-                                : status === 'completed'
+                                : module.completion === 100
                                   ? 'border-secondary/60'
                                   : 'border-secondary/40'
                             }`}
-                            to={`/learn/lab/${room.slug || room.id}`}
+                            to={moduleTarget}
                           >
                             {isActive ? (
                               <span className="absolute left-0 top-0 z-20 bg-secondary px-3 py-1 font-headline text-[9px] font-bold uppercase tracking-widest text-on-secondary">
@@ -473,18 +479,23 @@ function RoadmapPage() {
                             ) : null}
                             <div className="grid w-24 shrink-0 place-items-center bg-secondary/20">
                               <span className="material-symbols-outlined text-4xl text-secondary">
-                                {getIconForTrack(room.category || room.moduleTitle)}
+                                {getIconForTrack(module.title)}
                               </span>
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col justify-center p-4 pr-14">
                               <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-primary">
-                                {room.moduleTitle || 'Foundation Module'}
+                                {module.phase || `Module ${String(moduleIndex + 1).padStart(2, '0')}`} / {module.rooms.length} rooms
                               </p>
                               <h4 className="mt-1 line-clamp-2 font-headline text-sm font-black uppercase tracking-wide text-on-background">
-                                {room.title}
+                                {module.title}
                               </h4>
                             </div>
-                            {status === 'completed' ? (
+                            {module.completion > 0 && module.completion < 100 ? (
+                              <div className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border-2 border-secondary bg-surface-container-lowest text-[10px] font-black text-secondary">
+                                {module.completion}%
+                              </div>
+                            ) : null}
+                            {module.completion === 100 ? (
                               <div className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-secondary text-on-secondary">
                                 <span className="material-symbols-outlined text-xl">check</span>
                               </div>
@@ -532,29 +543,30 @@ function RoadmapPage() {
                     <div className={`relative z-10 mx-auto hidden h-6 w-[3px] ${column.tone.line} lg:block`}></div>
 
                     <div className="relative z-10 space-y-0">
-                      {column.rooms.length ? column.rooms.map((room, roomIndex) => {
-                        const status = getRoomStatus(progressMap[room.id])
-                        const isActive = nextRoom?.id === room.id
-                        const progress = status === 'completed'
-                          ? 100
-                          : status === 'in-progress'
-                            ? Math.max(5, Math.min(95, Math.round((column.pathCompletion || 0) / 2)))
-                            : 0
+                      {column.modules.length ? column.modules.map((module, moduleIndex) => {
+                        const isActive = module.rooms?.some((room) => nextRoom?.id === room.id)
+                        const firstRoom = module.rooms?.[0]
+                        const progress = module.completion || 0
+                        const moduleTarget = module.id
+                          ? `/learn/path/${column.slug || column.id}/module/${module.id}`
+                          : firstRoom
+                            ? `/learn/lab/${firstRoom.slug || firstRoom.id}`
+                            : `/learn/path/${column.slug || column.id}`
 
                         return (
-                          <div className="relative" key={room.id}>
-                            {roomIndex > 0 ? (
+                          <div className="relative" key={module.id}>
+                            {moduleIndex > 0 ? (
                               <div className={`mx-auto hidden h-4 w-[3px] ${column.tone.line} lg:block`}></div>
                             ) : null}
                             <Link
                               className={`group relative z-10 flex min-h-28 overflow-hidden border bg-surface-container-lowest shadow-lg transition-transform hover:-translate-y-0.5 ${
                                 isActive
                                   ? 'border-secondary shadow-[0_0_30px_rgba(102,217,239,0.14)]'
-                                  : status === 'completed'
+                                  : progress === 100
                                     ? 'border-secondary/60'
                                     : column.tone.border
                               }`}
-                              to={`/learn/lab/${room.slug || room.id}`}
+                              to={moduleTarget}
                             >
                               {isActive ? (
                                 <span className="absolute left-0 top-0 z-20 bg-secondary px-3 py-1 font-headline text-[9px] font-bold uppercase tracking-widest text-on-secondary">
@@ -563,46 +575,49 @@ function RoadmapPage() {
                               ) : null}
                               <div className={`grid w-24 shrink-0 place-items-center bg-gradient-to-br ${column.tone.panel}`}>
                                 <span className="material-symbols-outlined text-4xl text-on-background">
-                                  {getIconForTrack(room.category || column.title)}
+                                  {getIconForTrack(module.title || column.title)}
                                 </span>
                               </div>
                               <div className="flex min-w-0 flex-1 flex-col justify-center p-4 pr-16">
                                 <h4 className="line-clamp-2 font-headline text-sm font-black uppercase tracking-wide text-on-background">
-                                  {room.title}
+                                  {module.title}
                                 </h4>
                                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                                  <span className={`material-symbols-outlined text-base ${status === 'completed' ? 'text-secondary' : column.tone.text}`}>
-                                    {status === 'completed' ? 'check_circle' : 'signal_cellular_alt'}
+                                  <span className={`material-symbols-outlined text-base ${progress === 100 ? 'text-secondary' : column.tone.text}`}>
+                                    {progress === 100 ? 'check_circle' : 'signal_cellular_alt'}
                                   </span>
                                   <span className="bg-surface-container-high px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-                                    {room.roomType === 'practical' ? 'Lab' : 'Path'}
+                                    {module.phase || `Module ${String(moduleIndex + 1).padStart(2, '0')}`}
                                   </span>
-                                  {roomIndex > 2 || room.moduleTitle ? (
+                                  <span className="max-w-full truncate bg-primary/10 px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
+                                    {module.rooms.length} rooms
+                                  </span>
+                                  {module.description ? (
                                     <span className="max-w-full truncate bg-primary/10 px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
-                                      {room.moduleTitle || 'Extension'}
+                                      {module.description}
                                     </span>
                                   ) : null}
                                 </div>
                               </div>
-                              {progress > 0 && status !== 'completed' ? (
+                              {progress > 0 && progress !== 100 ? (
                                 <div className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border-2 border-primary bg-surface-container-lowest text-[10px] font-black text-primary">
                                   {progress}%
                                 </div>
                               ) : null}
-                              {status === 'completed' ? (
+                              {progress === 100 ? (
                                 <div className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-secondary text-on-secondary">
                                   <span className="material-symbols-outlined text-xl">check</span>
                                 </div>
                               ) : null}
                             </Link>
-                            {roomIndex < column.rooms.length - 1 ? (
+                            {moduleIndex < column.modules.length - 1 ? (
                               <div className={`mx-auto hidden h-4 w-[3px] ${column.tone.line} lg:block`}></div>
                             ) : null}
                             </div>
                         )
                       }) : (
                         <div className="border border-outline-variant/50 bg-surface-container-lowest p-5 text-center text-sm text-on-surface-variant">
-                          Rooms will appear here when this path is configured.
+                          Modules will appear here when this path is configured.
                         </div>
                       )}
                     </div>
