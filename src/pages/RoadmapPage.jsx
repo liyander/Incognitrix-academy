@@ -242,11 +242,20 @@ function RoadmapPage() {
   const foundationTargetRoom = foundationRoom
     || allRooms.find((room) => /foundation|basic|intro/i.test(room.title || room.category || ''))
     || allRooms[0]
-  const completionPercent = allRooms.length ? Math.round((completedRooms / allRooms.length) * 100) : 0
-  const foundationFlowModules = (foundationPath?.modules || []).filter((module) => !isCybersecurityIntroModule(module))
+  const foundationFlowModules = foundationPath?.modules || []
   const branchPaths = foundationPath
     ? roadmap.filter((path) => path.id !== foundationPath.id)
     : roadmap
+  const pathsById = new Map(roadmap.map((path) => [path.id, path]))
+  const foundationEntry = foundationPath || (foundationTargetRoom
+    ? {
+        id: 'foundation-entry',
+        slug: foundationTargetRoom.slug || foundationTargetRoom.id,
+        title: 'Introduction to Cybersecurity',
+        description: foundationRoom?.description || 'Begin here before branching into academy specializations, practical labs, and role-based paths.',
+        pathCompletion: getRoomStatus(progressMap[foundationTargetRoom.id]) === 'completed' ? 100 : 0,
+      }
+    : null)
   const columns = branchPaths.map((path, index) => {
     const modulesForPath = path.modules.filter((module) => !isCybersecurityIntroModule(module))
 
@@ -322,58 +331,12 @@ function RoadmapPage() {
             </p>
           </header>
 
-          <div className="relative mx-auto mt-12 max-w-3xl">
-            <div className="absolute left-1/2 top-0 hidden h-full w-[3px] -translate-x-1/2 bg-secondary/40 sm:block"></div>
-            {[
-              {
-                label: 'Phase 00',
-                title: 'Platform Orientation',
-                body: 'Understand the academy workflow: read room content, use notes, answer assessments, and spawn isolated lab machines.',
-                icon: 'explore',
-              },
-              {
-                label: 'Phase 01',
-                title: 'Core Operator Skills',
-                body: 'Build enough Linux, networking, web, and security vocabulary to move through beginner and intermediate rooms.',
-                icon: 'terminal',
-              },
-              {
-                label: 'Phase 02',
-                title: 'Specialization Routing',
-                body: `Choose a path from the active curriculum. Overall mapped completion is ${completionPercent}%.`,
-                icon: 'route',
-              },
-            ].map((phase, index) => (
-              <div className="relative flex justify-center" key={phase.title}>
-                {index > 0 ? <div className="h-10 w-[3px] bg-secondary/55"></div> : null}
-                <div className="relative z-10 w-full max-w-xl border border-outline-variant/60 bg-surface-container-lowest p-5 shadow-xl">
-                  <div className="flex items-start gap-4">
-                    <span className="grid h-12 w-12 shrink-0 place-items-center bg-primary/10 text-primary">
-                      <span className="material-symbols-outlined">{phase.icon}</span>
-                    </span>
-                    <div className="min-w-0">
-                      <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-primary">
-                        {phase.label}
-                      </p>
-                      <h2 className="mt-1 font-headline text-xl font-black uppercase tracking-tight text-on-background">
-                        {phase.title}
-                      </h2>
-                      <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">
-                        {phase.body}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
           {isLoading ? (
             <div className="mx-auto mt-16 max-w-lg border border-outline-variant/50 bg-surface-container-lowest p-6 text-center font-headline text-xs uppercase tracking-widest text-on-surface-variant">
               Building roadmap...
             </div>
           ) : (
-            <div className="relative mx-auto mt-0 max-w-[96rem]">
+            <div className="relative mx-auto mt-12 max-w-[96rem]">
               <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
                 <button
                   className="inline-flex items-center gap-2 border border-outline-variant bg-surface-container-lowest px-4 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface hover:border-secondary disabled:opacity-40"
@@ -413,10 +376,10 @@ function RoadmapPage() {
               >
               <div className="mx-auto" style={{ width: branchGridWidth }}>
               <div className="mx-auto hidden h-10 w-[3px] bg-secondary/65 shadow-[0_0_18px_rgba(102,217,239,0.25)] lg:block"></div>
-              {foundationTargetRoom ? (
+              {foundationEntry ? (
                 <Link
                   className="group relative z-10 mx-auto flex max-w-2xl border border-secondary/70 bg-surface-container-lowest p-5 shadow-[0_0_34px_rgba(102,217,239,0.12)] transition-transform hover:-translate-y-0.5"
-                  to={`/learn/lab/${foundationTargetRoom.slug || foundationTargetRoom.id}`}
+                  to={foundationPath ? `/learn/path/${foundationPath.slug || foundationPath.id}` : `/learn/lab/${foundationTargetRoom.slug || foundationTargetRoom.id}`}
                 >
                   <div className="grid h-20 w-20 shrink-0 place-items-center bg-secondary/20 text-secondary">
                     <span className="material-symbols-outlined text-4xl">
@@ -428,15 +391,15 @@ function RoadmapPage() {
                       Foundation Entry
                     </p>
                     <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
-                      Introduction to Cybersecurity
+                      {foundationEntry.title}
                     </h2>
                     <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-on-surface-variant">
-                      {foundationRoom?.description || 'Begin here before branching into academy specializations, practical labs, and role-based paths.'}
+                      {foundationEntry.description || 'Begin here before branching into academy specializations, practical labs, and role-based paths.'}
                     </p>
                   </div>
                   <div className="hidden min-w-24 flex-col items-end justify-center sm:flex">
                     <span className="font-space text-3xl font-black text-secondary">
-                      {getRoomStatus(progressMap[foundationTargetRoom.id]) === 'completed' ? 100 : 0}%
+                      {foundationEntry.pathCompletion || 0}%
                     </span>
                     <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                       Complete
@@ -451,8 +414,11 @@ function RoadmapPage() {
                     {foundationFlowModules.map((module, moduleIndex) => {
                       const firstRoom = module.rooms?.[0]
                       const isActive = module.rooms?.some((room) => nextRoom?.id === room.id)
+                      const linkedPath = module.linkedPathId ? pathsById.get(module.linkedPathId) : null
                       const moduleTarget = module.id
-                        ? `/learn/path/${foundationPath.slug || foundationPath.id}/module/${module.id}`
+                        ? linkedPath
+                          ? `/learn/path/${linkedPath.slug || linkedPath.id}`
+                          : `/learn/path/${foundationPath.slug || foundationPath.id}/module/${module.id}`
                         : firstRoom
                           ? `/learn/lab/${firstRoom.slug || firstRoom.id}`
                           : `/learn/path/${foundationPath.slug || foundationPath.id}`
@@ -489,6 +455,11 @@ function RoadmapPage() {
                               <h4 className="mt-1 line-clamp-2 font-headline text-sm font-black uppercase tracking-wide text-on-background">
                                 {module.title}
                               </h4>
+                              {linkedPath ? (
+                                <p className="mt-2 line-clamp-1 font-headline text-[9px] font-bold uppercase tracking-widest text-secondary">
+                                  Links to {linkedPath.title}
+                                </p>
+                              ) : null}
                             </div>
                             {module.completion > 0 && module.completion < 100 ? (
                               <div className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border-2 border-secondary bg-surface-container-lowest text-[10px] font-black text-secondary">
@@ -547,8 +518,11 @@ function RoadmapPage() {
                         const isActive = module.rooms?.some((room) => nextRoom?.id === room.id)
                         const firstRoom = module.rooms?.[0]
                         const progress = module.completion || 0
+                        const linkedPath = module.linkedPathId ? pathsById.get(module.linkedPathId) : null
                         const moduleTarget = module.id
-                          ? `/learn/path/${column.slug || column.id}/module/${module.id}`
+                          ? linkedPath
+                            ? `/learn/path/${linkedPath.slug || linkedPath.id}`
+                            : `/learn/path/${column.slug || column.id}/module/${module.id}`
                           : firstRoom
                             ? `/learn/lab/${firstRoom.slug || firstRoom.id}`
                             : `/learn/path/${column.slug || column.id}`
@@ -595,6 +569,11 @@ function RoadmapPage() {
                                   {module.description ? (
                                     <span className="max-w-full truncate bg-primary/10 px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
                                       {module.description}
+                                    </span>
+                                  ) : null}
+                                  {linkedPath ? (
+                                    <span className="max-w-full truncate bg-secondary/10 px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
+                                      Links to {linkedPath.title}
                                     </span>
                                   ) : null}
                                 </div>

@@ -18,6 +18,11 @@ function sortPathsByRoadmapOrder(paths) {
   )
 }
 
+function isCybersecurityIntroPath(path) {
+  const text = `${path?.title || ''} ${path?.slug || ''} ${path?.id || ''}`.toLowerCase()
+  return /introduction[-_\s]+to[-_\s]+cybersecurity|intro[-_\s]+to[-_\s]+cybersecurity|cybersecurity[-_\s]+introduction|cybersecurity[-_\s]+101/.test(text)
+}
+
 function normalizePhase(index) {
   return `Module ${String(index + 1).padStart(2, '0')}`
 }
@@ -107,8 +112,13 @@ function AdminRoadmapBuilderPage() {
     [paths, removedModules],
   )
 
+  const foundationPath = useMemo(() => paths.find(isCybersecurityIntroPath) || null, [paths])
+  const branchPaths = useMemo(
+    () => (foundationPath ? paths.filter((path) => path.id !== foundationPath.id) : paths),
+    [foundationPath, paths],
+  )
   const totalModules = modulePool.length
-  const branchGridColumns = `repeat(${Math.max(paths.length, 1)}, minmax(17rem, 1fr))`
+  const branchGridColumns = `repeat(${Math.max(branchPaths.length, 1)}, minmax(17rem, 1fr))`
 
   const handleDragStart = (event, module) => {
     const payload = {
@@ -192,6 +202,23 @@ function AdminRoadmapBuilderPage() {
       }
     }))
     setMessage('Module order updated. Save changes to publish the new sequence.')
+    window.setTimeout(() => setMessage(''), 2400)
+  }
+
+  const updateModuleLinkedPath = (pathId, moduleId, linkedPathId) => {
+    setPaths((currentPaths) => clonePaths(currentPaths).map((path) => {
+      if (path.id !== pathId) return path
+
+      return {
+        ...path,
+        modules: (path.modules || []).map((module) => (
+          module.id === moduleId
+            ? { ...module, linkedPathId }
+            : module
+        )),
+      }
+    }))
+    setMessage(linkedPathId ? 'Module link updated. Save changes to publish.' : 'Module link removed. Save changes to publish.')
     window.setTimeout(() => setMessage(''), 2400)
   }
 
@@ -433,25 +460,131 @@ function AdminRoadmapBuilderPage() {
           </div>
 
           <div className="relative overflow-x-auto pb-4">
-            <div className="min-w-[1100px]" style={{ minWidth: `${Math.max(paths.length, 4) * 18}rem` }}>
-              <div className="mx-auto max-w-2xl border border-secondary/70 bg-surface p-5 text-center shadow-[0_0_24px_rgba(102,217,239,0.10)]">
-                <p className="font-headline text-[10px] font-bold uppercase tracking-[0.28em] text-secondary">
-                  Foundation Entry
-                </p>
-                <h3 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
-                  Intro to Cybersecurity
-                </h3>
-                <p className="mt-2 text-sm text-on-surface-variant">
-                  Every branch starts here. Drop modules into the branch where they belong.
-                </p>
-              </div>
+            <div className="min-w-[1100px]" style={{ minWidth: `${Math.max(branchPaths.length, 4) * 18}rem` }}>
+              {foundationPath ? (
+                <section
+                  className={`mx-auto max-w-3xl border bg-surface p-5 shadow-[0_0_24px_rgba(102,217,239,0.10)] ${
+                    activeBranchId === foundationPath.id ? 'border-secondary bg-secondary/10' : 'border-secondary/70'
+                  }`}
+                  onDragLeave={() => setActiveBranchId('')}
+                  onDragOver={(event) => {
+                    event.preventDefault()
+                    setActiveBranchId(foundationPath.id)
+                  }}
+                  onDrop={(event) => moveModuleToBranch(foundationPath.id, event)}
+                >
+                  <div className="text-center">
+                    <p className="font-headline text-[10px] font-bold uppercase tracking-[0.28em] text-secondary">
+                      Foundation Entry
+                    </p>
+                    <h3 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                      {foundationPath.title}
+                    </h3>
+                    <p className="mx-auto mt-2 max-w-xl text-sm text-on-surface-variant">
+                      {foundationPath.description || 'Every branch starts here. Drop modules into the branch where they belong.'}
+                    </p>
+                  </div>
+                  <div className="mt-5 grid gap-3 md:grid-cols-2">
+                    {(foundationPath.modules || []).length ? foundationPath.modules.map((module, index) => (
+                      <article
+                        className="cursor-grab border border-outline-variant/50 bg-surface-container-lowest p-4 shadow-sm active:cursor-grabbing"
+                        draggable
+                        key={`${foundationPath.id}-${module.id}`}
+                        onDragStart={(event) => handleDragStart(event, { ...module, sourcePathId: foundationPath.id })}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="material-symbols-outlined text-secondary">
+                            drag_indicator
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">
+                              {module.phase || normalizePhase(index)} / {(module.rooms || []).length} rooms
+                            </p>
+                            <h4 className="mt-1 line-clamp-2 font-headline text-sm font-black uppercase text-on-background">
+                              {module.title}
+                            </h4>
+                            <p className="mt-1 line-clamp-2 text-xs text-on-surface-variant">
+                              {module.description || 'No description supplied.'}
+                            </p>
+                            <label className="mt-3 block" onMouseDown={(event) => event.stopPropagation()}>
+                              <span className="font-headline text-[9px] font-bold uppercase tracking-widest text-secondary">
+                                Linked sub-path
+                              </span>
+                              <select
+                                className="mt-1 w-full border border-outline-variant bg-surface px-3 py-2 text-xs text-on-surface outline-none focus:border-secondary"
+                                onChange={(event) => updateModuleLinkedPath(foundationPath.id, module.id, event.target.value)}
+                                onClick={(event) => event.stopPropagation()}
+                                value={module.linkedPathId || ''}
+                              >
+                                <option value="">No linked path</option>
+                                {paths
+                                  .filter((targetPath) => targetPath.id !== foundationPath.id)
+                                  .map((targetPath) => (
+                                    <option key={`${module.id}-${targetPath.id}`} value={targetPath.id}>
+                                      {targetPath.title}
+                                    </option>
+                                  ))}
+                              </select>
+                            </label>
+                          </div>
+                          <div className="flex shrink-0 flex-col gap-2">
+                            <button
+                              aria-label={`Move ${module.title} up`}
+                              className="grid h-8 w-8 place-items-center border border-outline-variant bg-surface text-on-surface disabled:cursor-not-allowed disabled:opacity-35"
+                              disabled={index === 0}
+                              onClick={() => moveModuleWithinBranch(foundationPath.id, module.id, -1)}
+                              type="button"
+                            >
+                              <span className="material-symbols-outlined text-base">keyboard_arrow_up</span>
+                            </button>
+                            <button
+                              aria-label={`Move ${module.title} down`}
+                              className="grid h-8 w-8 place-items-center border border-outline-variant bg-surface text-on-surface disabled:cursor-not-allowed disabled:opacity-35"
+                              disabled={index === (foundationPath.modules || []).length - 1}
+                              onClick={() => moveModuleWithinBranch(foundationPath.id, module.id, 1)}
+                              type="button"
+                            >
+                              <span className="material-symbols-outlined text-base">keyboard_arrow_down</span>
+                            </button>
+                            <button
+                              aria-label={`Remove ${module.title} from roadmap path`}
+                              className="grid h-8 w-8 place-items-center border border-error/50 bg-error/10 text-error hover:bg-error/20"
+                              onClick={() => removeModuleFromBranch(foundationPath.id, module)}
+                              title="Remove from this roadmap path only"
+                              type="button"
+                            >
+                              <span className="material-symbols-outlined text-base">playlist_remove</span>
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    )) : (
+                      <div className="border border-dashed border-outline-variant/60 p-5 text-center text-sm text-on-surface-variant md:col-span-2">
+                        Drop foundation modules here.
+                      </div>
+                    )}
+                  </div>
+                </section>
+              ) : (
+                <div className="mx-auto max-w-2xl border border-secondary/70 bg-surface p-5 text-center shadow-[0_0_24px_rgba(102,217,239,0.10)]">
+                  <p className="font-headline text-[10px] font-bold uppercase tracking-[0.28em] text-secondary">
+                    Foundation Entry
+                  </p>
+                  <h3 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                    Intro to Cybersecurity
+                  </h3>
+                  <p className="mt-2 text-sm text-on-surface-variant">
+                    Create an Introduction to Cybersecurity branch to make this node dynamic.
+                  </p>
+                </div>
+              )}
               <div className="relative mx-auto h-20 max-w-[94rem]">
                 <div className="absolute left-1/2 top-0 h-full w-[3px] -translate-x-1/2 bg-secondary/70"></div>
                 <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-secondary/60"></div>
               </div>
 
               <div className="grid gap-6" style={{ gridTemplateColumns: branchGridColumns }}>
-                {paths.map((path) => (
+                {branchPaths.map((path) => (
                   <section
                     className={`relative min-h-[28rem] border bg-surface p-4 transition-colors ${
                       activeBranchId === path.id
@@ -501,6 +634,26 @@ function AdminRoadmapBuilderPage() {
                               <p className="mt-1 line-clamp-2 text-xs text-on-surface-variant">
                                 {module.description || 'No description supplied.'}
                               </p>
+                              <label className="mt-3 block" onMouseDown={(event) => event.stopPropagation()}>
+                                <span className="font-headline text-[9px] font-bold uppercase tracking-widest text-secondary">
+                                  Linked sub-path
+                                </span>
+                                <select
+                                  className="mt-1 w-full border border-outline-variant bg-surface px-3 py-2 text-xs text-on-surface outline-none focus:border-secondary"
+                                  onChange={(event) => updateModuleLinkedPath(path.id, module.id, event.target.value)}
+                                  onClick={(event) => event.stopPropagation()}
+                                  value={module.linkedPathId || ''}
+                                >
+                                  <option value="">No linked path</option>
+                                  {paths
+                                    .filter((targetPath) => targetPath.id !== path.id)
+                                    .map((targetPath) => (
+                                      <option key={`${module.id}-${targetPath.id}`} value={targetPath.id}>
+                                        {targetPath.title}
+                                      </option>
+                                    ))}
+                                </select>
+                              </label>
                             </div>
                             <div className="flex shrink-0 flex-col gap-2">
                               <button

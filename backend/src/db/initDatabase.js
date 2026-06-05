@@ -239,6 +239,7 @@ async function ensureDatabase() {
       title VARCHAR(255) NOT NULL,
       description TEXT,
       module_image_data LONGTEXT,
+      linked_path_id VARCHAR(191) NULL,
       sort_order INT DEFAULT 0,
       FOREIGN KEY (career_path_id) REFERENCES career_paths(id) ON DELETE CASCADE
     );
@@ -376,6 +377,7 @@ async function ensureDatabase() {
   await addColumnIfMissing('platform_config', 'ai_json', 'JSON NULL')
   await addColumnIfMissing('platform_config', 'api_json', 'JSON NULL')
   await addColumnIfMissing('career_path_modules', 'module_image_data', 'LONGTEXT NULL')
+  await addColumnIfMissing('career_path_modules', 'linked_path_id', 'VARCHAR(191) NULL')
   await addColumnIfMissing('notifications', 'target_user_id', 'INT NULL')
   await addColumnIfMissing('ctf_events', 'weight', 'DECIMAL(8,2) DEFAULT 0')
   await addColumnIfMissing('ctf_events', 'source', "VARCHAR(50) DEFAULT 'manual'")

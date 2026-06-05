@@ -43,6 +43,7 @@ async function fetchCareerPathById(id) {
       title: moduleRow.title,
       description: moduleRow.description,
       imageData: moduleRow.module_image_data || null,
+      linkedPathId: moduleRow.linked_path_id || null,
       rooms: moduleRoomRows.map((row) => row.room_id),
     })
   }
@@ -117,7 +118,7 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
       const module = payload.modules[i]
       const moduleId = module.id || buildId(module.title, 'mod')
       await conn.query(
-        'INSERT INTO career_path_modules (id, career_path_id, phase, title, description, module_image_data, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO career_path_modules (id, career_path_id, phase, title, description, module_image_data, linked_path_id, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         [
           moduleId,
           id,
@@ -125,6 +126,7 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
           module.title,
           module.description || null,
           module.imageData || null,
+          module.linkedPathId || module.linked_path_id || null,
           i,
         ],
       )
@@ -202,7 +204,7 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
       const module = payload.modules[i]
       const moduleId = module.id || buildId(module.title, 'mod')
       await conn.query(
-        'INSERT INTO career_path_modules (id, career_path_id, phase, title, description, module_image_data, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO career_path_modules (id, career_path_id, phase, title, description, module_image_data, linked_path_id, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         [
           moduleId,
           existing.id,
@@ -210,6 +212,7 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
           module.title,
           module.description || null,
           module.imageData || null,
+          module.linkedPathId || module.linked_path_id || null,
           i,
         ],
       )
