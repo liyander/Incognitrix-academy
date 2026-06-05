@@ -34,6 +34,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions))
 app.options('*', cors(corsOptions))
+app.use('/api/rooms/:id/docker/proxy', express.raw({ type: '*/*', limit: '50mb' }))
 app.use(express.json({ limit: '50mb' }))
 
 app.get('/api/health', (_req, res) => {

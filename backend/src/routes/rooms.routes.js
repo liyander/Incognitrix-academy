@@ -121,7 +121,27 @@ function getDockerExpiry(instance, config) {
   return new Date(createdAt + timeoutMs).toISOString()
 }
 
-function buildDockerAccess(config, hostPort, requestHost = '', dockerConnection = {}) {
+function getRequestOrigin(req) {
+  const forwardedProtocol = String(req.get('x-forwarded-proto') || '').split(',')[0].trim()
+  const forwardedHost = String(req.get('x-forwarded-host') || '').split(',')[0].trim()
+  const protocol = forwardedProtocol || req.protocol || 'http'
+  const host = forwardedHost || req.get('host') || ''
+  return host ? `${protocol}://${host}` : ''
+}
+
+function getBearerTokenFromRequest(req) {
+  const authHeader = String(req.get('authorization') || '')
+  const [, token] = authHeader.split(' ')
+  return token || ''
+}
+
+function getDockerServiceHost(dockerConnection = {}) {
+  const normalized = normalizeDockerHostname(dockerConnection.hostname, dockerConnection.tlsEnabled)
+  if (normalized.url?.hostname) return normalized.url.hostname
+  return '127.0.0.1'
+}
+
+function buildDockerAccess(config, hostPort, requestHost = '', dockerConnection = {}, options = {}) {
   if (!hostPort) return null
   const host = dockerConnection.displayHost || requestHost || env.publicHost || '127.0.0.1'
   if (config.protocol === 'tcp') {
@@ -132,10 +152,28 @@ function buildDockerAccess(config, hostPort, requestHost = '', dockerConnection 
     }
   }
 
+  const directUrl = `${config.protocol}://${host}:${hostPort}`
+  if (options.req && options.roomId) {
+    const token = getBearerTokenFromRequest(options.req)
+    const origin = getRequestOrigin(options.req)
+    const proxyPath = `/api/rooms/${encodeURIComponent(options.roomId)}/docker/proxy/`
+    const tokenSuffix = token ? `?token=${encodeURIComponent(token)}` : ''
+    const proxyUrl = `${origin}${proxyPath}${tokenSuffix}`
+    return {
+      host: getDockerServiceHost(dockerConnection),
+      port: hostPort,
+      url: proxyUrl,
+      proxyUrl,
+      proxyPath,
+      directUrl,
+    }
+  }
+
   return {
     host,
     port: hostPort,
-    url: `${config.protocol}://${host}:${hostPort}`,
+    url: directUrl,
+    directUrl,
   }
 }
 
@@ -2354,6 +2392,181 @@ router.delete('/docker-config/containers/:name', authenticate, requireAdmin, asy
   return res.json({ stopped: true, name: containerName })
 })
 
+function authenticateDockerProxyRequest(req) {
+  const cookieToken = String(req.headers.cookie || '')
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith('incognitrix_docker_proxy_token='))
+    ?.slice('incognitrix_docker_proxy_token='.length) || ''
+  const authToken = getBearerTokenFromRequest(req) || String(req.query?.token || '') || decodeURIComponent(cookieToken)
+  if (!authToken) return null
+  try {
+    return { user: jwt.verify(authToken, env.jwtSecret), token: authToken }
+  } catch {
+    return null
+  }
+}
+
+function getProxyRequestHeaders(req, targetHost, targetPort) {
+  const hopByHopHeaders = new Set([
+    'connection',
+    'keep-alive',
+    'proxy-authenticate',
+    'proxy-authorization',
+    'te',
+    'trailer',
+    'transfer-encoding',
+    'upgrade',
+    'host',
+    'authorization',
+  ])
+  const headers = {}
+  Object.entries(req.headers || {}).forEach(([key, value]) => {
+    if (!hopByHopHeaders.has(key.toLowerCase())) headers[key] = value
+  })
+  if (headers.cookie) {
+    const cookie = String(headers.cookie)
+      .split(';')
+      .map((part) => part.trim())
+      .filter((part) => part && !part.startsWith('incognitrix_docker_proxy_token='))
+      .join('; ')
+    if (cookie) {
+      headers.cookie = cookie
+    } else {
+      delete headers.cookie
+    }
+  }
+  headers.host = `${targetHost}:${targetPort}`
+  return headers
+}
+
+function getProxyResponseHeaders(headers) {
+  const hopByHopHeaders = new Set([
+    'connection',
+    'keep-alive',
+    'proxy-authenticate',
+    'proxy-authorization',
+    'te',
+    'trailer',
+    'transfer-encoding',
+    'upgrade',
+  ])
+  const safeHeaders = {}
+  Object.entries(headers || {}).forEach(([key, value]) => {
+    if (!hopByHopHeaders.has(key.toLowerCase())) safeHeaders[key] = value
+  })
+  return safeHeaders
+}
+
+router.use('/:id/docker/proxy', async (req, res) => {
+  const auth = authenticateDockerProxyRequest(req)
+  const user = auth?.user
+  if (!user?.id) {
+    return res.status(401).send('Invalid or expired Docker challenge session.')
+  }
+
+  if (req.query?.token && auth?.token) {
+    res.cookie('incognitrix_docker_proxy_token', auth.token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 12 * 60 * 60 * 1000,
+      path: `/api/rooms/${encodeURIComponent(req.params.id)}/docker/proxy`,
+    })
+  }
+
+  const room = await fetchRoomById(req.params.id)
+  if (!room) {
+    return res.status(404).send('Room not found.')
+  }
+
+  const config = getDockerConfig(room)
+  if (config.protocol === 'tcp') {
+    return res.status(400).send('TCP Docker services cannot be proxied as web challenges.')
+  }
+
+  const validationError = validateDockerConfig(config)
+  if (validationError) {
+    return res.status(400).send(validationError)
+  }
+
+  const [rows] = await pool.query(
+    `SELECT id, container_name, host_port, status, created_at
+     FROM user_room_docker_instances
+     WHERE user_id = ? AND room_id = ? AND status = 'running'
+     LIMIT 1`,
+    [user.id, room.id],
+  )
+  const instance = rows[0]
+  if (!instance) {
+    return res.status(404).send('No active Docker challenge is running for this room.')
+  }
+
+  const expired = await stopStaleDockerInstance(instance, config)
+  if (expired) {
+    return res.status(410).send('This Docker challenge session has expired. Spawn it again from the lab page.')
+  }
+
+  const targetPort = Number(instance.host_port || 0)
+  if (!targetPort) {
+    return res.status(502).send('This challenge has no published service port.')
+  }
+
+  const inspected = await inspectDockerContainer(instance.container_name)
+  if (!inspected.running) {
+    await pool.query(
+      `UPDATE user_room_docker_instances
+       SET status = ?
+       WHERE id = ?`,
+      [inspected.exists ? 'stopped' : 'missing', instance.id],
+    )
+    return res.status(410).send('This Docker challenge is no longer running.')
+  }
+
+  const dockerConnection = await getStoredDockerConfig()
+  const targetHost = getDockerServiceHost(dockerConnection)
+  const incomingUrl = new URL(req.url || '/', 'http://incognitrix.local')
+  incomingUrl.searchParams.delete('token')
+  const targetPath = `${incomingUrl.pathname || '/'}${incomingUrl.search || ''}`
+  const isHttps = config.protocol === 'https'
+  const transport = isHttps ? https : http
+  const body = Buffer.isBuffer(req.body) ? req.body : null
+
+  const proxyRequest = transport.request(
+    {
+      hostname: targetHost,
+      port: targetPort,
+      path: targetPath,
+      method: req.method,
+      headers: {
+        ...getProxyRequestHeaders(req, targetHost, targetPort),
+        ...(body ? { 'content-length': body.length } : {}),
+      },
+      rejectUnauthorized: false,
+    },
+    (proxyResponse) => {
+      res.writeHead(proxyResponse.statusCode || 502, getProxyResponseHeaders(proxyResponse.headers))
+      proxyResponse.pipe(res)
+    },
+  )
+
+  proxyRequest.on('error', (error) => {
+    if (!res.headersSent) {
+      res.status(502).send(error?.message || 'Docker challenge proxy failed.')
+      return
+    }
+    res.end()
+  })
+  proxyRequest.setTimeout(60000, () => {
+    proxyRequest.destroy(new Error('Docker challenge proxy timed out.'))
+  })
+
+  if (body) {
+    proxyRequest.end(body)
+    return
+  }
+  req.pipe(proxyRequest)
+})
+
 router.get('/docker-machines/me', authenticate, async (req, res) => {
   const [rows] = await pool.query(
     `SELECT
@@ -2430,7 +2643,10 @@ router.get('/docker-machines/me', authenticate, async (req, res) => {
       containerPort: config.containerPort,
       hostPort: Number(row.host_port || 0),
       protocol: config.protocol,
-      access: buildDockerAccess(config, Number(row.host_port || 0), req.hostname, dockerConnection),
+      access: buildDockerAccess(config, Number(row.host_port || 0), req.hostname, dockerConnection, {
+        req,
+        roomId: row.room_id,
+      }),
       createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
       expiresAt: getDockerExpiry(row, config),
       updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
@@ -2507,7 +2723,10 @@ router.get('/:id/docker/status', authenticate, async (req, res) => {
     hostPort: Number(instance.host_port || 0),
     protocol: config.protocol,
     timeoutMinutes: config.timeoutMinutes,
-    access: buildDockerAccess(config, Number(instance.host_port || 0), req.hostname, dockerConnection),
+    access: buildDockerAccess(config, Number(instance.host_port || 0), req.hostname, dockerConnection, {
+      req,
+      roomId: room.id,
+    }),
     instructions: config.instructions,
     createdAt: instance.created_at ? new Date(instance.created_at).toISOString() : null,
     expiresAt: getDockerExpiry(instance, config),
@@ -2591,7 +2810,10 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
       hostPort,
       protocol: config.protocol,
       timeoutMinutes: config.timeoutMinutes,
-      access: buildDockerAccess(config, hostPort, req.hostname, dockerConnection),
+      access: buildDockerAccess(config, hostPort, req.hostname, dockerConnection, {
+        req,
+        roomId: room.id,
+      }),
       instructions: config.instructions,
       createdAt: instanceRows[0].created_at ? new Date(instanceRows[0].created_at).toISOString() : null,
       expiresAt: getDockerExpiry(instanceRows[0], config),
@@ -2676,7 +2898,10 @@ router.post('/:id/docker/spawn', authenticate, async (req, res) => {
     hostPort,
     protocol: config.protocol,
     timeoutMinutes: config.timeoutMinutes,
-    access: buildDockerAccess(config, hostPort, req.hostname, dockerConnection),
+    access: buildDockerAccess(config, hostPort, req.hostname, dockerConnection, {
+      req,
+      roomId: room.id,
+    }),
     instructions: config.instructions,
     createdAt: createdInstance.created_at ? new Date(createdInstance.created_at).toISOString() : null,
     expiresAt: getDockerExpiry(createdInstance, config),

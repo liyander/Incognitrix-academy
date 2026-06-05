@@ -180,7 +180,7 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
                         title={machine.access.url}
                       >
                         <span className="material-symbols-outlined text-xs">open_in_new</span>
-                        <span className="truncate">{machine.access.url}</span>
+                        <span className="truncate">Open proxied service</span>
                       </a>
                     ) : null}
                   </div>

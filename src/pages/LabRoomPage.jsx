@@ -1128,7 +1128,7 @@ function LabRoomPage() {
                       </p>
                       {dockerStatus.access?.url && isDockerServiceActive ? (
                         <p className="font-space text-xs text-secondary break-all">
-                          target: {dockerStatus.access.url}
+                          target: proxied through platform
                         </p>
                       ) : null}
                     </div>
@@ -1369,7 +1369,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                         </p>
                         {dockerStatus.access?.url && isDockerServiceActive ? (
                           <p className="font-space text-xs text-secondary">
-                            target: {dockerStatus.access.url}
+                            target: proxied through platform
                           </p>
                         ) : null}
                         <p className="font-space text-xs text-on-surface-variant dark:text-[#9ed8e8]">
@@ -1432,9 +1432,9 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                       <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
                         Auto cleanup: {dockerStatus.timeoutMinutes || room.content?.docker?.timeoutMinutes || 120} minutes
                       </p>
-                      {isDockerServiceActive && dockerStatus.hostPort ? (
+                      {isDockerServiceActive && dockerStatus.access?.url ? (
                         <p className="mt-1 text-xs leading-relaxed text-secondary">
-                          Assigned player port: {dockerStatus.hostPort}
+                          Web access: proxied through platform
                         </p>
                       ) : isDockerServiceActive ? (
                         <p className="mt-1 text-xs leading-relaxed text-secondary">
@@ -1442,7 +1442,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                         </p>
                       ) : (
                         <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
-                          Player port: assigned randomly when the image exposes a service
+                          Web access: assigned automatically when the image exposes a service
                         </p>
                       )}
                       {isDockerServiceActive && dockerStatus.expiresAt ? (
@@ -1482,7 +1482,9 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                       rel="noreferrer"
                       target="_blank"
                     >
-                      <span className="break-all">{dockerStatus.access.url}</span>
+                      <span className="break-all">
+                        {dockerStatus.access.proxyPath || 'Open proxied challenge service'}
+                      </span>
                       <span className="material-symbols-outlined">open_in_new</span>
                     </a>
                   ) : null}
