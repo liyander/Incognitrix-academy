@@ -18,9 +18,11 @@ function sortPathsByRoadmapOrder(paths) {
   )
 }
 
+const INTRO_TO_CYBERSECURITY_PATTERN = /(?:introduction|intro)[-_\s]+to[-_\s]+cyber[-_\s]*security|cyber[-_\s]*security[-_\s]+(?:introduction|intro)|cyber[-_\s]*security[-_\s]+101/
+
 function isCybersecurityIntroPath(path) {
   const text = `${path?.title || ''} ${path?.slug || ''} ${path?.id || ''}`.toLowerCase()
-  return /introduction[-_\s]+to[-_\s]+cybersecurity|intro[-_\s]+to[-_\s]+cybersecurity|cybersecurity[-_\s]+introduction|cybersecurity[-_\s]+101/.test(text)
+  return INTRO_TO_CYBERSECURITY_PATTERN.test(text)
 }
 
 function normalizePhase(index) {

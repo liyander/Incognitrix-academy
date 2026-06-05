@@ -15,19 +15,21 @@ function getRoomStatus(progress) {
   return 'queued'
 }
 
+const INTRO_TO_CYBERSECURITY_PATTERN = /(?:introduction|intro)[-_\s]+to[-_\s]+cyber[-_\s]*security|cyber[-_\s]*security[-_\s]+(?:introduction|intro)|cyber[-_\s]*security[-_\s]+101/
+
 function isCybersecurityIntroRoom(room) {
   const text = `${room?.title || ''} ${room?.slug || ''} ${room?.id || ''}`.toLowerCase()
-  return /introduction[-_\s]+to[-_\s]+cybersecurity|intro[-_\s]+to[-_\s]+cybersecurity|cybersecurity[-_\s]+introduction|cybersecurity[-_\s]+101/.test(text)
+  return INTRO_TO_CYBERSECURITY_PATTERN.test(text)
 }
 
 function isCybersecurityIntroPath(path) {
   const text = `${path?.title || ''} ${path?.slug || ''} ${path?.id || ''}`.toLowerCase()
-  return /introduction[-_\s]+to[-_\s]+cybersecurity|intro[-_\s]+to[-_\s]+cybersecurity|cybersecurity[-_\s]+introduction|cybersecurity[-_\s]+101/.test(text)
+  return INTRO_TO_CYBERSECURITY_PATTERN.test(text)
 }
 
 function isCybersecurityIntroModule(module) {
   const text = `${module?.title || ''} ${module?.phase || ''} ${module?.id || ''}`.toLowerCase()
-  const moduleTitleMatches = /introduction[-_\s]+to[-_\s]+cybersecurity|intro[-_\s]+to[-_\s]+cybersecurity|cybersecurity[-_\s]+introduction|cybersecurity[-_\s]+101/.test(text)
+  const moduleTitleMatches = INTRO_TO_CYBERSECURITY_PATTERN.test(text)
   const moduleOnlyContainsIntro = (module?.rooms || []).length > 0 && (module.rooms || []).every(isCybersecurityIntroRoom)
   return moduleTitleMatches || moduleOnlyContainsIntro
 }
@@ -242,11 +244,14 @@ function RoadmapPage() {
   const foundationTargetRoom = foundationRoom
     || allRooms.find((room) => /foundation|basic|intro/i.test(room.title || room.category || ''))
     || allRooms[0]
-  const foundationFlowModules = foundationPath?.modules || []
-  const branchPaths = foundationPath
-    ? roadmap.filter((path) => path.id !== foundationPath.id)
-    : roadmap
   const pathsById = new Map(roadmap.map((path) => [path.id, path]))
+  const linkedPathIds = new Set(
+    roadmap.flatMap((path) => path.modules.map((module) => module.linkedPathId).filter(Boolean)),
+  )
+  const foundationFlowModules = foundationPath?.modules || []
+  const branchPaths = roadmap.filter((path) => (
+    path.id !== foundationPath?.id && !linkedPathIds.has(path.id)
+  ))
   const foundationEntry = foundationPath || (foundationTargetRoom
     ? {
         id: 'foundation-entry',
@@ -303,6 +308,95 @@ function RoadmapPage() {
     event.preventDefault()
     const direction = event.deltaY > 0 ? -0.08 : 0.08
     setClampedRoadmapZoom(roadmapZoom + direction)
+  }
+
+  const renderLinkedPathBranch = (linkedPath, tone, keyPrefix) => {
+    if (!linkedPath) return null
+
+    const childModules = (linkedPath.modules || []).filter((module) => !isCybersecurityIntroModule(module))
+    const lineClass = tone?.line || 'bg-secondary/70'
+    const borderClass = tone?.border || 'border-secondary/50'
+    const panelClass = tone?.panel || 'from-secondary/30 to-surface-container-high'
+    const textClass = tone?.text || 'text-secondary'
+    const pathTarget = `/learn/path/${linkedPath.slug || linkedPath.id}`
+
+    return (
+      <div className="relative mx-auto max-w-[92%]" key={`${keyPrefix}-${linkedPath.id}`}>
+        <div className={`mx-auto hidden h-5 w-[3px] ${lineClass} lg:block`}></div>
+        <Link
+          className={`group relative z-10 block border ${borderClass} bg-surface-container-lowest p-4 text-left shadow-lg transition-transform hover:-translate-y-0.5`}
+          to={pathTarget}
+        >
+          <div className="flex items-start gap-4">
+            <span className={`grid h-12 w-12 shrink-0 place-items-center bg-gradient-to-br ${panelClass}`}>
+              <span className="material-symbols-outlined text-2xl text-on-background">
+                account_tree
+              </span>
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-headline text-[9px] font-bold uppercase tracking-[0.24em] text-secondary">
+                Linked Sub-Path
+              </p>
+              <h4 className="mt-1 line-clamp-2 font-headline text-sm font-black uppercase tracking-wide text-on-background">
+                {linkedPath.title}
+              </h4>
+              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-on-surface-variant">
+                {linkedPath.description || `${linkedPath.completedRooms}/${linkedPath.totalRooms} rooms mapped in this sub-path.`}
+              </p>
+            </div>
+            <div className="shrink-0 text-right">
+              <span className={`font-space text-xl font-black ${textClass}`}>
+                {linkedPath.pathCompletion || 0}%
+              </span>
+              <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">
+                Complete
+              </p>
+            </div>
+          </div>
+        </Link>
+        {childModules.length ? (
+          <div className={`ml-8 border-l-2 ${borderClass} pl-5`}>
+            {childModules.map((childModule, childIndex) => {
+              const childFirstRoom = childModule.rooms?.[0]
+              const childTarget = childModule.id
+                ? `/learn/path/${linkedPath.slug || linkedPath.id}/module/${childModule.id}`
+                : childFirstRoom
+                  ? `/learn/lab/${childFirstRoom.slug || childFirstRoom.id}`
+                  : pathTarget
+
+              return (
+                <div className="relative" key={`${keyPrefix}-${linkedPath.id}-${childModule.id}`}>
+                  <div className={`absolute -left-5 top-8 h-[2px] w-5 ${lineClass}`}></div>
+                  <Link
+                    className={`mt-3 flex min-h-20 border ${borderClass} bg-surface-container-lowest shadow-sm transition-transform hover:-translate-y-0.5`}
+                    to={childTarget}
+                  >
+                    <div className={`grid w-16 shrink-0 place-items-center bg-gradient-to-br ${panelClass}`}>
+                      <span className="material-symbols-outlined text-2xl text-on-background">
+                        {getIconForTrack(childModule.title || linkedPath.title)}
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1 p-3 pr-12">
+                      <p className="font-headline text-[8px] font-bold uppercase tracking-widest text-on-surface-variant">
+                        {childModule.phase || `Module ${String(childIndex + 1).padStart(2, '0')}`} / {childModule.rooms.length} rooms
+                      </p>
+                      <h5 className="mt-1 line-clamp-2 font-headline text-xs font-black uppercase tracking-wide text-on-background">
+                        {childModule.title}
+                      </h5>
+                    </div>
+                    {childModule.completion > 0 ? (
+                      <div className={`absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full border-2 bg-surface-container-lowest text-[9px] font-black ${textClass}`}>
+                        {childModule.completion}%
+                      </div>
+                    ) : null}
+                  </Link>
+                </div>
+              )
+            })}
+          </div>
+        ) : null}
+      </div>
+    )
   }
 
   return (
@@ -472,6 +566,7 @@ function RoadmapPage() {
                               </div>
                             ) : null}
                           </Link>
+                          {linkedPath ? renderLinkedPathBranch(linkedPath, null, `foundation-link-${module.id}`) : null}
                           <div className="mx-auto hidden h-4 w-[3px] bg-secondary/70 lg:block"></div>
                         </div>
                       )
@@ -589,6 +684,7 @@ function RoadmapPage() {
                                 </div>
                               ) : null}
                             </Link>
+                            {linkedPath ? renderLinkedPathBranch(linkedPath, column.tone, `branch-link-${module.id}`) : null}
                             {moduleIndex < column.modules.length - 1 ? (
                               <div className={`mx-auto hidden h-4 w-[3px] ${column.tone.line} lg:block`}></div>
                             ) : null}
