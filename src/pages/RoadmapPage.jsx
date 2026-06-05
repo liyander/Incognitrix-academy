@@ -270,7 +270,7 @@ function RoadmapPage() {
       modules: modulesForPath,
     }
   })
-  const linkedPathSideAllowance = linkedPathIds.size ? 24 : 0
+  const linkedPathSideAllowance = linkedPathIds.size ? 34 : 0
   const branchColumnWidth = `${Math.max(12, 18 * roadmapZoom).toFixed(2)}rem`
   const branchGridColumns = `repeat(${Math.max(columns.length, 1)}, minmax(${branchColumnWidth}, 1fr))`
   const branchGridWidth = `${(Math.max(columns.length, 4) * 20 * roadmapZoom) + linkedPathSideAllowance}rem`
@@ -323,18 +323,18 @@ function RoadmapPage() {
 
     return (
       <div
-        className="relative mx-auto mt-3 max-w-[92%] lg:absolute lg:left-full lg:top-1/2 lg:z-30 lg:ml-7 lg:mt-0 lg:w-80 lg:max-w-none lg:-translate-y-1/2"
+        className="relative mx-auto mt-3 max-w-[92%] lg:absolute lg:left-[calc(100%+3.75rem)] lg:top-1/2 lg:z-30 lg:mt-0 lg:w-64 lg:max-w-none lg:-translate-y-1/2"
         key={`${keyPrefix}-${linkedPath.id}`}
       >
         <div className={`mx-auto hidden h-5 w-[3px] ${lineClass} lg:hidden`}></div>
-        <div className={`absolute -left-7 top-1/2 hidden h-[3px] w-7 -translate-y-1/2 ${lineClass} lg:block`}></div>
+        <div className={`absolute -left-16 top-1/2 hidden h-[3px] w-16 -translate-y-1/2 ${lineClass} lg:block`}></div>
         <div className={`absolute -left-2 top-1/2 hidden h-3 w-3 -translate-y-1/2 border-2 ${borderClass} bg-surface-container-lowest lg:block`}></div>
         <Link
-          className={`group relative z-10 block border ${borderClass} bg-surface-container-lowest p-4 text-left shadow-[0_0_24px_rgba(102,217,239,0.10)] transition-transform hover:-translate-y-0.5`}
+          className={`group relative z-10 block border ${borderClass} bg-surface-container-lowest p-3 text-left shadow-[0_0_24px_rgba(102,217,239,0.10)] transition-transform hover:-translate-y-0.5`}
           to={pathTarget}
         >
-          <div className="flex items-start gap-4">
-            <span className={`grid h-12 w-12 shrink-0 place-items-center bg-gradient-to-br ${panelClass}`}>
+          <div className="flex items-start gap-3">
+            <span className={`grid h-10 w-10 shrink-0 place-items-center bg-gradient-to-br ${panelClass}`}>
               <span className="material-symbols-outlined text-2xl text-on-background">
                 account_tree
               </span>
@@ -343,25 +343,25 @@ function RoadmapPage() {
               <p className="font-headline text-[9px] font-bold uppercase tracking-[0.24em] text-secondary">
                 Linked Sub-Path
               </p>
-              <h4 className="mt-1 line-clamp-2 font-headline text-sm font-black uppercase tracking-wide text-on-background">
+              <h4 className="mt-1 line-clamp-2 font-headline text-xs font-black uppercase tracking-wide text-on-background">
                 {linkedPath.title}
               </h4>
-              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-on-surface-variant">
+              <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-on-surface-variant">
                 {linkedPath.description || `${linkedPath.completedRooms}/${linkedPath.totalRooms} rooms mapped in this sub-path.`}
               </p>
             </div>
             <div className="shrink-0 text-right">
-              <span className={`font-space text-xl font-black ${textClass}`}>
+              <span className={`font-space text-base font-black ${textClass}`}>
                 {linkedPath.pathCompletion || 0}%
               </span>
-              <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">
+              <p className="font-headline text-[8px] font-bold uppercase tracking-widest text-on-surface-variant">
                 Complete
               </p>
             </div>
           </div>
         </Link>
         {childModules.length ? (
-          <div className={`ml-8 border-l-2 ${borderClass} pl-5`}>
+          <div className={`ml-5 border-l-2 ${borderClass} pl-3`}>
             {childModules.map((childModule, childIndex) => {
               const childFirstRoom = childModule.rooms?.[0]
               const childTarget = childModule.id
@@ -372,26 +372,26 @@ function RoadmapPage() {
 
               return (
                 <div className="relative" key={`${keyPrefix}-${linkedPath.id}-${childModule.id}`}>
-                  <div className={`absolute -left-5 top-8 h-[2px] w-5 ${lineClass}`}></div>
+                  <div className={`absolute -left-3 top-7 h-[2px] w-3 ${lineClass}`}></div>
                   <Link
-                    className={`mt-3 flex min-h-20 border ${borderClass} bg-surface-container-lowest shadow-sm transition-transform hover:-translate-y-0.5`}
+                    className={`mt-2 flex min-h-16 border ${borderClass} bg-surface-container-lowest shadow-sm transition-transform hover:-translate-y-0.5`}
                     to={childTarget}
                   >
-                    <div className={`grid w-16 shrink-0 place-items-center bg-gradient-to-br ${panelClass}`}>
-                      <span className="material-symbols-outlined text-2xl text-on-background">
+                    <div className={`grid w-12 shrink-0 place-items-center bg-gradient-to-br ${panelClass}`}>
+                      <span className="material-symbols-outlined text-xl text-on-background">
                         {getIconForTrack(childModule.title || linkedPath.title)}
                       </span>
                     </div>
-                    <div className="min-w-0 flex-1 p-3 pr-12">
-                      <p className="font-headline text-[8px] font-bold uppercase tracking-widest text-on-surface-variant">
+                    <div className="min-w-0 flex-1 p-2 pr-9">
+                      <p className="font-headline text-[7px] font-bold uppercase tracking-widest text-on-surface-variant">
                         {childModule.phase || `Module ${String(childIndex + 1).padStart(2, '0')}`} / {childModule.rooms.length} rooms
                       </p>
-                      <h5 className="mt-1 line-clamp-2 font-headline text-xs font-black uppercase tracking-wide text-on-background">
+                      <h5 className="mt-1 line-clamp-2 font-headline text-[11px] font-black uppercase tracking-wide text-on-background">
                         {childModule.title}
                       </h5>
                     </div>
                     {childModule.completion > 0 ? (
-                      <div className={`absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full border-2 bg-surface-container-lowest text-[9px] font-black ${textClass}`}>
+                      <div className={`absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full border-2 bg-surface-container-lowest text-[8px] font-black ${textClass}`}>
                         {childModule.completion}%
                       </div>
                     ) : null}
@@ -524,7 +524,7 @@ function RoadmapPage() {
                           : `/learn/path/${foundationPath.slug || foundationPath.id}`
 
                       return (
-                        <div className={`relative ${linkedPath ? 'lg:min-h-[27rem]' : ''}`} key={`foundation-${module.id}`}>
+                        <div className={`relative ${linkedPath ? 'lg:min-h-[23rem]' : ''}`} key={`foundation-${module.id}`}>
                           {moduleIndex > 0 ? (
                             <div className="mx-auto hidden h-4 w-[3px] bg-secondary/70 lg:block"></div>
                           ) : null}
@@ -629,7 +629,7 @@ function RoadmapPage() {
                             : `/learn/path/${column.slug || column.id}`
 
                         return (
-                          <div className={`relative ${linkedPath ? 'lg:min-h-[27rem]' : ''}`} key={module.id}>
+                          <div className={`relative ${linkedPath ? 'lg:min-h-[23rem]' : ''}`} key={module.id}>
                             {moduleIndex > 0 ? (
                               <div className={`mx-auto hidden h-4 w-[3px] ${column.tone.line} lg:block`}></div>
                             ) : null}
