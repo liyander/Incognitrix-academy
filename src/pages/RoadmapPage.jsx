@@ -128,6 +128,7 @@ function RoadmapPage() {
   const [roadmapZoom, setRoadmapZoom] = useState(1)
   const roadmapViewportRef = useRef(null)
   const pinchStateRef = useRef({ distance: 0, zoom: 1 })
+  const gestureZoomRef = useRef(1)
 
   useEffect(() => {
     let cancelled = false
@@ -315,28 +316,62 @@ function RoadmapPage() {
     const viewport = roadmapViewportRef.current
     if (!viewport) return undefined
 
-    const handleNativeWheelZoom = (event) => {
+    const handleNativeWheel = (event) => {
+      if (event.ctrlKey || event.metaKey) {
+        event.preventDefault()
+        event.stopPropagation()
+        const rawDelta = Math.abs(event.deltaY || event.deltaX || 0)
+        const step = Math.max(0.04, Math.min(0.14, rawDelta / 700))
+        zoomRoadmapBy(event.deltaY > 0 || event.deltaX > 0 ? -step : step)
+        return
+      }
+
+      if (viewport.scrollWidth <= viewport.clientWidth) return
+      if (Math.abs(event.deltaY) < Math.abs(event.deltaX)) return
+
       event.preventDefault()
-      event.stopPropagation()
+      viewport.scrollLeft += event.deltaY
+    }
+
+    const handleNativeGestureStart = (event) => {
+      event.preventDefault()
+      gestureZoomRef.current = roadmapZoom
+    }
+
+    const handleNativeGestureChange = (event) => {
+      event.preventDefault()
+      const scale = Number(event.scale || 1)
+      setClampedRoadmapZoom(gestureZoomRef.current * scale)
+    }
+
+    const handleNativeTouchMove = (event) => {
+      if (event.touches?.length !== 2) return
+      event.preventDefault()
+    }
+
+    const handleNativeCtrlWheelFallback = (event) => {
+      if (!event.ctrlKey && !event.metaKey) return
+      if (!viewport.contains(event.target)) return
+      event.preventDefault()
       const rawDelta = Math.abs(event.deltaY || event.deltaX || 0)
       const step = Math.max(0.04, Math.min(0.14, rawDelta / 700))
       zoomRoadmapBy(event.deltaY > 0 || event.deltaX > 0 ? -step : step)
     }
 
-    const handleNativeGesture = (event) => {
-      event.preventDefault()
-    }
-
-    viewport.addEventListener('wheel', handleNativeWheelZoom, { passive: false })
-    viewport.addEventListener('gesturestart', handleNativeGesture, { passive: false })
-    viewport.addEventListener('gesturechange', handleNativeGesture, { passive: false })
+    viewport.addEventListener('wheel', handleNativeWheel, { passive: false })
+    viewport.addEventListener('touchmove', handleNativeTouchMove, { passive: false })
+    viewport.addEventListener('gesturestart', handleNativeGestureStart, { passive: false })
+    viewport.addEventListener('gesturechange', handleNativeGestureChange, { passive: false })
+    window.addEventListener('wheel', handleNativeCtrlWheelFallback, { passive: false })
 
     return () => {
-      viewport.removeEventListener('wheel', handleNativeWheelZoom)
-      viewport.removeEventListener('gesturestart', handleNativeGesture)
-      viewport.removeEventListener('gesturechange', handleNativeGesture)
+      viewport.removeEventListener('wheel', handleNativeWheel)
+      viewport.removeEventListener('touchmove', handleNativeTouchMove)
+      viewport.removeEventListener('gesturestart', handleNativeGestureStart)
+      viewport.removeEventListener('gesturechange', handleNativeGestureChange)
+      window.removeEventListener('wheel', handleNativeCtrlWheelFallback)
     }
-  }, [zoomRoadmapBy])
+  }, [roadmapZoom, setClampedRoadmapZoom, zoomRoadmapBy])
 
   const renderLinkedPathBranch = (linkedPath, tone, keyPrefix) => {
     if (!linkedPath) return null
@@ -478,7 +513,7 @@ function RoadmapPage() {
               </div>
 
               <div
-                className="overflow-x-auto overscroll-contain pb-4 [touch-action:none]"
+                className="overflow-x-auto overscroll-contain pb-4 [touch-action:pan-x_pan-y]"
                 onTouchCancel={handlePinchEnd}
                 onTouchEnd={handlePinchEnd}
                 onTouchMove={handlePinchMove}
