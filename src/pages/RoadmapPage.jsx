@@ -270,7 +270,7 @@ function RoadmapPage() {
       modules: modulesForPath,
     }
   })
-  const linkedPathSideAllowance = linkedPathIds.size ? 18 : 0
+  const linkedPathSideAllowance = linkedPathIds.size ? 12 : 0
   const branchGridGapRem = linkedPathIds.size ? 18 : 2
   const branchGridGap = `${branchGridGapRem}rem`
   const branchColumnWidth = `${Math.max(12, 18 * roadmapZoom).toFixed(2)}rem`
@@ -325,19 +325,19 @@ function RoadmapPage() {
 
     return (
       <div
-        className="relative mx-auto mt-3 max-w-[92%] lg:absolute lg:left-[calc(100%+3.75rem)] lg:top-1/2 lg:z-30 lg:mt-0 lg:w-64 lg:max-w-none lg:-translate-y-1/2"
+        className="relative mx-auto mt-3 max-w-[92%] lg:absolute lg:left-[calc(100%+1.5rem)] lg:top-1/2 lg:z-30 lg:mt-0 lg:w-56 lg:max-w-none lg:-translate-y-1/2"
         key={`${keyPrefix}-${linkedPath.id}`}
       >
         <div className={`mx-auto hidden h-5 w-[3px] ${lineClass} lg:hidden`}></div>
-        <div className={`absolute -left-16 top-1/2 hidden h-[3px] w-16 -translate-y-1/2 ${lineClass} lg:block`}></div>
+        <div className={`absolute -left-6 top-1/2 hidden h-[3px] w-6 -translate-y-1/2 ${lineClass} lg:block`}></div>
         <div className={`absolute -left-2 top-1/2 hidden h-3 w-3 -translate-y-1/2 border-2 ${borderClass} bg-surface-container-lowest lg:block`}></div>
         <Link
           className={`group relative z-10 block border ${borderClass} bg-surface-container-lowest p-3 text-left shadow-[0_0_24px_rgba(102,217,239,0.10)] transition-transform hover:-translate-y-0.5`}
           to={pathTarget}
         >
-          <div className="flex items-start gap-3">
-            <span className={`grid h-10 w-10 shrink-0 place-items-center bg-gradient-to-br ${panelClass}`}>
-              <span className="material-symbols-outlined text-2xl text-on-background">
+          <div className="flex items-start gap-2.5">
+            <span className={`grid h-9 w-9 shrink-0 place-items-center bg-gradient-to-br ${panelClass}`}>
+              <span className="material-symbols-outlined text-xl text-on-background">
                 account_tree
               </span>
             </span>
@@ -345,7 +345,7 @@ function RoadmapPage() {
               <p className="font-headline text-[9px] font-bold uppercase tracking-[0.24em] text-secondary">
                 Linked Sub-Path
               </p>
-              <h4 className="mt-1 line-clamp-2 font-headline text-xs font-black uppercase tracking-wide text-on-background">
+              <h4 className="mt-1 line-clamp-2 font-headline text-[11px] font-black uppercase tracking-wide text-on-background">
                 {linkedPath.title}
               </h4>
               <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-on-surface-variant">
@@ -353,7 +353,7 @@ function RoadmapPage() {
               </p>
             </div>
             <div className="shrink-0 text-right">
-              <span className={`font-space text-base font-black ${textClass}`}>
+              <span className={`font-space text-sm font-black ${textClass}`}>
                 {linkedPath.pathCompletion || 0}%
               </span>
               <p className="font-headline text-[8px] font-bold uppercase tracking-widest text-on-surface-variant">
