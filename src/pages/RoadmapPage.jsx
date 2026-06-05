@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getCareerPathsData, hydrateCareerPathsData } from '../data/careerPathsData'
 import { getRoomsData, hydrateRoomsData } from '../data/roomsData'
@@ -126,6 +126,7 @@ function RoadmapPage() {
   const [progressMap, setProgressMap] = useState(() => getLabProgressMap())
   const [isLoading, setIsLoading] = useState(true)
   const [roadmapZoom, setRoadmapZoom] = useState(1)
+  const roadmapViewportRef = useRef(null)
   const pinchStateRef = useRef({ distance: 0, zoom: 1 })
 
   useEffect(() => {
@@ -276,9 +277,13 @@ function RoadmapPage() {
   const branchColumnWidth = `${Math.max(12, 18 * roadmapZoom).toFixed(2)}rem`
   const branchGridColumns = `repeat(${Math.max(columns.length, 1)}, minmax(${branchColumnWidth}, 1fr))`
   const branchGridWidth = `${(Math.max(columns.length, 4) * 20 * roadmapZoom) + (Math.max(columns.length - 1, 0) * branchGridGapRem) + linkedPathSideAllowance}rem`
-  const setClampedRoadmapZoom = (value) => {
-    setRoadmapZoom(Math.max(0.7, Math.min(1.3, Number(value.toFixed(2)))))
-  }
+  const clampRoadmapZoom = useCallback((value) => Math.max(0.7, Math.min(1.3, Number(value.toFixed(2)))), [])
+  const setClampedRoadmapZoom = useCallback((value) => {
+    setRoadmapZoom(clampRoadmapZoom(value))
+  }, [clampRoadmapZoom])
+  const zoomRoadmapBy = useCallback((delta) => {
+    setRoadmapZoom((current) => clampRoadmapZoom(current + delta))
+  }, [clampRoadmapZoom])
 
   const getTouchDistance = (touches) => {
     if (!touches || touches.length < 2) return 0
@@ -306,12 +311,32 @@ function RoadmapPage() {
     pinchStateRef.current = { distance: 0, zoom: roadmapZoom }
   }
 
-  const handleWheelZoom = (event) => {
-    if (!event.ctrlKey && !event.metaKey) return
-    event.preventDefault()
-    const direction = event.deltaY > 0 ? -0.08 : 0.08
-    setClampedRoadmapZoom(roadmapZoom + direction)
-  }
+  useEffect(() => {
+    const viewport = roadmapViewportRef.current
+    if (!viewport) return undefined
+
+    const handleNativeWheelZoom = (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      const rawDelta = Math.abs(event.deltaY || event.deltaX || 0)
+      const step = Math.max(0.04, Math.min(0.14, rawDelta / 700))
+      zoomRoadmapBy(event.deltaY > 0 || event.deltaX > 0 ? -step : step)
+    }
+
+    const handleNativeGesture = (event) => {
+      event.preventDefault()
+    }
+
+    viewport.addEventListener('wheel', handleNativeWheelZoom, { passive: false })
+    viewport.addEventListener('gesturestart', handleNativeGesture, { passive: false })
+    viewport.addEventListener('gesturechange', handleNativeGesture, { passive: false })
+
+    return () => {
+      viewport.removeEventListener('wheel', handleNativeWheelZoom)
+      viewport.removeEventListener('gesturestart', handleNativeGesture)
+      viewport.removeEventListener('gesturechange', handleNativeGesture)
+    }
+  }, [zoomRoadmapBy])
 
   const renderLinkedPathBranch = (linkedPath, tone, keyPrefix) => {
     if (!linkedPath) return null
@@ -453,12 +478,12 @@ function RoadmapPage() {
               </div>
 
               <div
-                className="overflow-x-auto pb-4 [touch-action:pan-x_pan-y]"
+                className="overflow-x-auto overscroll-contain pb-4 [touch-action:none]"
                 onTouchCancel={handlePinchEnd}
                 onTouchEnd={handlePinchEnd}
                 onTouchMove={handlePinchMove}
                 onTouchStart={handlePinchStart}
-                onWheel={handleWheelZoom}
+                ref={roadmapViewportRef}
               >
               <div className="mx-auto" style={{ width: branchGridWidth }}>
               <div className="mx-auto hidden h-10 w-[3px] bg-secondary/65 shadow-[0_0_18px_rgba(102,217,239,0.25)] lg:block"></div>

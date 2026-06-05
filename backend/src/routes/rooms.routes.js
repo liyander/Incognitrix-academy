@@ -2419,6 +2419,7 @@ function getProxyRequestHeaders(req, targetHost, targetPort) {
     'upgrade',
     'host',
     'authorization',
+    'accept-encoding',
   ])
   const headers = {}
   Object.entries(req.headers || {}).forEach(([key, value]) => {
@@ -2440,9 +2441,64 @@ function getProxyRequestHeaders(req, targetHost, targetPort) {
   return headers
 }
 
-function getProxyResponseHeaders(headers) {
+function getDockerProxyBasePath(roomId) {
+  return `/api/rooms/${encodeURIComponent(roomId)}/docker/proxy`
+}
+
+function rewriteProxyPath(value, proxyBasePath, targetOrigin = '') {
+  const raw = String(value || '')
+  if (!raw || raw.startsWith('#') || raw.startsWith('mailto:') || raw.startsWith('tel:') || raw.startsWith('data:') || raw.startsWith('javascript:')) {
+    return raw
+  }
+  if (raw.startsWith(proxyBasePath)) return raw
+  if (raw.startsWith('//')) return raw
+  if (raw.startsWith('/')) return `${proxyBasePath}${raw}`
+
+  try {
+    if (targetOrigin && raw.startsWith(targetOrigin)) {
+      const parsed = new URL(raw)
+      return `${proxyBasePath}${parsed.pathname}${parsed.search}${parsed.hash}`
+    }
+  } catch {
+    // Leave malformed URLs untouched.
+  }
+
+  return raw
+}
+
+function rewriteProxiedHtml(html, proxyBasePath, targetOrigin) {
+  let nextHtml = String(html || '')
+  const baseTag = `<base href="${proxyBasePath}/">`
+  if (/<head[^>]*>/i.test(nextHtml) && !/<base\s/i.test(nextHtml)) {
+    nextHtml = nextHtml.replace(/<head([^>]*)>/i, `<head$1>${baseTag}`)
+  }
+
+  nextHtml = nextHtml.replace(
+    /\b(href|src|action|formaction)=("|')([^"']*)\2/gi,
+    (match, attribute, quote, value) => {
+      const rewritten = rewriteProxyPath(value, proxyBasePath, targetOrigin)
+      return `${attribute}=${quote}${rewritten}${quote}`
+    },
+  )
+  nextHtml = nextHtml.replace(
+    /\b(url|open|location\.href|window\.location|fetch)\(("|')([^"']*)\2\)/gi,
+    (match, caller, quote, value) => {
+      const rewritten = rewriteProxyPath(value, proxyBasePath, targetOrigin)
+      return `${caller}(${quote}${rewritten}${quote})`
+    },
+  )
+  nextHtml = nextHtml.replace(
+    /\b(url|open|location\.href|window\.location|fetch)\((\/[^)'"]*)\)/gi,
+    (match, caller, value) => `${caller}(${rewriteProxyPath(value, proxyBasePath, targetOrigin)})`,
+  )
+
+  return nextHtml
+}
+
+function getProxyResponseHeaders(headers, proxyBasePath = '', targetOrigin = '', rewriteBody = false) {
   const hopByHopHeaders = new Set([
     'connection',
+    'content-length',
     'keep-alive',
     'proxy-authenticate',
     'proxy-authorization',
@@ -2453,7 +2509,14 @@ function getProxyResponseHeaders(headers) {
   ])
   const safeHeaders = {}
   Object.entries(headers || {}).forEach(([key, value]) => {
-    if (!hopByHopHeaders.has(key.toLowerCase())) safeHeaders[key] = value
+    const lowerKey = key.toLowerCase()
+    if (hopByHopHeaders.has(lowerKey)) return
+    if (rewriteBody && lowerKey === 'content-security-policy') return
+    if (lowerKey === 'location') {
+      safeHeaders[key] = rewriteProxyPath(Array.isArray(value) ? value[0] : value, proxyBasePath, targetOrigin)
+      return
+    }
+    safeHeaders[key] = value
   })
   return safeHeaders
 }
@@ -2470,7 +2533,7 @@ router.use('/:id/docker/proxy', async (req, res) => {
       httpOnly: true,
       sameSite: 'lax',
       maxAge: 12 * 60 * 60 * 1000,
-      path: `/api/rooms/${encodeURIComponent(req.params.id)}/docker/proxy`,
+      path: getDockerProxyBasePath(req.params.id),
     })
   }
 
@@ -2530,6 +2593,8 @@ router.use('/:id/docker/proxy', async (req, res) => {
   const isHttps = config.protocol === 'https'
   const transport = isHttps ? https : http
   const body = Buffer.isBuffer(req.body) ? req.body : null
+  const proxyBasePath = getDockerProxyBasePath(req.params.id)
+  const targetOrigin = `${config.protocol}://${targetHost}:${targetPort}`
 
   const proxyRequest = transport.request(
     {
@@ -2544,8 +2609,28 @@ router.use('/:id/docker/proxy', async (req, res) => {
       rejectUnauthorized: false,
     },
     (proxyResponse) => {
-      res.writeHead(proxyResponse.statusCode || 502, getProxyResponseHeaders(proxyResponse.headers))
-      proxyResponse.pipe(res)
+      const contentType = String(proxyResponse.headers['content-type'] || '')
+      const shouldRewriteBody = /\btext\/html\b/i.test(contentType)
+      const responseHeaders = getProxyResponseHeaders(proxyResponse.headers, proxyBasePath, targetOrigin, shouldRewriteBody)
+
+      if (!shouldRewriteBody) {
+        res.writeHead(proxyResponse.statusCode || 502, responseHeaders)
+        proxyResponse.pipe(res)
+        return
+      }
+
+      const chunks = []
+      proxyResponse.on('data', (chunk) => chunks.push(Buffer.from(chunk)))
+      proxyResponse.on('end', () => {
+        const html = Buffer.concat(chunks).toString('utf8')
+        const rewrittenHtml = rewriteProxiedHtml(html, proxyBasePath, targetOrigin)
+        const payload = Buffer.from(rewrittenHtml, 'utf8')
+        res.writeHead(proxyResponse.statusCode || 502, {
+          ...responseHeaders,
+          'content-length': payload.length,
+        })
+        res.end(payload)
+      })
     },
   )
 
