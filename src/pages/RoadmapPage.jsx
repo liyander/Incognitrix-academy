@@ -270,10 +270,12 @@ function RoadmapPage() {
       modules: modulesForPath,
     }
   })
-  const linkedPathSideAllowance = linkedPathIds.size ? 34 : 0
+  const linkedPathSideAllowance = linkedPathIds.size ? 18 : 0
+  const branchGridGapRem = linkedPathIds.size ? 18 : 2
+  const branchGridGap = `${branchGridGapRem}rem`
   const branchColumnWidth = `${Math.max(12, 18 * roadmapZoom).toFixed(2)}rem`
   const branchGridColumns = `repeat(${Math.max(columns.length, 1)}, minmax(${branchColumnWidth}, 1fr))`
-  const branchGridWidth = `${(Math.max(columns.length, 4) * 20 * roadmapZoom) + linkedPathSideAllowance}rem`
+  const branchGridWidth = `${(Math.max(columns.length, 4) * 20 * roadmapZoom) + (Math.max(columns.length - 1, 0) * branchGridGapRem) + linkedPathSideAllowance}rem`
   const setClampedRoadmapZoom = (value) => {
     setRoadmapZoom(Math.max(0.7, Math.min(1.3, Number(value.toFixed(2)))))
   }
@@ -359,48 +361,32 @@ function RoadmapPage() {
               </p>
             </div>
           </div>
-        </Link>
-        {childModules.length ? (
-          <div className={`ml-5 border-l-2 ${borderClass} pl-3`}>
-            {childModules.map((childModule, childIndex) => {
-              const childFirstRoom = childModule.rooms?.[0]
-              const childTarget = childModule.id
-                ? `/learn/path/${linkedPath.slug || linkedPath.id}/module/${childModule.id}`
-                : childFirstRoom
-                  ? `/learn/lab/${childFirstRoom.slug || childFirstRoom.id}`
-                  : pathTarget
-
-              return (
-                <div className="relative" key={`${keyPrefix}-${linkedPath.id}-${childModule.id}`}>
-                  <div className={`absolute -left-3 top-7 h-[2px] w-3 ${lineClass}`}></div>
-                  <Link
-                    className={`mt-2 flex min-h-16 border ${borderClass} bg-surface-container-lowest shadow-sm transition-transform hover:-translate-y-0.5`}
-                    to={childTarget}
+          {childModules.length ? (
+            <div className="mt-3 border-t border-outline-variant/50 pt-3">
+              <p className="font-headline text-[8px] font-bold uppercase tracking-widest text-on-surface-variant">
+                Submodules
+              </p>
+              <div className="mt-2 space-y-1.5">
+                {childModules.slice(0, 4).map((childModule, childIndex) => (
+                  <div
+                    className="flex items-center gap-2 bg-surface-container-high/70 px-2 py-1.5 text-[10px] text-on-surface-variant"
+                    key={`${keyPrefix}-${linkedPath.id}-${childModule.id}`}
                   >
-                    <div className={`grid w-12 shrink-0 place-items-center bg-gradient-to-br ${panelClass}`}>
-                      <span className="material-symbols-outlined text-xl text-on-background">
-                        {getIconForTrack(childModule.title || linkedPath.title)}
-                      </span>
-                    </div>
-                    <div className="min-w-0 flex-1 p-2 pr-9">
-                      <p className="font-headline text-[7px] font-bold uppercase tracking-widest text-on-surface-variant">
-                        {childModule.phase || `Module ${String(childIndex + 1).padStart(2, '0')}`} / {childModule.rooms.length} rooms
-                      </p>
-                      <h5 className="mt-1 line-clamp-2 font-headline text-[11px] font-black uppercase tracking-wide text-on-background">
-                        {childModule.title}
-                      </h5>
-                    </div>
-                    {childModule.completion > 0 ? (
-                      <div className={`absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full border-2 bg-surface-container-lowest text-[8px] font-black ${textClass}`}>
-                        {childModule.completion}%
-                      </div>
-                    ) : null}
-                  </Link>
-                </div>
-              )
-            })}
-          </div>
-        ) : null}
+                    <span className={`h-1.5 w-1.5 shrink-0 ${lineClass}`}></span>
+                    <span className="min-w-0 flex-1 truncate font-headline font-bold uppercase tracking-wide">
+                      {childModule.phase || `Module ${String(childIndex + 1).padStart(2, '0')}`} - {childModule.title}
+                    </span>
+                  </div>
+                ))}
+                {childModules.length > 4 ? (
+                  <p className="px-2 pt-1 text-[10px] text-on-surface-variant">
+                    +{childModules.length - 4} more modules
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </Link>
       </div>
     )
   }
@@ -524,7 +510,7 @@ function RoadmapPage() {
                           : `/learn/path/${foundationPath.slug || foundationPath.id}`
 
                       return (
-                        <div className={`relative ${linkedPath ? 'lg:min-h-[23rem]' : ''}`} key={`foundation-${module.id}`}>
+                        <div className={`relative ${linkedPath ? 'lg:min-h-[15rem]' : ''}`} key={`foundation-${module.id}`}>
                           {moduleIndex > 0 ? (
                             <div className="mx-auto hidden h-4 w-[3px] bg-secondary/70 lg:block"></div>
                           ) : null}
@@ -583,7 +569,10 @@ function RoadmapPage() {
               <div className="relative mx-auto hidden h-32 w-full lg:block">
                 <div className="absolute left-1/2 -top-px h-full w-[5px] -translate-x-1/2 bg-secondary shadow-[0_0_26px_rgba(102,217,239,0.45)]"></div>
                 <div className="absolute left-0 right-0 bottom-0 h-[5px] bg-secondary shadow-[0_0_22px_rgba(102,217,239,0.32)]"></div>
-                <div className="absolute inset-x-0 bottom-0 grid translate-y-full gap-8" style={{ gridTemplateColumns: branchGridColumns }}>
+                <div
+                  className="absolute inset-x-0 bottom-0 grid translate-y-full"
+                  style={{ columnGap: branchGridGap, gridTemplateColumns: branchGridColumns }}
+                >
                   {columns.map((column) => (
                     <div className="h-10" key={`root-link-${column.id || column.title}`}>
                       <div className="mx-auto h-full w-[5px] bg-secondary shadow-[0_0_18px_rgba(102,217,239,0.28)]"></div>
@@ -592,7 +581,10 @@ function RoadmapPage() {
                 </div>
               </div>
 
-              <div className="grid gap-8 lg:mt-10 lg:items-start" style={{ gridTemplateColumns: branchGridColumns }}>
+              <div
+                className="grid gap-y-8 lg:mt-10 lg:items-start"
+                style={{ columnGap: branchGridGap, gridTemplateColumns: branchGridColumns }}
+              >
                 {columns.map((column) => (
                   <section className="relative pt-10" key={column.id || column.title}>
                     <div className={`absolute left-1/2 top-0 hidden h-full w-[3px] -translate-x-1/2 ${column.tone.line} lg:block`}></div>
@@ -629,7 +621,7 @@ function RoadmapPage() {
                             : `/learn/path/${column.slug || column.id}`
 
                         return (
-                          <div className={`relative ${linkedPath ? 'lg:min-h-[23rem]' : ''}`} key={module.id}>
+                          <div className={`relative ${linkedPath ? 'lg:min-h-[15rem]' : ''}`} key={module.id}>
                             {moduleIndex > 0 ? (
                               <div className={`mx-auto hidden h-4 w-[3px] ${column.tone.line} lg:block`}></div>
                             ) : null}
