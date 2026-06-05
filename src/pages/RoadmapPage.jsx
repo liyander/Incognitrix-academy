@@ -323,14 +323,7 @@ function RoadmapPage() {
         const rawDelta = Math.abs(event.deltaY || event.deltaX || 0)
         const step = Math.max(0.04, Math.min(0.14, rawDelta / 700))
         zoomRoadmapBy(event.deltaY > 0 || event.deltaX > 0 ? -step : step)
-        return
       }
-
-      if (viewport.scrollWidth <= viewport.clientWidth) return
-      if (Math.abs(event.deltaY) < Math.abs(event.deltaX)) return
-
-      event.preventDefault()
-      viewport.scrollLeft += event.deltaY
     }
 
     const handleNativeGestureStart = (event) => {
@@ -513,7 +506,7 @@ function RoadmapPage() {
               </div>
 
               <div
-                className="overflow-x-auto overscroll-contain pb-4 [touch-action:pan-x_pan-y]"
+                className="max-h-[calc(100vh-12rem)] overflow-auto overscroll-auto pb-4 pr-2 [touch-action:pan-x_pan-y]"
                 onTouchCancel={handlePinchEnd}
                 onTouchEnd={handlePinchEnd}
                 onTouchMove={handlePinchMove}
