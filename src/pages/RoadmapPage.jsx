@@ -506,7 +506,7 @@ function RoadmapPage() {
               </div>
 
               <div
-                className="max-h-[calc(100vh-12rem)] overflow-auto overscroll-auto pb-4 pr-2 [touch-action:pan-x_pan-y]"
+                className="overflow-x-auto overflow-y-visible overscroll-x-contain pb-4 [touch-action:pan-x_pan-y]"
                 onTouchCancel={handlePinchEnd}
                 onTouchEnd={handlePinchEnd}
                 onTouchMove={handlePinchMove}
