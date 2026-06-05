@@ -270,9 +270,10 @@ function RoadmapPage() {
       modules: modulesForPath,
     }
   })
+  const linkedPathSideAllowance = linkedPathIds.size ? 24 : 0
   const branchColumnWidth = `${Math.max(12, 18 * roadmapZoom).toFixed(2)}rem`
   const branchGridColumns = `repeat(${Math.max(columns.length, 1)}, minmax(${branchColumnWidth}, 1fr))`
-  const branchGridWidth = `${Math.max(columns.length, 4) * 20 * roadmapZoom}rem`
+  const branchGridWidth = `${(Math.max(columns.length, 4) * 20 * roadmapZoom) + linkedPathSideAllowance}rem`
   const setClampedRoadmapZoom = (value) => {
     setRoadmapZoom(Math.max(0.7, Math.min(1.3, Number(value.toFixed(2)))))
   }
@@ -321,10 +322,15 @@ function RoadmapPage() {
     const pathTarget = `/learn/path/${linkedPath.slug || linkedPath.id}`
 
     return (
-      <div className="relative mx-auto max-w-[92%]" key={`${keyPrefix}-${linkedPath.id}`}>
-        <div className={`mx-auto hidden h-5 w-[3px] ${lineClass} lg:block`}></div>
+      <div
+        className="relative mx-auto mt-3 max-w-[92%] lg:absolute lg:left-full lg:top-1/2 lg:z-30 lg:ml-7 lg:mt-0 lg:w-80 lg:max-w-none lg:-translate-y-1/2"
+        key={`${keyPrefix}-${linkedPath.id}`}
+      >
+        <div className={`mx-auto hidden h-5 w-[3px] ${lineClass} lg:hidden`}></div>
+        <div className={`absolute -left-7 top-1/2 hidden h-[3px] w-7 -translate-y-1/2 ${lineClass} lg:block`}></div>
+        <div className={`absolute -left-2 top-1/2 hidden h-3 w-3 -translate-y-1/2 border-2 ${borderClass} bg-surface-container-lowest lg:block`}></div>
         <Link
-          className={`group relative z-10 block border ${borderClass} bg-surface-container-lowest p-4 text-left shadow-lg transition-transform hover:-translate-y-0.5`}
+          className={`group relative z-10 block border ${borderClass} bg-surface-container-lowest p-4 text-left shadow-[0_0_24px_rgba(102,217,239,0.10)] transition-transform hover:-translate-y-0.5`}
           to={pathTarget}
         >
           <div className="flex items-start gap-4">
@@ -518,7 +524,7 @@ function RoadmapPage() {
                           : `/learn/path/${foundationPath.slug || foundationPath.id}`
 
                       return (
-                        <div className="relative" key={`foundation-${module.id}`}>
+                        <div className={`relative ${linkedPath ? 'lg:min-h-[27rem]' : ''}`} key={`foundation-${module.id}`}>
                           {moduleIndex > 0 ? (
                             <div className="mx-auto hidden h-4 w-[3px] bg-secondary/70 lg:block"></div>
                           ) : null}
@@ -623,7 +629,7 @@ function RoadmapPage() {
                             : `/learn/path/${column.slug || column.id}`
 
                         return (
-                          <div className="relative" key={module.id}>
+                          <div className={`relative ${linkedPath ? 'lg:min-h-[27rem]' : ''}`} key={module.id}>
                             {moduleIndex > 0 ? (
                               <div className={`mx-auto hidden h-4 w-[3px] ${column.tone.line} lg:block`}></div>
                             ) : null}
