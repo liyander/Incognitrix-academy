@@ -11,9 +11,14 @@ function searchableValue(value) {
   return String(value ?? '').toLowerCase()
 }
 
+function normalizeRoomType(value) {
+  return String(value || 'theoretical').toLowerCase() === 'practical' ? 'practical' : 'theoretical'
+}
+
 function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
   const [complexity, setComplexity] = useState('Any Difficulty')
   const [specialization, setSpecialization] = useState('All Categories')
+  const [roomTypeFilter, setRoomTypeFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [viewFilter, setViewFilter] = useState('all')
   const [progressMap, setProgressMap] = useState(() => getLabProgressMap())
@@ -32,6 +37,10 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
 
     if (specialization !== 'All Categories') {
       results = results.filter((room) => room.category === specialization)
+    }
+
+    if (roomTypeFilter !== 'all') {
+      results = results.filter((room) => normalizeRoomType(room.roomType) === roomTypeFilter)
     }
 
     if (searchQuery.trim()) {
@@ -56,7 +65,7 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
     }
 
     return results
-  }, [allRooms, complexity, specialization, searchQuery, viewFilter, progressMap])
+  }, [allRooms, complexity, specialization, roomTypeFilter, searchQuery, viewFilter, progressMap])
 
   const proficiencyItems = useMemo(() => {
     void categoryTick
@@ -139,6 +148,7 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
   const handleReset = () => {
     setComplexity('Any Difficulty')
     setSpecialization('All Categories')
+    setRoomTypeFilter('all')
     setSearchQuery('')
     setViewFilter('all')
   }
@@ -182,7 +192,7 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
           <div className="flex flex-col gap-2">
             <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold ml-1">Complexity Tier</label>
             <select 
@@ -210,6 +220,18 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
             </select>
           </div>
           <div className="flex flex-col gap-2">
+            <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold ml-1">Room Type</label>
+            <select
+              className="bg-surface-container-highest border-l-2 border-l-secondary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none cursor-pointer"
+              value={roomTypeFilter}
+              onChange={(e) => setRoomTypeFilter(e.target.value)}
+            >
+              <option value="all">All Types</option>
+              <option value="theoretical">Theory Labs</option>
+              <option value="practical">Practical Labs</option>
+            </select>
+          </div>
+          <div className="flex flex-col gap-2">
             <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold ml-1">Search Identifier</label>
             <div className="relative">
               <input 
@@ -222,7 +244,7 @@ function ModulesPage({ allowLabRooms = true, selectedLabId = null }) {
             </div>
           </div>
           <div className="flex items-end">
-            {(complexity !== 'Any Difficulty' || specialization !== 'All Categories' || searchQuery) && (
+            {(complexity !== 'Any Difficulty' || specialization !== 'All Categories' || roomTypeFilter !== 'all' || searchQuery) && (
               <button 
                 className="w-full px-4 py-3.5 bg-surface-container-high text-on-surface font-label uppercase text-xs tracking-widest hover:bg-surface-container-highest transition-colors font-bold"
                 onClick={handleReset}

@@ -29,7 +29,8 @@ function hasPracticalAiQuestions(room) {
 function getDockerConfig(room) {
   const docker = room?.content?.docker || {}
   const isPractical = !isTheoreticalRoom(room)
-  const fallbackImage = String(docker.image || docker.terminalImage || env.defaultDockerImage || 'ubuntu:24.04').trim()
+  const serviceImage = String(docker.image || '').trim()
+  const fallbackImage = String(serviceImage || docker.terminalImage || env.defaultDockerImage || 'ubuntu:24.04').trim()
   const terminalTools = String(docker.terminalTools || '')
     .split(/[\s,]+/)
     .map((tool) => tool.trim())
@@ -38,6 +39,7 @@ function getDockerConfig(room) {
   return {
     enabled: isPractical,
     image: fallbackImage,
+    hasWebService: Boolean(serviceImage),
     containerPort: Number(docker.containerPort || 0),
     protocol: ['http', 'https', 'tcp'].includes(String(docker.protocol || '').toLowerCase())
       ? String(docker.protocol).toLowerCase()
@@ -142,7 +144,7 @@ function getDockerServiceHost(dockerConnection = {}) {
 }
 
 function buildDockerAccess(config, hostPort, requestHost = '', dockerConnection = {}, options = {}) {
-  if (!hostPort) return null
+  if (!hostPort || !config.hasWebService) return null
   const host = dockerConnection.displayHost || requestHost || env.publicHost || '127.0.0.1'
   if (config.protocol === 'tcp') {
     return {

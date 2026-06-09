@@ -172,7 +172,7 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
                       {machine.title || machine.roomId}
                     </NavLink>
                     {machine.access?.url ? (
-                      <a
+                  +    <a
                         className="mt-1 flex items-center gap-1 text-[10px] text-secondary hover:text-on-surface min-w-0"
                         href={machine.access.url}
                         rel="noreferrer"
