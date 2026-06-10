@@ -43,6 +43,7 @@ function AdminCareerPathEditorPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [modulesSavedId, setModulesSavedId] = useState('')
   const [resourcesSavedId, setResourcesSavedId] = useState('')
+  const [roomSearchByModule, setRoomSearchByModule] = useState({})
   const [newModuleForm, setNewModuleForm] = useState({
     phase: '',
     title: '',
@@ -271,6 +272,7 @@ function AdminCareerPathEditorPage() {
         updateModuleInPath(pathId, moduleId, { rooms: updatedRooms })
         setFormData(getCareerPathById(pathId))
       }
+      setRoomSearchByModule((prev) => ({ ...prev, [moduleId]: '' }))
     }
   }
 
@@ -820,25 +822,63 @@ function AdminCareerPathEditorPage() {
                           )}
                         </div>
 
-                        <select
-                          className="w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              handleAddRoomToModule(module.id, e.target.value)
-                              e.target.value = ''
-                            }
-                          }}
-                          value=""
-                        >
-                          <option value="">+ Add Room to Module</option>
-                          {allRooms
-                            .filter((r) => !module.rooms || !module.rooms.includes(r.id))
-                            .map((room) => (
-                              <option key={room.id} value={room.id}>
-                                {room.title}
-                              </option>
-                            ))}
-                        </select>
+                        {(() => {
+                          const roomSearch = roomSearchByModule[module.id] || ''
+                          const normalizedSearch = roomSearch.trim().toLowerCase()
+                          const availableRooms = allRooms
+                            .filter((room) => !module.rooms || !module.rooms.includes(room.id))
+                            .filter((room) => {
+                              if (!normalizedSearch) return true
+                              return [
+                                room.title,
+                                room.id,
+                                room.slug,
+                                room.category,
+                                room.level,
+                              ]
+                                .filter(Boolean)
+                                .some((value) => String(value).toLowerCase().includes(normalizedSearch))
+                            })
+
+                          return (
+                            <div className="space-y-2">
+                              <input
+                                className="w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                                onChange={(event) =>
+                                  setRoomSearchByModule((prev) => ({
+                                    ...prev,
+                                    [module.id]: event.target.value,
+                                  }))
+                                }
+                                placeholder="Search rooms by title, slug, category, or difficulty..."
+                                type="search"
+                                value={roomSearch}
+                              />
+                              <select
+                                className="w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                                disabled={!availableRooms.length}
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    handleAddRoomToModule(module.id, e.target.value)
+                                    e.target.value = ''
+                                  }
+                                }}
+                                value=""
+                              >
+                                <option value="">
+                                  {availableRooms.length
+                                    ? `+ Add Room to Module (${availableRooms.length} match${availableRooms.length === 1 ? '' : 'es'})`
+                                    : 'No matching rooms available'}
+                                </option>
+                                {availableRooms.map((room) => (
+                                  <option key={room.id} value={room.id}>
+                                    {room.title} {room.category ? `- ${room.category}` : ''}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )
+                        })()}
                       </div>
                     </div>
                   ))}
