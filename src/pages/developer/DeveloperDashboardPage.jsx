@@ -166,6 +166,7 @@ function DeveloperDashboardPage() {
   const [working, setWorking] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false)
 
   const canAccess = session?.role === 'developer' || session?.role === 'admin'
 
@@ -289,6 +290,11 @@ function DeveloperDashboardPage() {
     }
   }
 
+  const confirmLogout = () => {
+    logoutUser()
+    navigate('/login')
+  }
+
   if (!session) {
     return <Navigate to="/login" replace />
   }
@@ -326,10 +332,7 @@ function DeveloperDashboardPage() {
                 ) : null}
                 <button
                   className="bg-primary px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-primary"
-                  onClick={() => {
-                    logoutUser()
-                    navigate('/login')
-                  }}
+                  onClick={() => setConfirmLogoutOpen(true)}
                   type="button"
                 >
                   Logout
@@ -657,6 +660,40 @@ Authorization: Bearer <developer_api_key>`}
           </>
         )}
       </section>
+
+      {confirmLogoutOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+          <section className="w-full max-w-md border border-outline-variant bg-surface-container-lowest shadow-2xl">
+            <div className="border-t-4 border-primary p-6">
+              <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-primary">
+                Session Control
+              </p>
+              <h2 className="mt-3 font-headline text-3xl font-black uppercase text-on-background">
+                Confirm Logout
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-on-surface-variant">
+                Are you sure you want to end this developer session? Unsaved documentation edits or copied API keys may be lost.
+              </p>
+              <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  className="bg-surface-container-high px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-background"
+                  onClick={() => setConfirmLogoutOpen(false)}
+                  type="button"
+                >
+                  Stay Logged In
+                </button>
+                <button
+                  className="bg-primary px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-primary"
+                  onClick={confirmLogout}
+                  type="button"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </main>
   )
 }
