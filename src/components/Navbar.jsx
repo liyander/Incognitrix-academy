@@ -21,6 +21,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
   const [showNotifications, setShowNotifications] = useState(false)
   const notificationsRef = useRef(null)
   const [streak, setStreak] = useState({ currentStreak: 0 })
+  const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false)
 
   const navItemClass = ({ isActive }) =>
     `transition-colors duration-200 ${
@@ -406,12 +407,48 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
         </div>
         <button
           className="hidden sm:inline-flex px-3 xl:px-4 py-2 border border-outline text-on-surface-variant font-headline text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container-high hover:text-on-surface transition-colors"
-          onClick={onLogout}
+          onClick={() => setConfirmLogoutOpen(true)}
           type="button"
         >
           Logout
         </button>
       </div>
+      {confirmLogoutOpen ? (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+          <section className="w-full max-w-md border border-outline-variant bg-surface-container-lowest shadow-2xl">
+            <div className="border-t-4 border-primary p-6">
+              <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-primary">
+                Session Control
+              </p>
+              <h2 className="mt-3 font-headline text-3xl font-black uppercase text-on-background">
+                Confirm Logout
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-on-surface-variant">
+                Are you sure you want to leave the platform? Any unsaved room answers, notes, or terminal context may be lost.
+              </p>
+              <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  className="bg-surface-container-high px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-background hover:bg-surface-container-highest"
+                  onClick={() => setConfirmLogoutOpen(false)}
+                  type="button"
+                >
+                  Stay Logged In
+                </button>
+                <button
+                  className="bg-primary px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-primary hover:bg-primary/90"
+                  onClick={() => {
+                    setConfirmLogoutOpen(false)
+                    onLogout()
+                  }}
+                  type="button"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </header>
   )
 }
