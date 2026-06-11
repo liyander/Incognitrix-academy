@@ -2,6 +2,8 @@
 
 The public API is designed for external applications that need to read student, room, and study-path data from Incognitrix without using a user login session.
 
+Developer-role users also have a separate Developer API under `/api/developer`. Developer keys are created from the Developer Panel and are intended for trusted internal scripts that need broader operational telemetry.
+
 ## Base URL
 
 ```text
@@ -26,6 +28,8 @@ Authorization: Bearer your_public_api_key
 
 `Authorization: ApiKey your_public_api_key` is also accepted.
 
+Developer API keys use the same header formats, but call `/api/developer/data/:resource` instead of `/api/public/...`.
+
 If the key is missing, the API returns `401 Unauthorized`.
 If the key is not configured on the server, the API returns `503 Service Unavailable`.
 
@@ -35,6 +39,21 @@ If the key is not configured on the server, the API returns `503 Service Unavail
 curl http://localhost:4000/api/public/summary \
   -H "x-api-key: your_public_api_key"
 ```
+
+Developer API example:
+
+```bash
+curl http://localhost:4000/api/developer/data/all \
+  -H "x-api-key: your_developer_api_key"
+```
+
+Developer data resources:
+- `all`
+- `users`
+- `rooms`
+- `progress`
+- `docker`
+- `career-paths`
 
 ## Endpoints
 

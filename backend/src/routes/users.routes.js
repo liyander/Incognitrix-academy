@@ -20,6 +20,8 @@ const editableProfileFields = [
   'achievements',
 ]
 
+const allowedRoles = new Set(['operator', 'developer', 'admin'])
+
 function normalizeNullable(value) {
   if (value === undefined) {
     return undefined
@@ -741,6 +743,13 @@ router.put('/admin/registrations/:id', authenticate, requireAdmin, async (req, r
       if (field === 'is_active') {
         updates.push(`${field} = ?`)
         values.push(Boolean(req.body[field]))
+      } else if (field === 'role') {
+        const nextRole = normalizeNullable(req.body[field]) || 'operator'
+        if (!allowedRoles.has(nextRole)) {
+          return res.status(400).json({ message: 'Role must be operator, developer, or admin.' })
+        }
+        updates.push(`${field} = ?`)
+        values.push(nextRole)
       } else {
         updates.push(`${field} = ?`)
         values.push(normalizeNullable(req.body[field]))

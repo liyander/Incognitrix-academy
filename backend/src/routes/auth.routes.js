@@ -116,6 +116,9 @@ router.post('/login', async (req, res) => {
   }
 
   const token = signToken({ id: user.id, username: user.username, role: user.role })
+  await pool.query('UPDATE users SET last_login_at = CURRENT_TIMESTAMP, last_seen_at = CURRENT_TIMESTAMP WHERE id = ?', [
+    user.id,
+  ])
 
   return res.json({
     token,

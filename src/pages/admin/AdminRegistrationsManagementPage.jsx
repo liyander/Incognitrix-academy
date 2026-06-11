@@ -65,7 +65,8 @@ function AdminRegistrationsManagementPage() {
   const activeUsers = visibleUsers.filter((user) => Boolean(user.is_active)).length
   const disabledUsers = totalUsers - activeUsers
   const adminUsers = visibleUsers.filter((user) => user.role === 'admin').length
-  const operatorUsers = totalUsers - adminUsers
+  const developerUsers = visibleUsers.filter((user) => user.role === 'developer').length
+  const operatorUsers = totalUsers - adminUsers - developerUsers
   const selectedVisibleIds = visibleUsers.map((user) => user.id)
   const selectedPromotableIds = selectedUserIds.filter((id) => {
     const user = users.find((entry) => entry.id === id)
@@ -402,7 +403,7 @@ function AdminRegistrationsManagementPage() {
             Click a registration number to open the full player profile.
           </p>
 
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
             <div className="bg-surface-container-high p-4 border-l-2 border-l-primary">
               <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Total</p>
               <p className="text-2xl font-headline font-black mt-1">{totalUsers}</p>
@@ -418,6 +419,10 @@ function AdminRegistrationsManagementPage() {
             <div className="bg-surface-container-high p-4 border-l-2 border-l-primary">
               <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Admins</p>
               <p className="text-2xl font-headline font-black mt-1">{adminUsers}</p>
+            </div>
+            <div className="bg-surface-container-high p-4 border-l-2 border-l-secondary">
+              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Developers</p>
+              <p className="text-2xl font-headline font-black mt-1">{developerUsers}</p>
             </div>
             <div className="bg-surface-container-high p-4 border-l-2 border-l-secondary">
               <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Operators</p>
@@ -648,8 +653,8 @@ function AdminRegistrationsManagementPage() {
                       <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold ${user.is_active ? 'bg-secondary/15 text-secondary' : 'bg-error/15 text-error'}`}>
                         {user.is_active ? 'Active' : 'Disabled'}
                       </span>
-                      <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold ${user.role === 'admin' ? 'bg-primary/15 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
-                        {user.role === 'admin' ? 'Admin' : 'Operator'}
+                      <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold ${user.role === 'admin' ? 'bg-primary/15 text-primary' : user.role === 'developer' ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                        {user.role === 'admin' ? 'Admin' : user.role === 'developer' ? 'Developer' : 'Operator'}
                       </span>
                       {isPermanentAdmin(user) ? (
                         <span className="px-3 py-1 text-[10px] uppercase tracking-widest font-bold bg-secondary/15 text-secondary">

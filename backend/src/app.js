@@ -14,6 +14,7 @@ import chatbotRoutes from './routes/chatbot.routes.js'
 import adminAiRoutes from './routes/adminAi.routes.js'
 import certificatesRoutes from './routes/certificates.routes.js'
 import notesRoutes from './routes/notes.routes.js'
+import developerRoutes from './routes/developer.routes.js'
 import publicApiRoutes from './api/publicApi.routes.js'
 
 const app = express()
@@ -54,6 +55,7 @@ app.use('/api/chatbot', chatbotRoutes)
 app.use('/api/admin-ai', adminAiRoutes)
 app.use('/api/certificates', certificatesRoutes)
 app.use('/api/notes', notesRoutes)
+app.use('/api/developer', developerRoutes)
 app.use('/api/public', publicApiRoutes)
 
 app.use((err, _req, res, _next) => {

@@ -576,6 +576,7 @@ function AdminRegistrationDetailPage() {
                     value={form.role}
                   >
                     <option value="operator">operator</option>
+                    <option value="developer">developer</option>
                     <option value="admin">admin</option>
                   </select>
                 </label>

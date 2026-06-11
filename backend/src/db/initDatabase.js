@@ -41,7 +41,7 @@ async function ensureDatabase() {
       last_name VARCHAR(120),
       email VARCHAR(255) UNIQUE,
       password_hash VARCHAR(255) NOT NULL,
-      role ENUM('operator', 'admin') NOT NULL,
+      role VARCHAR(30) NOT NULL DEFAULT 'operator',
       hackthebox_profile TEXT,
       tryhackme_profile TEXT,
       picoctf_profile TEXT,
@@ -52,6 +52,8 @@ async function ensureDatabase() {
       projects LONGTEXT,
       achievements LONGTEXT,
       is_active BOOLEAN DEFAULT true,
+      last_login_at DATETIME NULL,
+      last_seen_at DATETIME NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     );
@@ -353,8 +355,33 @@ async function ensureDatabase() {
       FOREIGN KEY (session_id) REFERENCES admin_ai_chat_sessions(id) ON DELETE SET NULL,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS developer_api_keys (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      name VARCHAR(120) NOT NULL,
+      key_hash VARCHAR(128) NOT NULL UNIQUE,
+      key_prefix VARCHAR(24) NOT NULL,
+      scopes_json JSON NULL,
+      last_used_at DATETIME NULL,
+      revoked_at DATETIME NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_developer_keys_user (user_id, revoked_at),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS developer_documents (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL UNIQUE,
+      markdown MEDIUMTEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
   `)
 
+  await connection.query("ALTER TABLE users MODIFY COLUMN role VARCHAR(30) NOT NULL DEFAULT 'operator'")
   await addColumnIfMissing('users', 'registration_number', 'VARCHAR(64) NULL UNIQUE')
   await addColumnIfMissing('users', 'first_name', 'VARCHAR(120) NULL')
   await addColumnIfMissing('users', 'last_name', 'VARCHAR(120) NULL')
@@ -369,6 +396,8 @@ async function ensureDatabase() {
   await addColumnIfMissing('users', 'projects', 'LONGTEXT NULL')
   await addColumnIfMissing('users', 'achievements', 'LONGTEXT NULL')
   await addColumnIfMissing('users', 'is_active', 'BOOLEAN DEFAULT true')
+  await addColumnIfMissing('users', 'last_login_at', 'DATETIME NULL')
+  await addColumnIfMissing('users', 'last_seen_at', 'DATETIME NULL')
   await addColumnIfMissing(
     'users',
     'updated_at',
