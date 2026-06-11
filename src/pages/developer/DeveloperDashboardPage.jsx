@@ -64,6 +64,87 @@ function EndpointCard({ endpoint, selected, onSelect }) {
   )
 }
 
+function EndpointReference({ endpoint }) {
+  if (!endpoint) {
+    return (
+      <div className="bg-surface-container-high p-4 text-sm text-on-surface-variant">
+        Select an endpoint to inspect its documentation.
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-surface-container-high p-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">
+              {endpoint.group}
+            </p>
+            <p className="mt-2 break-all font-mono text-sm font-bold text-on-background">{endpoint.path}</p>
+          </div>
+          <span className="w-fit bg-surface-container-lowest px-3 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
+            {endpoint.method}
+          </span>
+        </div>
+        <p className="mt-3 text-sm leading-relaxed text-on-surface-variant">{endpoint.description}</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="bg-surface-container-high p-4">
+          <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+            Authentication
+          </p>
+          <p className="mt-2 text-sm text-on-background">{endpoint.authentication}</p>
+        </div>
+        <div className="bg-surface-container-high p-4">
+          <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+            Returns
+          </p>
+          <p className="mt-2 text-sm text-on-background">{endpoint.returns || 'JSON response body.'}</p>
+        </div>
+      </div>
+
+      <div className="bg-surface-container-high p-4">
+        <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+          Parameters
+        </p>
+        <div className="mt-3 space-y-2">
+          {(endpoint.parameters || []).map((parameter) => (
+            <div className="grid grid-cols-1 gap-1 border-b border-outline-variant/20 pb-2 text-sm md:grid-cols-[130px_80px_1fr]" key={`${parameter.in}-${parameter.name}`}>
+              <span className="font-mono text-secondary">{parameter.name}</span>
+              <span className="text-on-surface-variant">{parameter.in}</span>
+              <span className="text-on-background">{parameter.description}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-surface-container-high p-4">
+        <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+          Example Response
+        </p>
+        <pre className="mt-3 max-h-60 overflow-auto whitespace-pre-wrap bg-black p-3 font-mono text-xs text-cyan-100">
+          {JSON.stringify(endpoint.example || { ok: true }, null, 2)}
+        </pre>
+      </div>
+
+      {endpoint.notes?.length ? (
+        <div className="bg-surface-container-high p-4">
+          <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+            Notes
+          </p>
+          <ul className="mt-3 space-y-2 text-sm text-on-surface-variant">
+            {endpoint.notes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function DeveloperDashboardPage() {
   const navigate = useNavigate()
   const session = getAuthSession()
@@ -191,6 +272,7 @@ function DeveloperDashboardPage() {
     try {
       const result = await apiFetch('/developer/test-request', {
         method: 'POST',
+        suppressAuthExpiry: true,
         body: JSON.stringify({
           apiKey: testerKey,
           method: testerMethod,
@@ -533,6 +615,7 @@ Authorization: Bearer <developer_api_key>`}
                     <p className="text-sm leading-relaxed text-on-surface-variant">
                       Data endpoints are intentionally API-key-only. Use this panel to create a key, then test the key in the API tester or from an external script.
                     </p>
+                    <EndpointReference endpoint={selectedEndpoint} />
                   </div>
                 ) : (
                   <div className="mt-5">

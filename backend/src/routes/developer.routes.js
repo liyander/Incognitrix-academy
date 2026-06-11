@@ -27,6 +27,28 @@ function extractApiKey(req) {
   return /^(bearer|apikey|token)$/i.test(scheme) ? token : ''
 }
 
+function endpointDoc({ method, path, resource, group, description, returns, example, notes = [] }) {
+  return {
+    method,
+    path,
+    resource,
+    group,
+    description,
+    authentication: 'Developer API key required. Use x-api-key or Authorization: Bearer.',
+    parameters: [
+      {
+        name: 'resource',
+        in: 'path',
+        required: true,
+        description: `Must be "${resource}".`,
+      },
+    ],
+    returns,
+    example,
+    notes,
+  }
+}
+
 async function authenticateDeveloperApiKey(req, res, next) {
   const apiKey = extractApiKey(req)
   if (!apiKey) {
@@ -58,98 +80,140 @@ async function verifyDeveloperApiKey(apiKey) {
 }
 
 const developerEndpointCatalog = [
-  {
+  endpointDoc({
     method: 'GET',
     path: '/api/developer/data/all',
     resource: 'all',
     group: 'Overview',
     description: 'Complete operational snapshot with overview, live users, Docker, users, rooms, progress, paths, and events.',
-  },
-  {
+    returns: 'Object containing all primary platform datasets. Each section includes either data or an error diagnostic.',
+    example: { overview: { users: { total: 42 }, rooms: { total: 18 } }, activeUsers: { total: 3, items: [] } },
+    notes: ['Designed for monitoring dashboards and external collectors.', 'One failing subresource is reported without breaking the full export.'],
+  }),
+  endpointDoc({
     method: 'GET',
     path: '/api/developer/data/users',
     resource: 'users',
     group: 'Users',
     description: 'Registered users with role, active status, last login, and last seen timestamps.',
-  },
-  {
+    returns: 'total plus user account records.',
+    example: { total: 1, items: [{ id: 3, username: 'operator01', role: 'operator', last_seen_at: '2026-06-11T10:00:00.000Z' }] },
+  }),
+  endpointDoc({
     method: 'GET',
     path: '/api/developer/data/active-users',
     resource: 'active-users',
     group: 'Monitoring',
     description: 'Recently active users, current room being solved, and active Docker association.',
-  },
-  {
+    returns: 'Users seen recently with current room and Docker runtime metadata.',
+    example: { total: 1, items: [{ username: 'operator01', active: true, currentRoom: { title: 'Linux Basics' }, docker: null }] },
+  }),
+  endpointDoc({
     method: 'GET',
     path: '/api/developer/data/rooms',
     resource: 'rooms',
     group: 'Rooms',
     description: 'Room catalog with type, category, difficulty, XP, and Docker enablement.',
-  },
-  {
+    returns: 'Room records sorted by last update.',
+    example: { total: 1, items: [{ id: 'linux-basics', title: 'Linux Basics', room_type: 'practical', docker_enabled: 1 }] },
+  }),
+  endpointDoc({
     method: 'GET',
     path: '/api/developer/data/progress',
     resource: 'progress',
     group: 'Learning',
     description: 'User room progress, started/completed timestamps, and room titles.',
-  },
-  {
+    returns: 'Room progress rows joined with user and room labels.',
+    example: { total: 1, items: [{ user_id: 3, username: 'operator01', room_id: 'linux-basics', completed_at: null }] },
+  }),
+  endpointDoc({
     method: 'GET',
     path: '/api/developer/data/docker',
     resource: 'docker',
     group: 'Infrastructure',
     description: 'Tracked Docker instances, owner, room, status, host port, and timestamps.',
-  },
-  {
+    returns: 'Docker instance telemetry for active and historical lab machines.',
+    example: { total: 1, items: [{ username: 'operator01', roomTitle: 'Web Lab', status: 'running', hostPort: 52702 }] },
+  }),
+  endpointDoc({
     method: 'GET',
     path: '/api/developer/data/career-paths',
     resource: 'career-paths',
     group: 'Learning',
     description: 'Career path metadata and roadmap ordering.',
-  },
-  {
+    returns: 'Career path records used by learning paths and roadmap screens.',
+    example: { total: 1, items: [{ id: 'red-team', title: 'Red Team Operator', roadmap_sort_order: 10 }] },
+  }),
+  endpointDoc({
     method: 'GET',
     path: '/api/developer/data/categories',
     resource: 'categories',
     group: 'Rooms',
     description: 'Room categories and number of assigned rooms.',
-  },
-  {
+    returns: 'Category rows with room usage counts.',
+    example: { total: 1, items: [{ name: 'Web Exploitation', room_count: 4 }] },
+  }),
+  endpointDoc({
     method: 'GET',
     path: '/api/developer/data/notifications',
     resource: 'notifications',
     group: 'Platform',
     description: 'System notifications with active state and target user.',
-  },
-  {
+    returns: 'Notification records used by the platform navbar and alerts.',
+    example: { total: 1, items: [{ title: 'CTF reminder', type: 'ctf', is_active: 1 }] },
+  }),
+  endpointDoc({
     method: 'GET',
     path: '/api/developer/data/ctf-events',
     resource: 'ctf-events',
     group: 'Events',
     description: 'Upcoming and synced CTF events with CTFtime metadata and registration counts.',
-  },
-  {
+    returns: 'CTF event rows, weightage, CTFtime metadata, and registration counts.',
+    example: { total: 1, items: [{ name: 'Example CTF', weight: 25, source: 'ctftime', registered_users: 8 }] },
+  }),
+  endpointDoc({
     method: 'GET',
     path: '/api/developer/data/certificates',
     resource: 'certificates',
     group: 'Learning',
     description: 'Issued certificates with student and career path details.',
-  },
-  {
+    returns: 'Certificate issue records joined with user and path context.',
+    example: { total: 1, items: [{ certificate_id: 'ICX-001', username: 'operator01', path_title: 'Red Team Operator' }] },
+  }),
+  endpointDoc({
     method: 'GET',
     path: '/api/developer/data/attempts',
     resource: 'attempts',
     group: 'Evaluation',
     description: 'AI evaluation attempts, scores, pass state, and room/user references.',
-  },
-  {
+    returns: 'Theoretical attempt summaries with technical and grammar scores.',
+    example: { total: 1, items: [{ username: 'operator01', room_title: 'RSA', technical_score: 90, passed: 0 }] },
+  }),
+  endpointDoc({
     method: 'GET',
     path: '/api/developer/data/scoreboard',
     resource: 'scoreboard',
     group: 'Analytics',
     description: 'Scoreboard-style user rankings from completed rooms and XP.',
-  },
+    returns: 'Operator ranking rows based on completed rooms and room XP.',
+    example: { total: 1, items: [{ username: 'operator01', completed_rooms: 7, xp: 420 }] },
+  }),
 ]
+
+async function fetchDataSection(resource) {
+  try {
+    if (resource === 'overview') {
+      return await fetchOverview()
+    }
+    return await fetchDataResource(resource)
+  } catch (error) {
+    return {
+      error: true,
+      message: error?.sqlMessage || error?.message || 'Unable to load resource.',
+      resource,
+    }
+  }
+}
 
 async function fetchOverview() {
   const [[userTotals]] = await pool.query(
@@ -461,19 +525,19 @@ async function fetchDataResource(resource) {
 
   if (resource === 'all') {
     return {
-      overview: await fetchOverview(),
-      activeUsers: await fetchActiveUsers(),
-      docker: await fetchDockerInstances(),
-      users: await fetchDataResource('users'),
-      rooms: await fetchDataResource('rooms'),
-      progress: await fetchDataResource('progress'),
-      careerPaths: await fetchDataResource('career-paths'),
-      categories: await fetchDataResource('categories'),
-      notifications: await fetchDataResource('notifications'),
-      ctfEvents: await fetchDataResource('ctf-events'),
-      certificates: await fetchDataResource('certificates'),
-      attempts: await fetchDataResource('attempts'),
-      scoreboard: await fetchDataResource('scoreboard'),
+      overview: await fetchDataSection('overview'),
+      activeUsers: await fetchDataSection('active-users'),
+      docker: await fetchDataSection('docker'),
+      users: await fetchDataSection('users'),
+      rooms: await fetchDataSection('rooms'),
+      progress: await fetchDataSection('progress'),
+      careerPaths: await fetchDataSection('career-paths'),
+      categories: await fetchDataSection('categories'),
+      notifications: await fetchDataSection('notifications'),
+      ctfEvents: await fetchDataSection('ctf-events'),
+      certificates: await fetchDataSection('certificates'),
+      attempts: await fetchDataSection('attempts'),
+      scoreboard: await fetchDataSection('scoreboard'),
     }
   }
 

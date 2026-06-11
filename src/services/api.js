@@ -32,6 +32,7 @@ export function getAuthToken() {
 }
 
 export async function apiFetch(path, options = {}) {
+  const { suppressAuthExpiry, ...fetchOptions } = options
   const method = (options.method || 'GET').toUpperCase()
   const isGet = method === 'GET'
   const requestPath = isGet
@@ -47,7 +48,7 @@ export async function apiFetch(path, options = {}) {
   }
 
   const response = await fetch(`${API_BASE_URL}${requestPath}`, {
-    ...options,
+    ...fetchOptions,
     method,
     cache: 'no-store',
     headers,
@@ -61,7 +62,7 @@ export async function apiFetch(path, options = {}) {
   if (!response.ok) {
     const message = body?.message || response.statusText || 'Request failed'
 
-    if (response.status === 401) {
+    if (response.status === 401 && !suppressAuthExpiry) {
       handleAuthExpiry()
     }
 
