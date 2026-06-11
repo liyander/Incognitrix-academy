@@ -46,20 +46,20 @@ function StatusPill({ children, active }) {
 function EndpointCard({ endpoint, selected, onSelect }) {
   return (
     <button
-      className={`w-full text-left border p-4 transition-colors ${selected ? 'border-secondary bg-secondary/10' : 'border-outline-variant/40 bg-surface-container-high hover:border-primary'}`}
+      className={`flex min-h-[150px] w-full flex-col text-left border p-4 transition-colors ${selected ? 'border-secondary bg-secondary/10' : 'border-outline-variant/40 bg-surface-container-high hover:border-primary'}`}
       onClick={() => onSelect(endpoint)}
       type="button"
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">{endpoint.group}</p>
-          <p className="mt-2 font-mono text-sm font-bold text-on-background break-all">{endpoint.path}</p>
+          <p className="mt-2 font-mono text-sm font-bold text-on-background break-all leading-5">{endpoint.path}</p>
         </div>
-        <span className="bg-surface-container-lowest px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
+        <span className="shrink-0 bg-surface-container-lowest px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
           {endpoint.method}
         </span>
       </div>
-      <p className="mt-3 text-xs leading-relaxed text-on-surface-variant">{endpoint.description}</p>
+      <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-on-surface-variant">{endpoint.description}</p>
     </button>
   )
 }
@@ -298,10 +298,10 @@ function DeveloperDashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
+    <main className="min-h-screen bg-surface px-6 md:px-10 py-10 pb-32">
       <section className="max-w-[1500px] mx-auto space-y-8">
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_420px] gap-5">
-          <header className="bg-surface-container-lowest border-l-4 border-primary p-7 md:p-9">
+        <div className="grid min-w-0 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_420px] gap-5">
+          <header className="min-w-0 bg-surface-container-lowest border-l-4 border-primary p-7 md:p-9">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <p className="font-headline text-[10px] tracking-[0.25em] uppercase text-primary font-bold">
@@ -338,7 +338,7 @@ function DeveloperDashboardPage() {
             </div>
           </header>
 
-          <aside className="bg-surface-container-lowest border-l-4 border-secondary p-6">
+          <aside className="min-w-0 bg-surface-container-lowest border-l-4 border-secondary p-6">
             <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">API Base URL</p>
             <p className="mt-3 break-all font-mono text-sm text-on-background">{catalog.baseUrl}</p>
             <div className="mt-5 space-y-3">
@@ -384,8 +384,8 @@ function DeveloperDashboardPage() {
               <StatCard label="Practical Rooms" sublabel={`${overview?.rooms?.theoretical ?? 0} theoretical`} value={overview?.rooms?.practical ?? 0} tone="secondary" />
             </section>
 
-            <section className="grid grid-cols-1 xl:grid-cols-[1.25fr_0.75fr] gap-6">
-              <div className="bg-surface-container-lowest p-6 border-l-4 border-primary">
+            <section className="grid min-w-0 grid-cols-1 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] gap-6">
+              <div className="min-w-0 bg-surface-container-lowest p-6 border-l-4 border-primary">
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">Monitoring System</p>
@@ -439,7 +439,7 @@ function DeveloperDashboardPage() {
                 </div>
               </div>
 
-              <div className="bg-surface-container-lowest p-6 border-l-4 border-secondary">
+              <div className="min-w-0 bg-surface-container-lowest p-6 border-l-4 border-secondary">
                 <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">Container Runtime</p>
                 <h2 className="font-headline text-2xl font-black uppercase">Docker Machines</h2>
                 <div className="mt-5 space-y-3 max-h-[500px] overflow-y-auto pr-2">
@@ -461,16 +461,16 @@ function DeveloperDashboardPage() {
               </div>
             </section>
 
-            <section className="grid grid-cols-1 xl:grid-cols-[0.85fr_1.15fr] gap-6">
-              <div className="bg-surface-container-lowest p-6 border-l-4 border-primary">
+            <section className="grid min-w-0 grid-cols-1 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-6">
+              <div className="min-w-0 bg-surface-container-lowest p-6 border-l-4 border-primary">
                 <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">Key Vault</p>
                 <h2 className="font-headline text-2xl font-black uppercase">Developer API Keys</h2>
                 <p className="mt-2 text-sm text-on-surface-variant">
                   Exported data endpoints require a developer API key. Login tokens can manage keys, but cannot call `/data` endpoints directly.
                 </p>
-                <form className="mt-5 flex flex-col sm:flex-row gap-3" onSubmit={createApiKey}>
+                <form className="mt-5 flex min-w-0 flex-col sm:flex-row gap-3" onSubmit={createApiKey}>
                   <input
-                    className="flex-1 bg-surface-container-highest border-l-2 border-l-primary px-4 py-3 outline-none"
+                    className="min-w-0 flex-1 bg-surface-container-highest border-l-2 border-l-primary px-4 py-3 outline-none"
                     onChange={(event) => setNewKeyName(event.target.value)}
                     placeholder="Key name, e.g. SIEM collector"
                     type="text"
@@ -494,8 +494,8 @@ function DeveloperDashboardPage() {
                 ) : null}
                 <div className="mt-5 space-y-3">
                   {apiKeys.map((key) => (
-                    <article className="bg-surface-container-high p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" key={key.id}>
-                      <div>
+                    <article className="min-w-0 bg-surface-container-high p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" key={key.id}>
+                      <div className="min-w-0">
                         <p className="font-headline text-sm font-bold uppercase">{key.name}</p>
                         <p className="mt-1 font-mono text-xs text-on-surface-variant">{key.key}</p>
                         <p className="mt-1 text-xs text-on-surface-variant">Last used: {formatDateTime(key.lastUsedAt)}</p>
@@ -513,13 +513,13 @@ function DeveloperDashboardPage() {
                 </div>
               </div>
 
-              <div className="bg-surface-container-lowest p-6 border-l-4 border-secondary">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
+              <div className="min-w-0 bg-surface-container-lowest p-6 border-l-4 border-secondary">
+                <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="min-w-0">
                     <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">Swagger-Style API Tester</p>
                     <h2 className="font-headline text-2xl font-black uppercase">Try Endpoint</h2>
                   </div>
-                  <span className="font-mono text-xs text-on-surface-variant break-all">{catalog.baseUrl}</span>
+                  <span className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-mono text-xs text-on-surface-variant lg:max-w-[420px]">{catalog.baseUrl}</span>
                 </div>
                 <form className="mt-5 space-y-4" onSubmit={runTester}>
                   <label className="block">
@@ -532,7 +532,7 @@ function DeveloperDashboardPage() {
                       value={testerKey}
                     />
                   </label>
-                  <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] gap-3">
+                  <div className="grid min-w-0 grid-cols-1 md:grid-cols-[150px_minmax(0,1fr)] gap-3">
                     <select
                       className="bg-surface-container-highest border-l-2 border-l-secondary px-4 py-3 outline-none"
                       onChange={(event) => setTesterMethod(event.target.value)}
@@ -541,7 +541,7 @@ function DeveloperDashboardPage() {
                       <option value="GET">GET</option>
                     </select>
                     <input
-                      className="bg-surface-container-highest border-l-2 border-l-secondary px-4 py-3 font-mono text-sm outline-none"
+                      className="min-w-0 bg-surface-container-highest border-l-2 border-l-secondary px-4 py-3 font-mono text-sm outline-none"
                       onChange={(event) => setTesterPath(event.target.value)}
                       value={testerPath}
                     />
@@ -565,14 +565,14 @@ function DeveloperDashboardPage() {
                     </button>
                   </div>
                 </form>
-                <pre className="mt-5 max-h-[420px] overflow-auto bg-black text-cyan-100 p-4 text-xs leading-relaxed">
+                <pre className="mt-5 max-h-[420px] max-w-full overflow-auto whitespace-pre bg-black text-cyan-100 p-4 text-xs leading-relaxed">
                   {testerResult || 'Execute an endpoint to inspect status, request metadata, and JSON response.'}
                 </pre>
               </div>
             </section>
 
-            <section className="grid grid-cols-1 xl:grid-cols-[0.9fr_1.1fr] gap-6">
-              <div className="bg-surface-container-lowest p-6 border-l-4 border-primary">
+            <section className="grid min-w-0 grid-cols-1 items-start xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-6">
+              <div className="min-w-0 bg-surface-container-lowest p-6 border-l-4 border-primary">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">Documentation</p>
@@ -636,10 +636,10 @@ Authorization: Bearer <developer_api_key>`}
                 )}
               </div>
 
-              <div className="bg-surface-container-lowest p-6 border-l-4 border-secondary">
+              <div className="min-w-0 bg-surface-container-lowest p-6 border-l-4 border-secondary">
                 <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">Endpoint Catalog</p>
                 <h2 className="font-headline text-2xl font-black uppercase">Available Data Endpoints</h2>
-                <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[620px] overflow-y-auto pr-2">
+                <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
                   {catalog.endpoints.map((endpoint) => (
                     <EndpointCard
                       endpoint={endpoint}
