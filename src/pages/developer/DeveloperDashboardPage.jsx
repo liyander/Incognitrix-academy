@@ -380,7 +380,7 @@ function DeveloperDashboardPage() {
               <StatCard label="Total Users" sublabel={`${overview?.users?.operators ?? 0} operators`} value={overview?.users?.total ?? 0} tone="secondary" />
               <StatCard label="Developers" sublabel="Developer-role accounts" value={overview?.users?.developers ?? 0} />
               <StatCard label="Rooms In Progress" sublabel="Open learning sessions" value={overview?.rooms?.inProgress ?? 0} tone="secondary" />
-              <StatCard label="Docker Running" sublabel={`${docker.length} tracked machines`} value={runningDocker.length} />
+              <StatCard label="Docker Alive" sublabel="Running containers only" value={runningDocker.length} />
               <StatCard label="Practical Rooms" sublabel={`${overview?.rooms?.theoretical ?? 0} theoretical`} value={overview?.rooms?.practical ?? 0} tone="secondary" />
             </section>
 
@@ -441,9 +441,9 @@ function DeveloperDashboardPage() {
 
               <div className="min-w-0 bg-surface-container-lowest p-6 border-l-4 border-secondary">
                 <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">Container Runtime</p>
-                <h2 className="font-headline text-2xl font-black uppercase">Docker Machines</h2>
+                <h2 className="font-headline text-2xl font-black uppercase">Alive Docker Machines</h2>
                 <div className="mt-5 space-y-3 max-h-[500px] overflow-y-auto pr-2">
-                  {docker.map((machine) => (
+                  {runningDocker.map((machine) => (
                     <article className="bg-surface-container-high p-4" key={machine.id}>
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -456,7 +456,7 @@ function DeveloperDashboardPage() {
                       <p className="mt-2 text-xs text-on-surface-variant">Updated: {formatDateTime(machine.updatedAt)}</p>
                     </article>
                   ))}
-                  {!docker.length ? <p className="text-sm text-on-surface-variant">No Docker instances tracked.</p> : null}
+                  {!runningDocker.length ? <p className="text-sm text-on-surface-variant">No alive Docker instances right now.</p> : null}
                 </div>
               </div>
             </section>
