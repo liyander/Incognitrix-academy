@@ -30,9 +30,21 @@ function extractApiKey(req) {
 async function authenticateDeveloperApiKey(req, res, next) {
   const apiKey = extractApiKey(req)
   if (!apiKey) {
-    return authenticate(req, res, () => requireDeveloper(req, res, next))
+    return res.status(401).json({ message: 'Developer API key required.' })
   }
 
+  const key = await verifyDeveloperApiKey(apiKey)
+  if (!key) {
+    return res.status(401).json({ message: 'Invalid developer API key.' })
+  }
+
+  req.user = { id: key.user_id, username: key.username, role: key.role }
+  req.developerApiKeyId = key.id
+  void pool.query('UPDATE developer_api_keys SET last_used_at = CURRENT_TIMESTAMP WHERE id = ?', [key.id]).catch(() => {})
+  return next()
+}
+
+async function verifyDeveloperApiKey(apiKey) {
   const [rows] = await pool.query(
     `SELECT k.id, k.user_id, u.username, u.role
      FROM developer_api_keys k
@@ -42,16 +54,102 @@ async function authenticateDeveloperApiKey(req, res, next) {
     [hashKey(apiKey)],
   )
 
-  if (!rows.length) {
-    return res.status(401).json({ message: 'Invalid developer API key.' })
-  }
-
-  const key = rows[0]
-  req.user = { id: key.user_id, username: key.username, role: key.role }
-  req.developerApiKeyId = key.id
-  void pool.query('UPDATE developer_api_keys SET last_used_at = CURRENT_TIMESTAMP WHERE id = ?', [key.id]).catch(() => {})
-  return next()
+  return rows[0] || null
 }
+
+const developerEndpointCatalog = [
+  {
+    method: 'GET',
+    path: '/api/developer/data/all',
+    resource: 'all',
+    group: 'Overview',
+    description: 'Complete operational snapshot with overview, live users, Docker, users, rooms, progress, paths, and events.',
+  },
+  {
+    method: 'GET',
+    path: '/api/developer/data/users',
+    resource: 'users',
+    group: 'Users',
+    description: 'Registered users with role, active status, last login, and last seen timestamps.',
+  },
+  {
+    method: 'GET',
+    path: '/api/developer/data/active-users',
+    resource: 'active-users',
+    group: 'Monitoring',
+    description: 'Recently active users, current room being solved, and active Docker association.',
+  },
+  {
+    method: 'GET',
+    path: '/api/developer/data/rooms',
+    resource: 'rooms',
+    group: 'Rooms',
+    description: 'Room catalog with type, category, difficulty, XP, and Docker enablement.',
+  },
+  {
+    method: 'GET',
+    path: '/api/developer/data/progress',
+    resource: 'progress',
+    group: 'Learning',
+    description: 'User room progress, started/completed timestamps, and room titles.',
+  },
+  {
+    method: 'GET',
+    path: '/api/developer/data/docker',
+    resource: 'docker',
+    group: 'Infrastructure',
+    description: 'Tracked Docker instances, owner, room, status, host port, and timestamps.',
+  },
+  {
+    method: 'GET',
+    path: '/api/developer/data/career-paths',
+    resource: 'career-paths',
+    group: 'Learning',
+    description: 'Career path metadata and roadmap ordering.',
+  },
+  {
+    method: 'GET',
+    path: '/api/developer/data/categories',
+    resource: 'categories',
+    group: 'Rooms',
+    description: 'Room categories and number of assigned rooms.',
+  },
+  {
+    method: 'GET',
+    path: '/api/developer/data/notifications',
+    resource: 'notifications',
+    group: 'Platform',
+    description: 'System notifications with active state and target user.',
+  },
+  {
+    method: 'GET',
+    path: '/api/developer/data/ctf-events',
+    resource: 'ctf-events',
+    group: 'Events',
+    description: 'Upcoming and synced CTF events with CTFtime metadata and registration counts.',
+  },
+  {
+    method: 'GET',
+    path: '/api/developer/data/certificates',
+    resource: 'certificates',
+    group: 'Learning',
+    description: 'Issued certificates with student and career path details.',
+  },
+  {
+    method: 'GET',
+    path: '/api/developer/data/attempts',
+    resource: 'attempts',
+    group: 'Evaluation',
+    description: 'AI evaluation attempts, scores, pass state, and room/user references.',
+  },
+  {
+    method: 'GET',
+    path: '/api/developer/data/scoreboard',
+    resource: 'scoreboard',
+    group: 'Analytics',
+    description: 'Scoreboard-style user rankings from completed rooms and XP.',
+  },
+]
 
 async function fetchOverview() {
   const [[userTotals]] = await pool.query(
@@ -244,11 +342,119 @@ async function fetchDataResource(resource) {
     return { total: items.length, items }
   }
 
+  if (resource === 'active-users') {
+    const items = await fetchActiveUsers()
+    return { total: items.length, items }
+  }
+
   if (resource === 'career-paths') {
     const [items] = await pool.query(
       `SELECT id, slug, title, description, roadmap_sort_order, created_at, updated_at
        FROM career_paths
        ORDER BY roadmap_sort_order ASC, title ASC`,
+    )
+    return { total: items.length, items }
+  }
+
+  if (resource === 'categories') {
+    const [items] = await pool.query(
+      `SELECT
+         rc.id,
+         rc.name,
+         rc.created_at,
+         COUNT(r.id) AS room_count
+       FROM room_categories rc
+       LEFT JOIN rooms r ON r.category = rc.name
+       GROUP BY rc.id
+       ORDER BY rc.name ASC`,
+    )
+    return { total: items.length, items }
+  }
+
+  if (resource === 'notifications') {
+    const [items] = await pool.query(
+      `SELECT id, title, message, type, is_active, target_user_id, created_at, updated_at
+       FROM notifications
+       ORDER BY created_at DESC
+       LIMIT 500`,
+    )
+    return { total: items.length, items }
+  }
+
+  if (resource === 'ctf-events') {
+    const [items] = await pool.query(
+      `SELECT
+         ce.*,
+         COUNT(CASE WHEN cer.registered = true THEN 1 END) AS registered_users
+       FROM ctf_events ce
+       LEFT JOIN ctf_event_registrations cer ON cer.ctf_event_id = ce.id
+       GROUP BY ce.id
+       ORDER BY ce.registration_deadline ASC
+       LIMIT 500`,
+    )
+    return { total: items.length, items }
+  }
+
+  if (resource === 'certificates') {
+    const [items] = await pool.query(
+      `SELECT
+         c.certificate_id,
+         c.full_name,
+         c.path_title,
+         c.issued_at,
+         u.id AS user_id,
+         u.username,
+         u.registration_number,
+         p.id AS career_path_id,
+         p.slug AS career_path_slug
+       FROM certificates c
+       LEFT JOIN users u ON u.id = c.user_id
+       LEFT JOIN career_paths p ON p.id = c.career_path_id
+       ORDER BY c.issued_at DESC
+       LIMIT 1000`,
+    )
+    return { total: items.length, items }
+  }
+
+  if (resource === 'attempts') {
+    const [items] = await pool.query(
+      `SELECT
+         uta.id,
+         uta.user_id,
+         u.username,
+         u.registration_number,
+         uta.room_id,
+         r.title AS room_title,
+         uta.technical_score,
+         uta.grammar_score,
+         uta.passed,
+         uta.evaluated_at,
+         uta.created_at,
+         uta.updated_at
+       FROM user_room_theoretical_attempts uta
+       LEFT JOIN users u ON u.id = uta.user_id
+       LEFT JOIN rooms r ON r.id = uta.room_id
+       ORDER BY COALESCE(uta.evaluated_at, uta.updated_at) DESC
+       LIMIT 1000`,
+    )
+    return { total: items.length, items }
+  }
+
+  if (resource === 'scoreboard') {
+    const [items] = await pool.query(
+      `SELECT
+         u.id,
+         u.username,
+         u.registration_number,
+         COUNT(DISTINCT CASE WHEN urp.completed_at IS NOT NULL THEN urp.room_id END) AS completed_rooms,
+         SUM(CASE WHEN urp.completed_at IS NOT NULL THEN CAST(COALESCE(r.xp, '0') AS UNSIGNED) ELSE 0 END) AS xp
+       FROM users u
+       LEFT JOIN user_room_progress urp ON urp.user_id = u.id
+       LEFT JOIN rooms r ON r.id = urp.room_id
+       WHERE u.role = 'operator'
+       GROUP BY u.id
+       ORDER BY xp DESC, completed_rooms DESC, u.username ASC
+       LIMIT 500`,
     )
     return { total: items.length, items }
   }
@@ -262,6 +468,12 @@ async function fetchDataResource(resource) {
       rooms: await fetchDataResource('rooms'),
       progress: await fetchDataResource('progress'),
       careerPaths: await fetchDataResource('career-paths'),
+      categories: await fetchDataResource('categories'),
+      notifications: await fetchDataResource('notifications'),
+      ctfEvents: await fetchDataResource('ctf-events'),
+      certificates: await fetchDataResource('certificates'),
+      attempts: await fetchDataResource('attempts'),
+      scoreboard: await fetchDataResource('scoreboard'),
     }
   }
 
@@ -282,6 +494,22 @@ router.get('/data/:resource', authenticateDeveloperApiKey, async (req, res, next
 
 router.use(authenticate)
 router.use(requireDeveloper)
+
+router.get('/catalog', async (req, res) => {
+  const protocol = req.protocol
+  const host = req.get('host')
+  return res.json({
+    name: 'Incognitrix Developer API',
+    version: '1.1.0',
+    baseUrl: `${protocol}://${host}/api/developer`,
+    authentication: {
+      requiredForDataEndpoints: true,
+      headers: ['x-api-key: <developer_api_key>', 'Authorization: Bearer <developer_api_key>'],
+      note: 'A developer login can create keys and view this panel, but exported /data endpoints require an API key.',
+    },
+    endpoints: developerEndpointCatalog,
+  })
+})
 
 router.get('/overview', async (_req, res, next) => {
   try {
@@ -412,6 +640,47 @@ router.post('/console', async (req, res, next) => {
       return res.status(400).json({ message: 'Choose one of: all, users, rooms, progress, docker, career-paths.' })
     }
     return res.json({ resource, response: data })
+  } catch (error) {
+    return next(error)
+  }
+})
+
+router.post('/test-request', async (req, res, next) => {
+  try {
+    const apiKey = String(req.body?.apiKey || '').trim()
+    const path = String(req.body?.path || '').trim()
+    const method = String(req.body?.method || 'GET').toUpperCase()
+
+    if (method !== 'GET') {
+      return res.status(400).json({ message: 'Developer data tester currently supports GET endpoints.' })
+    }
+
+    const key = await verifyDeveloperApiKey(apiKey)
+    if (!key) {
+      return res.status(401).json({ message: 'Valid developer API key required to test this endpoint.' })
+    }
+
+    const match = path.match(/^\/?api\/developer\/data\/([^/?#]+)/)
+    if (!match) {
+      return res.status(400).json({ message: 'Only /api/developer/data/:resource endpoints are available in the tester.' })
+    }
+
+    const resource = decodeURIComponent(match[1])
+    const data = await fetchDataResource(resource)
+    if (!data) {
+      return res.status(404).json({ message: 'Unknown data resource' })
+    }
+
+    await pool.query('UPDATE developer_api_keys SET last_used_at = CURRENT_TIMESTAMP WHERE id = ?', [key.id])
+    return res.json({
+      request: {
+        method,
+        path,
+        authenticatedAs: key.username,
+      },
+      status: 200,
+      response: data,
+    })
   } catch (error) {
     return next(error)
   }

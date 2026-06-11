@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { getAuthSession, logoutUser } from '../../auth'
-import { apiFetch } from '../../services/api'
+import { API_BASE_URL, apiFetch } from '../../services/api'
 
-const resources = ['all', 'users', 'rooms', 'progress', 'docker', 'career-paths']
+const defaultCatalog = {
+  name: 'Incognitrix Developer API',
+  version: '1.1.0',
+  baseUrl: `${API_BASE_URL}/developer`,
+  endpoints: [],
+  authentication: {
+    headers: ['x-api-key: <developer_api_key>', 'Authorization: Bearer <developer_api_key>'],
+  },
+}
 
 function formatDateTime(value) {
   if (!value) return 'N/A'
@@ -13,15 +21,46 @@ function formatDateTime(value) {
   }).format(new Date(value))
 }
 
-function StatCard({ label, value, tone = 'primary' }) {
+function StatCard({ label, sublabel, value, tone = 'primary' }) {
   const toneClass = tone === 'secondary' ? 'border-l-secondary text-secondary' : 'border-l-primary text-primary'
   return (
-    <article className={`bg-surface-container-lowest border-l-4 ${toneClass} p-5`}>
+    <article className={`bg-surface-container-lowest border-l-4 ${toneClass} p-5 min-h-32`}>
       <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
         {label}
       </p>
-      <p className="mt-2 font-headline text-3xl font-black text-on-background">{value}</p>
+      <p className="mt-3 font-headline text-4xl font-black text-on-background">{value}</p>
+      {sublabel ? <p className="mt-2 text-xs text-on-surface-variant">{sublabel}</p> : null}
     </article>
+  )
+}
+
+function StatusPill({ children, active }) {
+  return (
+    <span className={`inline-flex items-center gap-2 px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest ${active ? 'bg-secondary/15 text-secondary' : 'bg-error/15 text-error'}`}>
+      <span className={`h-2 w-2 rounded-full ${active ? 'bg-secondary' : 'bg-error'}`}></span>
+      {children}
+    </span>
+  )
+}
+
+function EndpointCard({ endpoint, selected, onSelect }) {
+  return (
+    <button
+      className={`w-full text-left border p-4 transition-colors ${selected ? 'border-secondary bg-secondary/10' : 'border-outline-variant/40 bg-surface-container-high hover:border-primary'}`}
+      onClick={() => onSelect(endpoint)}
+      type="button"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">{endpoint.group}</p>
+          <p className="mt-2 font-mono text-sm font-bold text-on-background break-all">{endpoint.path}</p>
+        </div>
+        <span className="bg-surface-container-lowest px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
+          {endpoint.method}
+        </span>
+      </div>
+      <p className="mt-3 text-xs leading-relaxed text-on-surface-variant">{endpoint.description}</p>
+    </button>
   )
 }
 
@@ -32,11 +71,16 @@ function DeveloperDashboardPage() {
   const [activeUsers, setActiveUsers] = useState([])
   const [docker, setDocker] = useState([])
   const [apiKeys, setApiKeys] = useState([])
+  const [catalog, setCatalog] = useState(defaultCatalog)
   const [docs, setDocs] = useState('')
   const [newKeyName, setNewKeyName] = useState('')
   const [generatedKey, setGeneratedKey] = useState(null)
-  const [consoleResource, setConsoleResource] = useState('all')
-  const [consoleResult, setConsoleResult] = useState('')
+  const [testerKey, setTesterKey] = useState('')
+  const [testerMethod, setTesterMethod] = useState('GET')
+  const [testerPath, setTesterPath] = useState('/api/developer/data/all')
+  const [testerBody, setTesterBody] = useState('')
+  const [testerResult, setTesterResult] = useState('')
+  const [activeDocTab, setActiveDocTab] = useState('reference')
   const [loading, setLoading] = useState(true)
   const [working, setWorking] = useState(false)
   const [error, setError] = useState('')
@@ -47,13 +91,15 @@ function DeveloperDashboardPage() {
   const loadDashboard = useCallback(async () => {
     try {
       setLoading(true)
-      const [overviewData, usersData, dockerData, keysData, docsData] = await Promise.all([
+      const [catalogData, overviewData, usersData, dockerData, keysData, docsData] = await Promise.all([
+        apiFetch('/developer/catalog'),
         apiFetch('/developer/overview'),
         apiFetch('/developer/active-users'),
         apiFetch('/developer/docker'),
         apiFetch('/developer/api-keys'),
         apiFetch('/developer/docs'),
       ])
+      setCatalog({ ...defaultCatalog, ...catalogData })
       setOverview(overviewData)
       setActiveUsers(Array.isArray(usersData?.items) ? usersData.items : [])
       setDocker(Array.isArray(dockerData?.items) ? dockerData.items : [])
@@ -77,6 +123,11 @@ function DeveloperDashboardPage() {
     () => docker.filter((item) => String(item.status || '').toLowerCase() === 'running'),
     [docker],
   )
+  const activeNow = useMemo(() => activeUsers.filter((user) => user.active), [activeUsers])
+  const selectedEndpoint = useMemo(
+    () => catalog.endpoints.find((endpoint) => endpoint.path === testerPath) || catalog.endpoints[0],
+    [catalog.endpoints, testerPath],
+  )
 
   const createApiKey = async (event) => {
     event.preventDefault()
@@ -89,6 +140,7 @@ function DeveloperDashboardPage() {
         body: JSON.stringify({ name: newKeyName || 'Developer Key' }),
       })
       setGeneratedKey(created)
+      setTesterKey(created.key || '')
       setNewKeyName('')
       setSuccess('Developer API key created. Store it now because it is shown only once.')
       await loadDashboard()
@@ -131,19 +183,25 @@ function DeveloperDashboardPage() {
     }
   }
 
-  const runConsole = async (event) => {
+  const runTester = async (event) => {
     event.preventDefault()
     setWorking(true)
     setError('')
+    setTesterResult('')
     try {
-      const result = await apiFetch('/developer/console', {
+      const result = await apiFetch('/developer/test-request', {
         method: 'POST',
-        body: JSON.stringify({ resource: consoleResource }),
+        body: JSON.stringify({
+          apiKey: testerKey,
+          method: testerMethod,
+          path: testerPath,
+          body: testerBody,
+        }),
       })
-      setConsoleResult(JSON.stringify(result?.response ?? result, null, 2))
-    } catch (consoleError) {
-      setConsoleResult('')
-      setError(consoleError?.message || 'Console request failed')
+      setTesterResult(JSON.stringify(result, null, 2))
+    } catch (testerError) {
+      setTesterResult(JSON.stringify({ error: testerError?.message || 'Request failed' }, null, 2))
+      setError(testerError?.message || 'API tester request failed')
     } finally {
       setWorking(false)
     }
@@ -159,40 +217,65 @@ function DeveloperDashboardPage() {
 
   return (
     <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
-      <section className="max-w-7xl mx-auto space-y-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <header className="bg-surface-container-lowest border-l-4 border-primary p-7 md:p-9 flex-1">
-            <p className="font-headline text-[10px] tracking-[0.25em] uppercase text-primary font-bold">
-              Developer Operations
-            </p>
-            <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight mt-3 uppercase">
-              Developer Console
-            </h1>
-            <p className="mt-4 max-w-3xl text-sm text-on-surface-variant">
-              Monitor live users, running lab machines, API access, and integration payloads from one developer-only panel.
-            </p>
+      <section className="max-w-[1500px] mx-auto space-y-8">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_420px] gap-5">
+          <header className="bg-surface-container-lowest border-l-4 border-primary p-7 md:p-9">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="font-headline text-[10px] tracking-[0.25em] uppercase text-primary font-bold">
+                  Developer Operations
+                </p>
+                <h1 className="font-headline text-4xl md:text-6xl font-black tracking-tight mt-3 uppercase">
+                  Monitoring Command Center
+                </h1>
+                <p className="mt-4 max-w-3xl text-sm text-on-surface-variant">
+                  Live platform health, operator activity, Docker runtime state, API keys, endpoint documentation, and an API testing console.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                {session.role === 'admin' ? (
+                  <button
+                    className="bg-surface-container-high px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest"
+                    onClick={() => navigate('/admin')}
+                    type="button"
+                  >
+                    Admin
+                  </button>
+                ) : null}
+                <button
+                  className="bg-primary px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-primary"
+                  onClick={() => {
+                    logoutUser()
+                    navigate('/login')
+                  }}
+                  type="button"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
           </header>
-          <div className="flex gap-3">
-            {session.role === 'admin' ? (
-              <button
-                className="bg-surface-container-high px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest"
-                onClick={() => navigate('/admin')}
-                type="button"
-              >
-                Admin
-              </button>
-            ) : null}
-            <button
-              className="bg-primary px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-primary"
-              onClick={() => {
-                logoutUser()
-                navigate('/login')
-              }}
-              type="button"
-            >
-              Logout
-            </button>
-          </div>
+
+          <aside className="bg-surface-container-lowest border-l-4 border-secondary p-6">
+            <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">API Base URL</p>
+            <p className="mt-3 break-all font-mono text-sm text-on-background">{catalog.baseUrl}</p>
+            <div className="mt-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-on-surface-variant">Panel Session</span>
+                <StatusPill active>{session.role}</StatusPill>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-on-surface-variant">Data API Keys</span>
+                <StatusPill active={apiKeys.some((key) => !key.revokedAt)}>
+                  {apiKeys.filter((key) => !key.revokedAt).length} active
+                </StatusPill>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-on-surface-variant">Running Docker</span>
+                <StatusPill active={runningDocker.length > 0}>{runningDocker.length}</StatusPill>
+              </div>
+            </div>
+          </aside>
         </div>
 
         {error ? (
@@ -211,19 +294,19 @@ function DeveloperDashboardPage() {
         ) : (
           <>
             <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
-              <StatCard label="Active Users" value={overview?.users?.active ?? 0} />
-              <StatCard label="Operators" value={overview?.users?.operators ?? 0} tone="secondary" />
-              <StatCard label="Developers" value={overview?.users?.developers ?? 0} />
-              <StatCard label="Rooms In Progress" value={overview?.rooms?.inProgress ?? 0} tone="secondary" />
-              <StatCard label="Running Docker" value={overview?.docker?.runningInstances ?? 0} />
-              <StatCard label="Total Rooms" value={overview?.rooms?.total ?? 0} tone="secondary" />
+              <StatCard label="Active Now" sublabel="Seen in the last 15 minutes" value={activeNow.length} />
+              <StatCard label="Total Users" sublabel={`${overview?.users?.operators ?? 0} operators`} value={overview?.users?.total ?? 0} tone="secondary" />
+              <StatCard label="Developers" sublabel="Developer-role accounts" value={overview?.users?.developers ?? 0} />
+              <StatCard label="Rooms In Progress" sublabel="Open learning sessions" value={overview?.rooms?.inProgress ?? 0} tone="secondary" />
+              <StatCard label="Docker Running" sublabel={`${docker.length} tracked machines`} value={runningDocker.length} />
+              <StatCard label="Practical Rooms" sublabel={`${overview?.rooms?.theoretical ?? 0} theoretical`} value={overview?.rooms?.practical ?? 0} tone="secondary" />
             </section>
 
-            <section className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-6">
+            <section className="grid grid-cols-1 xl:grid-cols-[1.25fr_0.75fr] gap-6">
               <div className="bg-surface-container-lowest p-6 border-l-4 border-primary">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">Live Monitor</p>
+                    <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">Monitoring System</p>
                     <h2 className="font-headline text-2xl font-black uppercase">Current Active Users</h2>
                   </div>
                   <button
@@ -238,8 +321,9 @@ function DeveloperDashboardPage() {
                   <table className="min-w-full text-left text-sm">
                     <thead>
                       <tr className="border-b border-outline-variant/30">
+                        <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest">Status</th>
                         <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest">User</th>
-                        <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest">Room</th>
+                        <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest">Solving</th>
                         <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest">Docker</th>
                         <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest">Last Seen</th>
                       </tr>
@@ -248,16 +332,17 @@ function DeveloperDashboardPage() {
                       {activeUsers.map((user) => (
                         <tr className="border-b border-outline-variant/10" key={user.id}>
                           <td className="py-4 pr-4">
-                            <p className="font-headline font-bold uppercase">{user.username}</p>
-                            <p className="text-xs text-on-surface-variant">{user.role}</p>
-                          </td>
-                          <td className="py-4 pr-4 text-on-surface-variant">
-                            {user.currentRoom?.title || 'Not solving a room'}
+                            <StatusPill active={user.active}>{user.active ? 'online' : 'idle'}</StatusPill>
                           </td>
                           <td className="py-4 pr-4">
-                            <span className={`px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest ${user.docker ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
-                              {user.docker?.status || 'none'}
-                            </span>
+                            <p className="font-headline font-bold uppercase">{user.username}</p>
+                            <p className="text-xs text-on-surface-variant">{user.registrationNumber || user.email || user.role}</p>
+                          </td>
+                          <td className="py-4 pr-4 text-on-surface-variant">
+                            {user.currentRoom?.title || 'No active room'}
+                          </td>
+                          <td className="py-4 pr-4 text-on-surface-variant">
+                            {user.docker?.containerName || user.docker?.status || 'None'}
                           </td>
                           <td className="py-4 pr-4 text-on-surface-variant">{formatDateTime(user.lastSeenAt)}</td>
                         </tr>
@@ -273,12 +358,9 @@ function DeveloperDashboardPage() {
               </div>
 
               <div className="bg-surface-container-lowest p-6 border-l-4 border-secondary">
-                <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">Container Watch</p>
-                <h2 className="font-headline text-2xl font-black uppercase">Docker Instances</h2>
-                <p className="mt-2 text-sm text-on-surface-variant">
-                  {runningDocker.length} running out of {docker.length} tracked instance(s).
-                </p>
-                <div className="mt-5 space-y-3 max-h-[430px] overflow-y-auto pr-2">
+                <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">Container Runtime</p>
+                <h2 className="font-headline text-2xl font-black uppercase">Docker Machines</h2>
+                <div className="mt-5 space-y-3 max-h-[500px] overflow-y-auto pr-2">
                   {docker.map((machine) => (
                     <article className="bg-surface-container-high p-4" key={machine.id}>
                       <div className="flex items-start justify-between gap-3">
@@ -286,9 +368,10 @@ function DeveloperDashboardPage() {
                           <p className="font-headline text-sm font-bold uppercase">{machine.roomTitle || machine.roomId}</p>
                           <p className="mt-1 text-xs text-on-surface-variant">{machine.username || 'Unknown user'}</p>
                         </div>
-                        <span className="text-xs font-bold uppercase text-primary">{machine.status}</span>
+                        <StatusPill active={machine.status === 'running'}>{machine.status}</StatusPill>
                       </div>
                       <p className="mt-3 break-all text-xs text-on-surface-variant">{machine.containerName}</p>
+                      <p className="mt-2 text-xs text-on-surface-variant">Updated: {formatDateTime(machine.updatedAt)}</p>
                     </article>
                   ))}
                   {!docker.length ? <p className="text-sm text-on-surface-variant">No Docker instances tracked.</p> : null}
@@ -296,15 +379,18 @@ function DeveloperDashboardPage() {
               </div>
             </section>
 
-            <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <section className="grid grid-cols-1 xl:grid-cols-[0.85fr_1.15fr] gap-6">
               <div className="bg-surface-container-lowest p-6 border-l-4 border-primary">
-                <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">API Access</p>
+                <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">Key Vault</p>
                 <h2 className="font-headline text-2xl font-black uppercase">Developer API Keys</h2>
+                <p className="mt-2 text-sm text-on-surface-variant">
+                  Exported data endpoints require a developer API key. Login tokens can manage keys, but cannot call `/data` endpoints directly.
+                </p>
                 <form className="mt-5 flex flex-col sm:flex-row gap-3" onSubmit={createApiKey}>
                   <input
                     className="flex-1 bg-surface-container-highest border-l-2 border-l-primary px-4 py-3 outline-none"
                     onChange={(event) => setNewKeyName(event.target.value)}
-                    placeholder="Key name, e.g. SOC reporting script"
+                    placeholder="Key name, e.g. SIEM collector"
                     type="text"
                     value={newKeyName}
                   />
@@ -346,54 +432,144 @@ function DeveloperDashboardPage() {
               </div>
 
               <div className="bg-surface-container-lowest p-6 border-l-4 border-secondary">
-                <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">Endpoint Console</p>
-                <h2 className="font-headline text-2xl font-black uppercase">Inspect Data Returns</h2>
-                <form className="mt-5 flex flex-col sm:flex-row gap-3" onSubmit={runConsole}>
-                  <select
-                    className="flex-1 bg-surface-container-highest border-l-2 border-l-secondary px-4 py-3 outline-none"
-                    onChange={(event) => setConsoleResource(event.target.value)}
-                    value={consoleResource}
-                  >
-                    {resources.map((resource) => (
-                      <option key={resource} value={resource}>
-                        /api/developer/data/{resource}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    className="bg-secondary px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-secondary disabled:opacity-50"
-                    disabled={working}
-                    type="submit"
-                  >
-                    Invoke
-                  </button>
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">Swagger-Style API Tester</p>
+                    <h2 className="font-headline text-2xl font-black uppercase">Try Endpoint</h2>
+                  </div>
+                  <span className="font-mono text-xs text-on-surface-variant break-all">{catalog.baseUrl}</span>
+                </div>
+                <form className="mt-5 space-y-4" onSubmit={runTester}>
+                  <label className="block">
+                    <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Developer API Key</span>
+                    <input
+                      className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary px-4 py-3 outline-none"
+                      onChange={(event) => setTesterKey(event.target.value)}
+                      placeholder="icx_dev_..."
+                      type="password"
+                      value={testerKey}
+                    />
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] gap-3">
+                    <select
+                      className="bg-surface-container-highest border-l-2 border-l-secondary px-4 py-3 outline-none"
+                      onChange={(event) => setTesterMethod(event.target.value)}
+                      value={testerMethod}
+                    >
+                      <option value="GET">GET</option>
+                    </select>
+                    <input
+                      className="bg-surface-container-highest border-l-2 border-l-secondary px-4 py-3 font-mono text-sm outline-none"
+                      onChange={(event) => setTesterPath(event.target.value)}
+                      value={testerPath}
+                    />
+                  </div>
+                  <textarea
+                    className="min-h-20 w-full bg-surface-container-highest border-l-2 border-l-secondary p-4 font-mono text-sm outline-none"
+                    onChange={(event) => setTesterBody(event.target.value)}
+                    placeholder="Optional JSON body for future POST/PATCH endpoints"
+                    value={testerBody}
+                  />
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs text-on-surface-variant">
+                      Selected: {selectedEndpoint?.description || 'Custom developer data endpoint'}
+                    </p>
+                    <button
+                      className="bg-secondary px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-secondary disabled:opacity-50"
+                      disabled={working}
+                      type="submit"
+                    >
+                      Execute
+                    </button>
+                  </div>
                 </form>
-                <pre className="mt-5 max-h-[460px] overflow-auto bg-black text-cyan-100 p-4 text-xs leading-relaxed">
-                  {consoleResult || 'Run a request to inspect the response payload.'}
+                <pre className="mt-5 max-h-[420px] overflow-auto bg-black text-cyan-100 p-4 text-xs leading-relaxed">
+                  {testerResult || 'Execute an endpoint to inspect status, request metadata, and JSON response.'}
                 </pre>
               </div>
             </section>
 
-            <section className="bg-surface-container-lowest p-6 border-l-4 border-primary">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">Documentation</p>
-                  <h2 className="font-headline text-2xl font-black uppercase">Developer Notes</h2>
+            <section className="grid grid-cols-1 xl:grid-cols-[0.9fr_1.1fr] gap-6">
+              <div className="bg-surface-container-lowest p-6 border-l-4 border-primary">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">Documentation</p>
+                    <h2 className="font-headline text-2xl font-black uppercase">Developer Docs</h2>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      className={`px-3 py-2 font-headline text-[10px] font-bold uppercase tracking-widest ${activeDocTab === 'reference' ? 'bg-primary text-on-primary' : 'bg-surface-container-high'}`}
+                      onClick={() => setActiveDocTab('reference')}
+                      type="button"
+                    >
+                      Reference
+                    </button>
+                    <button
+                      className={`px-3 py-2 font-headline text-[10px] font-bold uppercase tracking-widest ${activeDocTab === 'notes' ? 'bg-primary text-on-primary' : 'bg-surface-container-high'}`}
+                      onClick={() => setActiveDocTab('notes')}
+                      type="button"
+                    >
+                      Notes
+                    </button>
+                  </div>
                 </div>
-                <button
-                  className="bg-primary px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-primary disabled:opacity-50"
-                  disabled={working}
-                  onClick={() => void saveDocs()}
-                  type="button"
-                >
-                  Save Docs
-                </button>
+
+                {activeDocTab === 'reference' ? (
+                  <div className="mt-5 space-y-4">
+                    <div className="bg-surface-container-high p-4">
+                      <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Authentication</p>
+                      <pre className="mt-3 whitespace-pre-wrap font-mono text-xs text-on-background">
+{`x-api-key: <developer_api_key>
+Authorization: Bearer <developer_api_key>`}
+                      </pre>
+                    </div>
+                    <div className="bg-surface-container-high p-4">
+                      <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Curl Example</p>
+                      <pre className="mt-3 whitespace-pre-wrap break-all font-mono text-xs text-on-background">
+{`curl ${catalog.baseUrl}/data/all \\
+  -H "x-api-key: <developer_api_key>"`}
+                      </pre>
+                    </div>
+                    <p className="text-sm leading-relaxed text-on-surface-variant">
+                      Data endpoints are intentionally API-key-only. Use this panel to create a key, then test the key in the API tester or from an external script.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-5">
+                    <textarea
+                      className="min-h-[300px] w-full bg-surface-container-highest border-l-2 border-l-primary p-4 font-mono text-sm outline-none"
+                      onChange={(event) => setDocs(event.target.value)}
+                      value={docs}
+                    />
+                    <button
+                      className="mt-3 bg-primary px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-primary disabled:opacity-50"
+                      disabled={working}
+                      onClick={() => void saveDocs()}
+                      type="button"
+                    >
+                      Save Docs
+                    </button>
+                  </div>
+                )}
               </div>
-              <textarea
-                className="mt-5 min-h-[280px] w-full bg-surface-container-highest border-l-2 border-l-primary p-4 font-mono text-sm outline-none"
-                onChange={(event) => setDocs(event.target.value)}
-                value={docs}
-              />
+
+              <div className="bg-surface-container-lowest p-6 border-l-4 border-secondary">
+                <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">Endpoint Catalog</p>
+                <h2 className="font-headline text-2xl font-black uppercase">Available Data Endpoints</h2>
+                <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[620px] overflow-y-auto pr-2">
+                  {catalog.endpoints.map((endpoint) => (
+                    <EndpointCard
+                      endpoint={endpoint}
+                      key={endpoint.path}
+                      onSelect={(nextEndpoint) => {
+                        setTesterMethod(nextEndpoint.method)
+                        setTesterPath(nextEndpoint.path)
+                      }}
+                      selected={testerPath === endpoint.path}
+                    />
+                  ))}
+                </div>
+              </div>
             </section>
           </>
         )}
