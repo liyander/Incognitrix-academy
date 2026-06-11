@@ -196,9 +196,10 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
   }
 
   return (
-    <header
-      className={`fixed top-0 right-0 left-0 ${isSidebarOpen ? 'md:left-64' : 'md:left-0'} z-50 glass-nav flex items-center justify-between gap-3 px-5 md:px-8 py-4 transition-all duration-300 overflow-visible`}
-    >
+    <>
+      <header
+        className={`fixed top-0 right-0 left-0 ${isSidebarOpen ? 'md:left-64' : 'md:left-0'} z-50 glass-nav flex items-center justify-between gap-3 px-5 md:px-8 py-4 transition-all duration-300 overflow-visible`}
+      >
       <div className="flex min-w-0 items-center gap-3 xl:gap-6">
         <button
           className="inline-flex h-11 w-11 shrink-0 items-center justify-center border border-outline-variant bg-surface-container-low text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
@@ -413,6 +414,8 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
           Logout
         </button>
       </div>
+      </header>
+
       {confirmLogoutOpen ? (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
           <section className="w-full max-w-md border border-outline-variant bg-surface-container-lowest shadow-2xl">
@@ -449,7 +452,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
           </section>
         </div>
       ) : null}
-    </header>
+    </>
   )
 }
 
