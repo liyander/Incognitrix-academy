@@ -444,7 +444,7 @@ function DeveloperDashboardPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {activeUsers.map((user) => (
+                      {activeNow.map((user) => (
                         <tr className="border-b border-outline-variant/10" key={user.id}>
                           <td className="py-4 pr-4">
                             <StatusPill active={user.active}>{user.active ? 'online' : 'idle'}</StatusPill>
@@ -464,9 +464,9 @@ function DeveloperDashboardPage() {
                       ))}
                     </tbody>
                   </table>
-                  {!activeUsers.length ? (
+                  {!activeNow.length ? (
                     <p className="mt-4 bg-surface-container-high p-4 text-sm text-on-surface-variant">
-                      No recent user activity has been recorded.
+                      No users are currently active on the platform.
                     </p>
                   ) : null}
                 </div>

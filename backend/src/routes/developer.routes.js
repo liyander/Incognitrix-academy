@@ -104,8 +104,8 @@ const developerEndpointCatalog = [
     path: '/api/developer/data/active-users',
     resource: 'active-users',
     group: 'Monitoring',
-    description: 'Recently active users, current room being solved, and active Docker association.',
-    returns: 'Users seen recently with current room and Docker runtime metadata.',
+    description: 'Users currently active on the platform, current room being solved, and active Docker association.',
+    returns: 'Users seen in the last 15 minutes with current room and Docker runtime metadata.',
     example: { total: 1, items: [{ username: 'operator01', active: true, currentRoom: { title: 'Linux Basics' }, docker: null }] },
   }),
   endpointDoc({
@@ -297,7 +297,7 @@ async function fetchActiveUsers() {
       )
      LEFT JOIN rooms r ON r.id = urp.room_id
      LEFT JOIN user_room_docker_instances di ON di.user_id = u.id AND di.status = 'running'
-     WHERE u.last_seen_at IS NOT NULL
+     WHERE u.last_seen_at >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)
      ORDER BY u.last_seen_at DESC
      LIMIT 100`,
   )
