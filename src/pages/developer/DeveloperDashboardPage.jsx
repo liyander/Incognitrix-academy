@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { getAuthSession, logoutUser } from '../../auth'
 import { API_BASE_URL, apiFetch } from '../../services/api'
@@ -167,6 +167,7 @@ function DeveloperDashboardPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false)
+  const statusRefreshInFlight = useRef(false)
 
   const canAccess = session?.role === 'developer' || session?.role === 'admin'
 
@@ -195,11 +196,40 @@ function DeveloperDashboardPage() {
     }
   }, [])
 
+  const refreshStatus = useCallback(async () => {
+    if (statusRefreshInFlight.current) return
+    statusRefreshInFlight.current = true
+    try {
+      const [overviewData, usersData, dockerData] = await Promise.all([
+        apiFetch('/developer/overview'),
+        apiFetch('/developer/active-users'),
+        apiFetch('/developer/docker'),
+      ])
+      setOverview(overviewData)
+      setActiveUsers(Array.isArray(usersData?.items) ? usersData.items : [])
+      setDocker(Array.isArray(dockerData?.items) ? dockerData.items : [])
+    } catch (refreshError) {
+      if (/invalid or expired token|unauthorized/i.test(refreshError?.message || '')) {
+        setError(refreshError?.message || 'Failed to refresh developer status')
+      }
+    } finally {
+      statusRefreshInFlight.current = false
+    }
+  }, [])
+
   useEffect(() => {
     if (canAccess) {
       void loadDashboard()
     }
   }, [canAccess, loadDashboard])
+
+  useEffect(() => {
+    if (!canAccess) return undefined
+    const interval = window.setInterval(() => {
+      void refreshStatus()
+    }, 1000)
+    return () => window.clearInterval(interval)
+  }, [canAccess, refreshStatus])
 
   const runningDocker = useMemo(
     () => docker.filter((item) => String(item.status || '').toLowerCase() === 'running'),
