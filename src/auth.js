@@ -1,4 +1,4 @@
-import { apiFetch } from './services/api'
+import { API_BASE_URL, apiFetch } from './services/api'
 
 const AUTH_KEY = 'incognitrix_auth_session'
 
@@ -65,6 +65,24 @@ export async function registerUser({ registrationNumber, email, password }) {
 }
 
 export function logoutUser() {
+  try {
+    const raw = localStorage.getItem(AUTH_KEY)
+    const token = raw ? JSON.parse(raw)?.token : ''
+    if (token && typeof fetch === 'function') {
+      void fetch(`${API_BASE_URL}/auth/logout`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: '{}',
+        keepalive: true,
+      }).catch(() => {})
+    }
+  } catch {
+    // best-effort logout presence update
+  }
+
   try {
     localStorage.removeItem(AUTH_KEY)
   } catch {

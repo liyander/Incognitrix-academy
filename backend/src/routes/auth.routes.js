@@ -132,6 +132,16 @@ router.post('/login', async (req, res) => {
   })
 })
 
+router.post('/heartbeat', authenticate, async (req, res) => {
+  await pool.query('UPDATE users SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?', [req.user.id])
+  return res.json({ alive: true })
+})
+
+router.post('/logout', authenticate, async (req, res) => {
+  await pool.query('UPDATE users SET last_seen_at = NULL WHERE id = ?', [req.user.id])
+  return res.json({ loggedOut: true })
+})
+
 router.get('/me', authenticate, async (req, res) => {
   return res.json({ user: req.user })
 })

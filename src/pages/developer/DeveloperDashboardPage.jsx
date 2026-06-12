@@ -409,7 +409,7 @@ function DeveloperDashboardPage() {
         ) : (
           <>
             <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
-              <StatCard label="Active Now" sublabel="Seen in the last 15 minutes" value={activeNow.length} />
+              <StatCard label="Active Now" sublabel="Operators seen in the last 30 seconds" value={activeNow.length} />
               <StatCard label="Total Users" sublabel={`${overview?.users?.operators ?? 0} operators`} value={overview?.users?.total ?? 0} tone="secondary" />
               <StatCard label="Developers" sublabel="Developer-role accounts" value={overview?.users?.developers ?? 0} />
               <StatCard label="Rooms In Progress" sublabel="Open learning sessions" value={overview?.rooms?.inProgress ?? 0} tone="secondary" />

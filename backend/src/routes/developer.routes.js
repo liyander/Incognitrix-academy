@@ -105,7 +105,7 @@ const developerEndpointCatalog = [
     resource: 'active-users',
     group: 'Monitoring',
     description: 'Users currently active on the platform, current room being solved, and active Docker association.',
-    returns: 'Users seen in the last 15 minutes with current room and Docker runtime metadata.',
+    returns: 'Operator accounts seen in the last 30 seconds with current room and Docker runtime metadata.',
     example: { total: 1, items: [{ username: 'operator01', active: true, currentRoom: { title: 'Linux Basics' }, docker: null }] },
   }),
   endpointDoc({
@@ -222,7 +222,7 @@ async function fetchOverview() {
        COUNT(CASE WHEN role = 'operator' THEN 1 END) AS operators,
        COUNT(CASE WHEN role = 'admin' THEN 1 END) AS admins,
        COUNT(CASE WHEN role = 'developer' THEN 1 END) AS developers,
-       COUNT(CASE WHEN last_seen_at >= DATE_SUB(NOW(), INTERVAL 15 MINUTE) THEN 1 END) AS active_users
+       COUNT(CASE WHEN role = 'operator' AND last_seen_at >= DATE_SUB(NOW(), INTERVAL 30 SECOND) THEN 1 END) AS active_users
      FROM users`,
   )
   const [[progressTotals]] = await pool.query(
@@ -297,7 +297,8 @@ async function fetchActiveUsers() {
       )
      LEFT JOIN rooms r ON r.id = urp.room_id
      LEFT JOIN user_room_docker_instances di ON di.user_id = u.id AND di.status = 'running'
-     WHERE u.last_seen_at >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+     WHERE u.role = 'operator'
+       AND u.last_seen_at >= DATE_SUB(NOW(), INTERVAL 30 SECOND)
      ORDER BY u.last_seen_at DESC
      LIMIT 100`,
   )
@@ -308,7 +309,7 @@ async function fetchActiveUsers() {
     registrationNumber: row.registration_number,
     email: row.email,
     role: row.role,
-    active: Number(row.seconds_idle || 999999) <= 900,
+    active: Number(row.seconds_idle || 999999) <= 30,
     secondsIdle: Number(row.seconds_idle || 0),
     lastLoginAt: toIso(row.last_login_at),
     lastSeenAt: toIso(row.last_seen_at),
