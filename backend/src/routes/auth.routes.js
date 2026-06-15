@@ -21,6 +21,24 @@ function parseJsonField(value, fallback = {}) {
   return value
 }
 
+function normalizeRangeNumber(value, fallback) {
+  const number = Number(value)
+  if (!Number.isInteger(number)) return fallback
+  return Math.max(0, Math.min(999999, number))
+}
+
+function isAllowedPublicRegistrationNumber(registrationNumber, features = {}) {
+  const min = normalizeRangeNumber(features.registrationDynamicMin, 23)
+  const max = normalizeRangeNumber(features.registrationDynamicMax, 30)
+  const lower = Math.min(min, max)
+  const upper = Math.max(min, max)
+  const match = String(registrationNumber || '').match(/^7140(\d+)1490(\d+)$/)
+  if (!match) return false
+
+  const dynamicSegment = Number(match[1])
+  return Number.isInteger(dynamicSegment) && dynamicSegment >= lower && dynamicSegment <= upper
+}
+
 router.post('/register', async (req, res) => {
   const registrationNumber = String(req.body?.registrationNumber || '').trim()
   const email = String(req.body?.email || '').trim().toLowerCase()
@@ -38,6 +56,10 @@ router.post('/register', async (req, res) => {
   const features = parseJsonField(configRows[0]?.features_json, {})
   if (features.publicRegistration === false) {
     return res.status(403).json({ message: 'Public registration is currently disabled' })
+  }
+
+  if (!isAllowedPublicRegistrationNumber(registrationNumber, features)) {
+    return res.status(400).json({ message: 'Unable to create account with the provided details' })
   }
 
   const usernameBase = `operator_${registrationNumber.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}`

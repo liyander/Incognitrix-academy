@@ -103,7 +103,7 @@ function RegistrationPage({ onRegisterSuccess }) {
               <input
                 className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                 onChange={(e) => setRegistrationNumber(e.target.value)}
-                placeholder="INC-OP-1001"
+                placeholder="Registration number"
                 type="text"
                 value={registrationNumber}
               />

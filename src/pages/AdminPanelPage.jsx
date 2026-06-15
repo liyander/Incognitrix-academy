@@ -540,6 +540,35 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                 label="Public Registration"
                 onChange={(v) => setFeatureValue('publicRegistration', v)}
               />
+              <div className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2">
+                <label className="block">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                    Registration Range Min
+                  </span>
+                  <input
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary py-3 px-4 outline-none"
+                    min="0"
+                    onChange={(event) => setFeatureValue('registrationDynamicMin', Number(event.target.value))}
+                    type="number"
+                    value={config.features.registrationDynamicMin ?? 23}
+                  />
+                </label>
+                <label className="block">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                    Registration Range Max
+                  </span>
+                  <input
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary py-3 px-4 outline-none"
+                    min="0"
+                    onChange={(event) => setFeatureValue('registrationDynamicMax', Number(event.target.value))}
+                    type="number"
+                    value={config.features.registrationDynamicMax ?? 30}
+                  />
+                </label>
+                <p className="md:col-span-2 text-xs text-on-surface-variant">
+                  Applies only to public operator registration. Admin-created and admin-edited users are not restricted by this policy.
+                </p>
+              </div>
             </div>
           </div>
         </section>

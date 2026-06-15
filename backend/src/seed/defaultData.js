@@ -30,6 +30,8 @@ export const defaultPlatformConfig = {
     navbarNotifications: true,
     navbarSettings: true,
     publicRegistration: true,
+    registrationDynamicMin: 23,
+    registrationDynamicMax: 30,
   },
   ai: {
     model: 'moonshotai/kimi-k2-thinking',
