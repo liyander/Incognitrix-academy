@@ -25,8 +25,10 @@ import AdminCvesManagementPage from './pages/admin/AdminCvesManagementPage'
 import AdminCveEditorPage from './pages/admin/AdminCveEditorPage'
 import AdminAiControlPage from './pages/admin/AdminAiControlPage'
 import AdminInterviewQuestionsPage from './pages/admin/AdminInterviewQuestionsPage'
+import AdminJobRecommendationsPage from './pages/admin/AdminJobRecommendationsPage'
 import DeveloperDashboardPage from './pages/developer/DeveloperDashboardPage'
 import DashboardPage from './pages/DashboardPage'
+import JobUpdatesPage from './pages/JobUpdatesPage'
 import CvesPage from './pages/CvesPage'
 import CveDetailPage from './pages/CveDetailPage'
 import CertificateVerificationPage from './pages/CertificateVerificationPage'
@@ -304,6 +306,7 @@ function App() {
           <Route path="/admin/upcoming-ctf" element={<AdminUpcomingCtfManagementPage />} />
           <Route path="/admin/ai-control" element={<AdminAiControlPage />} />
           <Route path="/admin/interview-questions" element={<AdminInterviewQuestionsPage />} />
+          <Route path="/admin/jobs" element={<AdminJobRecommendationsPage />} />
           <Route path="/developer" element={<DeveloperDashboardPage />} />
           <Route path="*" element={<NotFoundPage variant="admin" />} />
         </Routes>
@@ -456,6 +459,10 @@ function App() {
           <Route
             path="/notes"
             element={<NotesPage />}
+          />
+          <Route
+            path="/jobs"
+            element={<JobUpdatesPage />}
           />
           <Route
             path="/roadmap"
