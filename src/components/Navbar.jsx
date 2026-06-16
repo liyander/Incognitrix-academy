@@ -216,7 +216,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
             INCOGNITRIX
           </h1>
           <span className="hidden sm:block truncate font-headline text-[11px] tracking-[0.2em] text-neutral-400 uppercase mt-1">
-            Cybersecurity Academy
+            Cybersecurity Academ
           </span>
         </div>
         <nav className="hidden xl:flex items-center gap-6 font-headline tracking-tight text-[15px] uppercase whitespace-nowrap">
