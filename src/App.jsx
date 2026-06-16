@@ -26,6 +26,7 @@ import AdminCveEditorPage from './pages/admin/AdminCveEditorPage'
 import AdminAiControlPage from './pages/admin/AdminAiControlPage'
 import AdminInterviewQuestionsPage from './pages/admin/AdminInterviewQuestionsPage'
 import AdminJobRecommendationsPage from './pages/admin/AdminJobRecommendationsPage'
+import AdminTopPlayerResumesPage from './pages/admin/AdminTopPlayerResumesPage'
 import DeveloperDashboardPage from './pages/developer/DeveloperDashboardPage'
 import DashboardPage from './pages/DashboardPage'
 import JobUpdatesPage from './pages/JobUpdatesPage'
@@ -307,6 +308,7 @@ function App() {
           <Route path="/admin/ai-control" element={<AdminAiControlPage />} />
           <Route path="/admin/interview-questions" element={<AdminInterviewQuestionsPage />} />
           <Route path="/admin/jobs" element={<AdminJobRecommendationsPage />} />
+          <Route path="/admin/top-resumes" element={<AdminTopPlayerResumesPage />} />
           <Route path="/developer" element={<DeveloperDashboardPage />} />
           <Route path="*" element={<NotFoundPage variant="admin" />} />
         </Routes>

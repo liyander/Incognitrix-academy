@@ -209,15 +209,19 @@ function SettingsPage() {
     achievements: [emptyAchievement()],
   })
   const [careerEvidence, setCareerEvidence] = useState(emptyCareerEvidence)
+  const [resumeVault, setResumeVault] = useState({ eligible: false, rank: null, resume: null })
+  const [resumeFile, setResumeFile] = useState(null)
+  const [resumeUploading, setResumeUploading] = useState(false)
 
   useEffect(() => {
     let cancelled = false
 
     const loadProfile = async () => {
       try {
-        const [data, careerData] = await Promise.all([
+        const [data, careerData, resumeData] = await Promise.all([
           apiFetch('/users/me'),
           apiFetch('/jobs/profile').catch(() => emptyCareerEvidence),
+          apiFetch('/resumes/me').catch(() => ({ eligible: false, rank: null, resume: null })),
         ])
         if (!cancelled) {
           setForm({
@@ -244,6 +248,11 @@ function SettingsPage() {
             tools: careerData?.tools || '',
             techStack: careerData?.techStack || '',
             certifications: careerData?.certifications || '',
+          })
+          setResumeVault({
+            eligible: Boolean(resumeData?.eligible),
+            rank: resumeData?.rank || null,
+            resume: resumeData?.resume || null,
           })
         }
       } catch (loadError) {
@@ -414,6 +423,48 @@ function SettingsPage() {
       setError(passwordError?.message || 'Failed to change password')
     } finally {
       setChangingPassword(false)
+    }
+  }
+
+  const uploadResume = async () => {
+    if (!resumeFile) {
+      setError('Choose a resume file before uploading.')
+      return
+    }
+
+    setResumeUploading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const fileData = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result || '').split(',').pop() || '')
+        reader.onerror = () => reject(new Error('Unable to read resume file'))
+        reader.readAsDataURL(resumeFile)
+      })
+
+      const updated = await apiFetch('/resumes/me', {
+        method: 'POST',
+        body: JSON.stringify({
+          fileName: resumeFile.name,
+          mimeType: resumeFile.type || 'application/octet-stream',
+          fileSize: resumeFile.size,
+          fileData,
+        }),
+      })
+
+      setResumeVault({
+        eligible: Boolean(updated?.eligible),
+        rank: updated?.rank || resumeVault.rank,
+        resume: updated?.resume || null,
+      })
+      setResumeFile(null)
+      setSuccess('Resume uploaded to the top-player vault.')
+    } catch (uploadError) {
+      setError(uploadError?.message || 'Failed to upload resume')
+    } finally {
+      setResumeUploading(false)
     }
   }
 
@@ -737,6 +788,80 @@ function SettingsPage() {
                 />
               </label>
             </div>
+          </section>
+
+          <section className="bg-surface-container-lowest p-8 space-y-5 border-l-4 border-secondary">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+              <div>
+                <p className="font-label text-[10px] uppercase tracking-[0.25em] text-secondary font-bold">
+                  Top 10 Resume Vault
+                </p>
+                <h2 className="font-headline text-xl font-bold uppercase tracking-tight mt-2">
+                  Placement Resume Upload
+                </h2>
+                <p className="text-sm text-on-surface-variant mt-2 max-w-2xl">
+                  Current top 10 players can upload one resume for admin placement review.
+                </p>
+              </div>
+              <div className="bg-surface-container-highest px-5 py-4 text-right">
+                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                  Current Rank
+                </p>
+                <p className="font-headline text-3xl font-black text-secondary">
+                  {resumeVault.rank ? `#${resumeVault.rank}` : 'N/A'}
+                </p>
+              </div>
+            </div>
+
+            {resumeVault.eligible ? (
+              <div className="space-y-4">
+                {resumeVault.resume ? (
+                  <div className="bg-surface-container-highest p-4 border-l-2 border-l-secondary">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                      Uploaded Resume
+                    </p>
+                    <p className="mt-1 font-headline text-sm font-bold text-on-background break-all">
+                      {resumeVault.resume.fileName}
+                    </p>
+                    <p className="text-xs text-on-surface-variant mt-1">
+                      {Math.max(1, Math.round((resumeVault.resume.fileSize || 0) / 1024))} KB
+                      {resumeVault.resume.updatedAt ? ` · Updated ${new Date(resumeVault.resume.updatedAt).toLocaleString()}` : ''}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-secondary/10 border-l-2 border-l-secondary p-4">
+                    <p className="text-sm text-on-surface-variant">
+                      You are eligible. Upload a PDF, DOC, or DOCX resume up to 5 MB.
+                    </p>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
+                  <input
+                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    className="w-full bg-surface-container-highest border-l-2 border-l-secondary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    onChange={(event) => setResumeFile(event.target.files?.[0] || null)}
+                    type="file"
+                  />
+                  <button
+                    className="bg-secondary text-on-secondary px-6 py-3 font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-60"
+                    disabled={resumeUploading || !resumeFile}
+                    onClick={uploadResume}
+                    type="button"
+                  >
+                    {resumeUploading ? 'Uploading...' : 'Upload Resume'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-surface-container-highest p-5 border-l-2 border-l-outline-variant">
+                <p className="font-headline text-sm font-bold uppercase tracking-widest text-on-background">
+                  Resume upload locked
+                </p>
+                <p className="text-sm text-on-surface-variant mt-2">
+                  This vault opens automatically when your scoreboard position enters the current top 10.
+                </p>
+              </div>
+            )}
           </section>
 
           <button
