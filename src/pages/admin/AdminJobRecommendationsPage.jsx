@@ -14,6 +14,8 @@ function AdminJobRecommendationsPage() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [jobMarkdown, setJobMarkdown] = useState('')
+  const [isAddingJob, setIsAddingJob] = useState(false)
 
   const loadRecommendations = async () => {
     setIsLoading(true)
@@ -45,6 +47,30 @@ function AdminJobRecommendationsPage() {
       setError(refreshError?.message || 'Unable to refresh recommendations.')
     } finally {
       setIsRefreshing(false)
+    }
+  }
+
+  const addMarkdownJob = async () => {
+    if (!jobMarkdown.trim()) {
+      setError('Paste a markdown job listing before adding.')
+      return
+    }
+
+    setIsAddingJob(true)
+    setMessage('')
+    setError('')
+    try {
+      const response = await apiFetch('/jobs/admin/listings', {
+        method: 'POST',
+        body: JSON.stringify({ markdown: jobMarkdown }),
+      })
+      setRecommendations(Array.isArray(response?.recommendations) ? response.recommendations : [])
+      setJobMarkdown('')
+      setMessage(response?.message || 'Job listing saved and recommendations refreshed.')
+    } catch (addError) {
+      setError(addError?.message || 'Unable to add job listing.')
+    } finally {
+      setIsAddingJob(false)
     }
   }
 
@@ -152,6 +178,36 @@ function AdminJobRecommendationsPage() {
             {error}
           </p>
         ) : null}
+
+        <section className="bg-surface-container-lowest border-l-4 border-primary p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="font-headline text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
+                Markdown Job Intake
+              </p>
+              <h2 className="mt-2 font-headline text-xl font-black uppercase tracking-tight">
+                Add New Job Listing
+              </h2>
+              <p className="mt-2 text-sm text-on-surface-variant">
+                Paste a markdown job block with Company, Location, Salary, Type, Apply, Responsibilities, Requirements, and Key Skills. Saving it re-analyzes every active student.
+              </p>
+            </div>
+            <button
+              className="bg-primary px-5 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-primary disabled:opacity-60"
+              disabled={isAddingJob}
+              onClick={addMarkdownJob}
+              type="button"
+            >
+              {isAddingJob ? 'Adding...' : 'Add & Analyze'}
+            </button>
+          </div>
+          <textarea
+            className="mt-5 min-h-40 w-full resize-y bg-surface-container-highest border-l-2 border-l-primary px-4 py-3 font-space text-sm outline-none"
+            onChange={(event) => setJobMarkdown(event.target.value)}
+            placeholder={'### SOC Analyst - Tier 1\n**Company:** Example\n**Location:** Remote\n**Salary:** ...\n**Type:** Entry Level | Cybersecurity | Remote\n...'}
+            value={jobMarkdown}
+          />
+        </section>
 
         <section className="bg-surface-container-lowest p-6">
           <div className="overflow-x-auto">

@@ -99,6 +99,60 @@ function splitSkillText(value) {
     .filter(Boolean)
 }
 
+function slugify(value) {
+  return String(value || 'job-listing')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 180) || 'job-listing'
+}
+
+function markdownField(markdown, label) {
+  const match = String(markdown || '').match(new RegExp(`\\*\\*${label}:\\*\\*\\s*(.+)`, 'i'))
+  return match?.[1]?.trim() || ''
+}
+
+function markdownSection(markdown, title) {
+  const pattern = new RegExp(`####?\\s+${title}\\s*\\n([\\s\\S]*?)(?=\\n####?\\s+|\\n---|$)`, 'i')
+  const match = String(markdown || '').match(pattern)
+  return match?.[1]?.trim() || ''
+}
+
+function markdownList(section) {
+  return String(section || '')
+    .split('\n')
+    .map((line) => line.replace(/^\s*[-*]\s*/, '').trim())
+    .filter(Boolean)
+}
+
+function parseMarkdownJob(markdown) {
+  const text = String(markdown || '').trim()
+  const titleMatch = text.match(/^#{1,4}\s*(?:\d+\.\s*)?(.+)$/m)
+  const title = titleMatch?.[1]?.trim() || 'Untitled Job'
+  const typeText = markdownField(text, 'Type')
+  const typeParts = typeText.split('|').map((part) => part.trim()).filter(Boolean)
+  const skillsSection = markdownSection(text, 'Key Skills')
+  const skills = Array.from(skillsSection.matchAll(/`([^`]+)`/g)).map((match) => match[1].trim())
+  const company = markdownField(text, 'Company') || 'Unknown Company'
+
+  return {
+    slug: slugify(`${company}-${title}`),
+    title,
+    company,
+    location: markdownField(text, 'Location'),
+    salary: markdownField(text, 'Salary'),
+    jobType: typeParts[0] || 'Entry Level',
+    category: typeParts[1] || 'Cybersecurity',
+    workMode: typeParts[2] || 'Remote',
+    applyUrl: markdownField(text, 'Apply'),
+    aboutRole: markdownSection(text, 'About the Role'),
+    responsibilities: markdownList(markdownSection(text, 'Responsibilities')),
+    requirements: markdownList(markdownSection(text, 'Requirements')),
+    skills: skills.length ? skills : splitSkillText(skillsSection),
+    detailsMarkdown: text,
+  }
+}
+
 function textTokens(value) {
   return new Set(
     String(value || '')
@@ -453,6 +507,14 @@ async function refreshRecommendationsForUser(userId) {
   return results.sort((a, b) => b.matchScore - a.matchScore)
 }
 
+async function refreshRecommendationsForAllOperators() {
+  await ensureJobSchema()
+  const [users] = await pool.query("SELECT id FROM users WHERE is_active = true AND role = 'operator'")
+  for (const user of users) {
+    await refreshRecommendationsForUser(user.id)
+  }
+}
+
 async function listRecommendations(whereSql, params) {
   await ensureJobSchema()
   const [rows] = await pool.query(
@@ -606,16 +668,94 @@ router.get('/admin/recommendations', requireAdmin, async (_req, res, next) => {
 
 router.post('/admin/recommendations/refresh', requireAdmin, async (_req, res, next) => {
   try {
-    await ensureJobSchema()
-    const [users] = await pool.query("SELECT id FROM users WHERE is_active = true AND role = 'operator'")
-    for (const user of users) {
-      await refreshRecommendationsForUser(user.id)
-    }
+    await refreshRecommendationsForAllOperators()
     const recommendations = await listRecommendations(
       'WHERE sjr.match_score >= 55 AND jl.is_active = true',
       [],
     )
     res.json(recommendations)
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.post('/admin/listings', requireAdmin, async (req, res, next) => {
+  try {
+    await ensureJobSchema()
+    const job = req.body?.markdown
+      ? parseMarkdownJob(req.body.markdown)
+      : {
+          slug: slugify(`${req.body?.company || 'company'}-${req.body?.title || 'job'}`),
+          title: String(req.body?.title || 'Untitled Job'),
+          company: String(req.body?.company || 'Unknown Company'),
+          location: String(req.body?.location || ''),
+          salary: String(req.body?.salary || ''),
+          jobType: String(req.body?.jobType || 'Entry Level'),
+          category: String(req.body?.category || 'Cybersecurity'),
+          workMode: String(req.body?.workMode || 'Remote'),
+          applyUrl: String(req.body?.applyUrl || ''),
+          aboutRole: String(req.body?.aboutRole || ''),
+          responsibilities: Array.isArray(req.body?.responsibilities)
+            ? req.body.responsibilities
+            : splitSkillText(req.body?.responsibilities),
+          requirements: Array.isArray(req.body?.requirements)
+            ? req.body.requirements
+            : splitSkillText(req.body?.requirements),
+          skills: Array.isArray(req.body?.skills) ? req.body.skills : splitSkillText(req.body?.skills),
+          detailsMarkdown: String(req.body?.detailsMarkdown || ''),
+        }
+
+    if (!job.title || !job.company) {
+      res.status(400).json({ message: 'Job title and company are required.' })
+      return
+    }
+
+    const detailsMarkdown = job.detailsMarkdown || buildJobMarkdown(job)
+    await pool.query(
+      `INSERT INTO job_listings (
+        slug, title, company, location, salary, job_type, category, work_mode, apply_url,
+        about_role, responsibilities_json, requirements_json, skills_json, details_markdown, source, is_active
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'admin_markdown', true)
+      ON DUPLICATE KEY UPDATE
+        title = VALUES(title),
+        company = VALUES(company),
+        location = VALUES(location),
+        salary = VALUES(salary),
+        job_type = VALUES(job_type),
+        category = VALUES(category),
+        work_mode = VALUES(work_mode),
+        apply_url = VALUES(apply_url),
+        about_role = VALUES(about_role),
+        responsibilities_json = VALUES(responsibilities_json),
+        requirements_json = VALUES(requirements_json),
+        skills_json = VALUES(skills_json),
+        details_markdown = VALUES(details_markdown),
+        source = 'admin_markdown',
+        is_active = true`,
+      [
+        job.slug,
+        job.title,
+        job.company,
+        job.location,
+        job.salary,
+        job.jobType,
+        job.category,
+        job.workMode,
+        job.applyUrl,
+        job.aboutRole,
+        JSON.stringify(job.responsibilities || []),
+        JSON.stringify(job.requirements || []),
+        JSON.stringify(job.skills || []),
+        detailsMarkdown,
+      ],
+    )
+
+    await refreshRecommendationsForAllOperators()
+    const recommendations = await listRecommendations(
+      'WHERE sjr.match_score >= 55 AND jl.is_active = true',
+      [],
+    )
+    res.status(201).json({ message: 'Job listing saved and recommendations refreshed.', recommendations })
   } catch (error) {
     next(error)
   }

@@ -16,6 +16,44 @@ const emptyAchievement = () => ({
   pocLink: '',
 })
 
+const careerEvidenceFields = [
+  {
+    key: 'hardSkills',
+    label: 'Hard Skills',
+    placeholder: 'Linux, networking, incident response, Docker, Terraform...',
+  },
+  {
+    key: 'softSkills',
+    label: 'Soft Skills',
+    placeholder: 'Communication, documentation, teamwork, report writing...',
+  },
+  {
+    key: 'tools',
+    label: 'Tools',
+    placeholder: 'Splunk, Burp Suite, Wireshark, Nessus, GitHub Actions...',
+  },
+  {
+    key: 'techStack',
+    label: 'Stack',
+    placeholder: 'AWS, Azure, Python, Bash, Kubernetes, SIEM...',
+  },
+  {
+    key: 'internships',
+    label: 'Internships',
+    placeholder: 'Company, role, duration, and what you handled...',
+  },
+  {
+    key: 'certifications',
+    label: 'Certifications',
+    placeholder: 'Security+, AZ-900, AWS Cloud Practitioner, ISC2 CC...',
+  },
+]
+
+const emptyCareerEvidence = careerEvidenceFields.reduce(
+  (acc, field) => ({ ...acc, [field.key]: '' }),
+  {},
+)
+
 function parseProjects(value) {
   if (!value) {
     return [emptyProject()]
@@ -170,13 +208,17 @@ function SettingsPage() {
     projects: [emptyProject()],
     achievements: [emptyAchievement()],
   })
+  const [careerEvidence, setCareerEvidence] = useState(emptyCareerEvidence)
 
   useEffect(() => {
     let cancelled = false
 
     const loadProfile = async () => {
       try {
-        const data = await apiFetch('/users/me')
+        const [data, careerData] = await Promise.all([
+          apiFetch('/users/me'),
+          apiFetch('/jobs/profile').catch(() => emptyCareerEvidence),
+        ])
         if (!cancelled) {
           setForm({
             username: data.username || '',
@@ -193,6 +235,15 @@ function SettingsPage() {
             about_me: data.about_me || '',
             projects: parseProjects(data.projects),
             achievements: parseAchievements(data.achievements),
+          })
+          setCareerEvidence({
+            ...emptyCareerEvidence,
+            internships: careerData?.internships || '',
+            softSkills: careerData?.softSkills || '',
+            hardSkills: careerData?.hardSkills || '',
+            tools: careerData?.tools || '',
+            techStack: careerData?.techStack || '',
+            certifications: careerData?.certifications || '',
           })
         }
       } catch (loadError) {
@@ -215,6 +266,10 @@ function SettingsPage() {
 
   const updateField = (name, value) => {
     setForm((current) => ({ ...current, [name]: value }))
+  }
+
+  const updateCareerEvidence = (name, value) => {
+    setCareerEvidence((current) => ({ ...current, [name]: value }))
   }
 
   const updateProjectField = (index, field, value) => {
@@ -290,6 +345,15 @@ function SettingsPage() {
         body: JSON.stringify(payload),
       })
 
+      await apiFetch('/jobs/profile', {
+        method: 'PUT',
+        body: JSON.stringify({
+          ...careerEvidence,
+          projects: serializeProjects(form.projects),
+          achievements: serializeAchievements(form.achievements),
+        }),
+      })
+
       setForm((current) => ({
         ...current,
         email: updated.email || '',
@@ -303,7 +367,7 @@ function SettingsPage() {
         projects: parseProjects(updated.projects),
         achievements: parseAchievements(updated.achievements),
       }))
-      setSuccess('Settings saved successfully')
+      setSuccess('Settings saved successfully. Job recommendations were re-analyzed from your latest career evidence.')
     } catch (saveError) {
       setError(saveError?.message || 'Failed to save settings')
     } finally {
@@ -578,6 +642,34 @@ function SettingsPage() {
                     value={achievement.pocLink}
                   />
                 </div>
+              ))}
+            </div>
+          </section>
+          <section className="bg-surface-container-lowest p-8 space-y-5 border-l-4 border-secondary">
+            <div>
+              <p className="font-headline text-[10px] font-bold uppercase tracking-[0.24em] text-secondary">
+                Job Matching Evidence
+              </p>
+              <h2 className="mt-2 font-headline text-xl font-bold uppercase tracking-tight">
+                Skills, Internships & Stack
+              </h2>
+              <p className="mt-2 text-sm text-on-surface-variant">
+                These details are used with completed rooms, projects, achievements, and certificates to generate job recommendations.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {careerEvidenceFields.map((field) => (
+                <label className="block" key={field.key}>
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                    {field.label}
+                  </span>
+                  <textarea
+                    className="mt-2 min-h-28 w-full resize-y bg-surface-container-highest border-l-2 border-l-secondary px-4 py-3 outline-none"
+                    onChange={(event) => updateCareerEvidence(field.key, event.target.value)}
+                    placeholder={field.placeholder}
+                    value={careerEvidence[field.key] || ''}
+                  />
+                </label>
               ))}
             </div>
           </section>
