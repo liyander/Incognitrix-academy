@@ -20,6 +20,19 @@ function formatDate(value) {
   })
 }
 
+function jobIdentity(item) {
+  const primary = [
+    item.job?.company,
+    item.job?.title,
+    item.job?.applyUrl,
+    item.job?.location,
+    item.job?.salary,
+  ]
+    .filter(Boolean)
+    .join('|')
+  return primary || String(item.jobId || item.id)
+}
+
 function JobUpdatesPage() {
   const [recommendations, setRecommendations] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -29,17 +42,29 @@ function JobUpdatesPage() {
   const [expandedJobId, setExpandedJobId] = useState(null)
   const [applyingRecommendationId, setApplyingRecommendationId] = useState(null)
 
+  const uniqueRecommendations = useMemo(() => {
+    const byJob = new Map()
+    for (const item of recommendations) {
+      const key = jobIdentity(item)
+      const current = byJob.get(key)
+      if (!current || Number(item.matchScore || 0) > Number(current.matchScore || 0)) {
+        byJob.set(key, item)
+      }
+    }
+    return Array.from(byJob.values()).sort((a, b) => Number(b.matchScore || 0) - Number(a.matchScore || 0))
+  }, [recommendations])
+
   const highMatches = useMemo(
-    () => recommendations.filter((item) => item.probabilityLabel === 'High').length,
-    [recommendations],
+    () => uniqueRecommendations.filter((item) => item.probabilityLabel === 'High').length,
+    [uniqueRecommendations],
   )
   const averageScore = useMemo(() => {
-    if (!recommendations.length) return 0
+    if (!uniqueRecommendations.length) return 0
     return Math.round(
-      recommendations.reduce((sum, item) => sum + Number(item.matchScore || 0), 0) /
-        recommendations.length,
+      uniqueRecommendations.reduce((sum, item) => sum + Number(item.matchScore || 0), 0) /
+        uniqueRecommendations.length,
     )
-  }, [recommendations])
+  }, [uniqueRecommendations])
 
   const loadRecommendations = async () => {
     setIsLoading(true)
@@ -179,8 +204,8 @@ function JobUpdatesPage() {
             <div className="bg-surface-container-lowest p-8 text-sm text-on-surface-variant">
               Analyzing jobs against your current evidence...
             </div>
-          ) : recommendations.length ? (
-            recommendations.map((item) => {
+          ) : uniqueRecommendations.length ? (
+            uniqueRecommendations.map((item) => {
               const expanded = expandedJobId === item.id
               return (
                 <article

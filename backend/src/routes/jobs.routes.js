@@ -473,7 +473,7 @@ async function syncScrapedJobsFromExternalDb() {
     }
 
     const job = {
-      slug: slugify(`scraped-${row.id}-${row.company}-${row.title}`),
+      slug: slugify(`scraped-${row.company}-${row.title}-${row.location}-${row.job_link}`),
       title: String(row.title || 'Untitled Job').trim(),
       company: String(row.company || 'Unknown Company').trim(),
       location: String(row.location || '').trim(),
