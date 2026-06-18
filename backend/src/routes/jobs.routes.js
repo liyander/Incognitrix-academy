@@ -8,6 +8,8 @@ let schemaReady = false
 let lastScrapedJobSync = {
   attemptedAt: null,
   imported: 0,
+  scanned: 0,
+  skipped: 0,
   status: 'not_started',
   message: 'Scraped job sync has not run yet.',
 }
@@ -251,14 +253,115 @@ function inferSkillsFromDescription(description) {
     'Vulnerability Management',
     'Penetration Testing',
     'Web Security',
-    'Service Desk',
-    'Troubleshooting',
-    'Communication',
-    'Documentation',
-    'Problem Solving',
+    'SIEM',
+    'EDR',
+    'IDS',
+    'IPS',
+    'IAM',
+    'DevSecOps',
+    'Malware Analysis',
+    'Digital Forensics',
+    'Threat Hunting',
+    'Secure Coding',
   ]
   const text = String(description || '').toLowerCase()
   return commonSkills.filter((skill) => text.includes(skill.toLowerCase()))
+}
+
+const CYBER_RELEVANCE_PATTERNS = [
+  /\bcyber\s*security\b/i,
+  /\bcybersecurity\b/i,
+  /\binformation security\b/i,
+  /\binfosec\b/i,
+  /\bapplication security\b/i,
+  /\bappsec\b/i,
+  /\bweb security\b/i,
+  /\bnetwork security\b/i,
+  /\bcloud security\b/i,
+  /\bsecurity analyst\b/i,
+  /\bsecurity engineer\b/i,
+  /\bsecurity operations\b/i,
+  /\bsoc\b/i,
+  /\bsiem\b/i,
+  /\bsplunk\b/i,
+  /\bedr\b/i,
+  /\bxdr\b/i,
+  /\bids\b/i,
+  /\bips\b/i,
+  /\bincident response\b/i,
+  /\bthreat (?:hunting|intel|intelligence|analysis|detection)\b/i,
+  /\bmalware\b/i,
+  /\bforensics?\b/i,
+  /\bvulnerabilit(?:y|ies)\b/i,
+  /\bpenetration test(?:ing|er)?\b/i,
+  /\bpentest(?:ing|er)?\b/i,
+  /\bred team\b/i,
+  /\bblue team\b/i,
+  /\bdevsecops\b/i,
+  /\bsecure coding\b/i,
+  /\bexploit\b/i,
+  /\bctf\b/i,
+  /\biam\b/i,
+  /\bidentity and access\b/i,
+  /\biso\s*27001\b/i,
+  /\bgdpr\b/i,
+  /\brisk and compliance\b/i,
+  /\bsecurity compliance\b/i,
+]
+
+const NON_CYBER_EXCLUSION_PATTERNS = [
+  /\bhuman resources?\b/i,
+  /\bhr\b/i,
+  /\brecruit(?:er|ment|ing)\b/i,
+  /\btalent acquisition\b/i,
+  /\bmarketing\b/i,
+  /\bsales\b/i,
+  /\baccounting\b/i,
+  /\bfinance\b/i,
+  /\bcommerce\b/i,
+  /\bbusiness administration\b/i,
+  /\bcustomer service\b/i,
+  /\bvoice support\b/i,
+  /\bpayroll\b/i,
+  /\bleave management\b/i,
+  /\bonboarding\b/i,
+  /\bcontent writer\b/i,
+  /\bgraphic design\b/i,
+]
+
+function cyberRelevanceScore(row, skills = [], requirements = []) {
+  const title = String(row.title || '')
+  const domain = String(row.domain || '')
+  const skillText = Array.isArray(skills) ? skills.join(' ') : String(row.skills_text || '')
+  const requirementText = Array.isArray(requirements) ? requirements.join(' ') : String(row.requirements_text || '')
+  const description = String(row.job_description || '')
+  const strongText = `${title} ${skillText} ${requirementText}`
+  const fullText = `${strongText} ${description} ${domain}`
+  let score = 0
+
+  for (const pattern of CYBER_RELEVANCE_PATTERNS) {
+    if (pattern.test(strongText)) {
+      score += 3
+    } else if (pattern.test(description)) {
+      score += 1
+    }
+  }
+
+  if (/\bcyber(?:security)?\b/i.test(domain) || /\bsecurity\b/i.test(domain)) {
+    score += 1
+  }
+
+  const exclusionText = `${title} ${description}`
+  const hasGenericNonCyberSignal = NON_CYBER_EXCLUSION_PATTERNS.some((pattern) => pattern.test(exclusionText))
+  if (hasGenericNonCyberSignal && score < 5) {
+    return 0
+  }
+
+  return CYBER_RELEVANCE_PATTERNS.some((pattern) => pattern.test(fullText)) ? score : 0
+}
+
+function isCyberSecurityJob(row, skills = [], requirements = []) {
+  return cyberRelevanceScore(row, skills, requirements) >= 3
 }
 
 function textTokens(value) {
@@ -317,6 +420,8 @@ async function syncScrapedJobsFromExternalDb() {
     lastScrapedJobSync = {
       attemptedAt: new Date().toISOString(),
       imported: 0,
+      scanned: 0,
+      skipped: 0,
       status: 'missing',
       message: `${SCRAPED_JOB_DB}.${SCRAPED_JOB_TABLE} was not found or is not visible to the configured DB user.`,
     }
@@ -345,6 +450,13 @@ async function syncScrapedJobsFromExternalDb() {
      LIMIT 500`,
   )
 
+  await pool.query(
+    "UPDATE job_listings SET is_active = false WHERE source = 'scraped_jobs'",
+  )
+
+  let importedCount = 0
+  let skippedCount = 0
+
   for (const row of rows) {
     const description = String(row.job_description || '').trim()
     const explicitSkills = String(row.skills_text || '').trim().toLowerCase() === 'not specified'
@@ -354,6 +466,12 @@ async function syncScrapedJobsFromExternalDb() {
     const requirements = String(row.requirements_text || '').trim().toLowerCase() === 'see description'
       ? []
       : splitSkillText(row.requirements_text)
+
+    if (!isCyberSecurityJob(row, skills, requirements)) {
+      skippedCount += 1
+      continue
+    }
+
     const job = {
       slug: slugify(`scraped-${row.id}-${row.company}-${row.title}`),
       title: String(row.title || 'Untitled Job').trim(),
@@ -409,16 +527,19 @@ async function syncScrapedJobsFromExternalDb() {
         buildScrapedJobMarkdown(job),
       ],
     )
+    importedCount += 1
   }
 
   lastScrapedJobSync = {
     attemptedAt: new Date().toISOString(),
-    imported: rows.length,
+    imported: importedCount,
+    scanned: rows.length,
+    skipped: skippedCount,
     status: 'ok',
-    message: `Synced ${rows.length} active job row${rows.length === 1 ? '' : 's'} from ${SCRAPED_JOB_DB}.${SCRAPED_JOB_TABLE}.`,
+    message: `Synced ${importedCount} cybersecurity job${importedCount === 1 ? '' : 's'} from ${SCRAPED_JOB_DB}.${SCRAPED_JOB_TABLE}; skipped ${skippedCount} non-cyber row${skippedCount === 1 ? '' : 's'}.`,
   }
 
-  return rows.length
+  return importedCount
 }
 
 async function syncScrapedJobsIfDue({ force = false } = {}) {
@@ -437,6 +558,8 @@ async function syncScrapedJobsIfDue({ force = false } = {}) {
     lastScrapedJobSync = {
       attemptedAt: new Date().toISOString(),
       imported: 0,
+      scanned: 0,
+      skipped: 0,
       status: 'error',
       message: error?.message || 'Unable to sync scraped jobs.',
     }
