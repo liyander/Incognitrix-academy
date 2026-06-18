@@ -429,96 +429,79 @@ function AdminJobRecommendationsPage() {
               <tbody>
                 {groupedRecommendations.map((group) => {
                   const expanded = expandedJobKey === group.key
+                  const visibleProfiles = expanded ? group.profiles : group.topProfiles
                   return (
                     <Fragment key={group.key}>
-                      <tr className="border-b border-outline-variant/30 align-top">
-                        <td className="py-4 pr-4">
-                          <p className="max-w-xs font-headline text-sm font-black uppercase text-on-background">
-                            {group.job?.title}
-                          </p>
-                          <p className="mt-1 max-w-xs text-xs text-on-surface-variant">{group.job?.category}</p>
-                          <p className="text-xs text-on-surface-variant">{group.job?.salary}</p>
-                        </td>
-                        <td className="py-4 pr-4">
-                          <p className="font-headline text-sm font-black uppercase text-on-background">{group.job?.company}</p>
-                          <p className="mt-1 text-xs text-on-surface-variant">{group.job?.location}</p>
-                          <p className="text-xs text-on-surface-variant">{group.job?.workMode}</p>
-                        </td>
-                        <td className="py-4 pr-4">
-                          <p className="font-headline text-xl font-black text-primary">
-                            {group.topProfiles.length}/{group.profiles.length}
-                          </p>
-                          <div className="mt-2 space-y-1">
-                            {group.topProfiles.map((profile) => (
-                              <p className="max-w-48 truncate text-xs text-on-surface-variant" key={profile.id}>
-                                {studentLabel(profile)}
+                      {visibleProfiles.map((profile, index) => (
+                        <tr className="border-b border-outline-variant/30 align-top" key={`${group.key}-${profile.id}`}>
+                          {index === 0 ? (
+                            <td className="bg-surface-container-lowest py-5 pr-5 align-top" rowSpan={visibleProfiles.length}>
+                              <p className="max-w-sm font-headline text-base font-black uppercase text-on-background">
+                                {group.job?.title}
                               </p>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="py-4 pr-4">
-                          <p className="font-headline text-2xl font-black text-secondary">{group.bestScore}%</p>
-                          <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Best fit</p>
-                          <p className="mt-1 text-xs text-on-surface-variant">Avg top 5: {group.averageScore}%</p>
-                        </td>
-                        <td className="py-4 pr-4">
-                          <div className="flex max-w-xs flex-wrap gap-2">
-                            {group.matchedSkills.map((skill) => (
-                              <span className="bg-secondary/10 px-2 py-1 text-[11px] text-secondary" key={skill}>
-                                {skill}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="py-4 pr-4">
-                          <div className="flex max-w-xs flex-wrap gap-2">
-                            {group.missingSkills.map((skill) => (
-                              <span className="bg-primary/10 px-2 py-1 text-[11px] text-primary" key={skill}>
-                                {skill}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="py-4 pr-4">
-                          <p className="max-w-md text-sm leading-relaxed text-on-surface-variant">{group.analysis}</p>
-                        </td>
-                        <td className="py-4">
-                          <button
-                            className="bg-surface-container-high px-4 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface hover:bg-surface-container-highest"
-                            onClick={() => setExpandedJobKey(expanded ? null : group.key)}
-                            type="button"
-                          >
-                            {expanded ? 'Hide Profiles' : 'More Profiles'}
-                          </button>
-                        </td>
-                      </tr>
-                      {expanded ? (
-                        <tr className="border-b border-outline-variant/30">
-                          <td className="bg-surface-container-high px-4 py-5" colSpan={8}>
-                            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                              {group.profiles.map((profile) => (
-                                <div className="bg-surface-container-lowest p-4" key={profile.id}>
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div>
-                                      <p className="font-headline text-sm font-black uppercase text-on-background">
-                                        {studentLabel(profile)}
-                                      </p>
-                                      <p className="mt-1 text-xs text-on-surface-variant">{profile.email || profile.username}</p>
-                                    </div>
-                                    <div className="text-right">
-                                      <p className="font-headline text-xl font-black text-secondary">{profile.matchScore}%</p>
-                                      <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
-                                        {profile.probabilityLabel}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <p className="mt-3 text-xs leading-relaxed text-on-surface-variant">{profile.aiAnalysis}</p>
-                                </div>
+                              <p className="mt-2 max-w-sm text-xs leading-relaxed text-on-surface-variant">
+                                {group.job?.category} - {group.job?.jobType}
+                              </p>
+                              <p className="mt-1 text-xs text-on-surface-variant">{group.job?.salary}</p>
+                            </td>
+                          ) : null}
+                          {index === 0 ? (
+                            <td className="bg-surface-container-lowest py-5 pr-5 align-top" rowSpan={visibleProfiles.length}>
+                              <p className="font-headline text-base font-black uppercase text-on-background">
+                                {group.job?.company}
+                              </p>
+                              <p className="mt-2 text-xs text-on-surface-variant">{group.job?.location}</p>
+                              <p className="text-xs text-on-surface-variant">{group.job?.workMode}</p>
+                            </td>
+                          ) : null}
+                          <td className="py-4 pr-4">
+                            <p className="font-headline text-sm font-black uppercase text-on-background">
+                              {studentLabel(profile)}
+                            </p>
+                            <p className="mt-1 text-xs text-on-surface-variant">{profile.email || profile.username}</p>
+                          </td>
+                          <td className="py-4 pr-4">
+                            <p className="font-headline text-2xl font-black text-secondary">{profile.matchScore}%</p>
+                            <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                              {profile.probabilityLabel}
+                            </p>
+                          </td>
+                          <td className="py-4 pr-4">
+                            <div className="flex max-w-xs flex-wrap gap-2">
+                              {(profile.matchedSkills || []).slice(0, 8).map((skill) => (
+                                <span className="bg-secondary/10 px-2 py-1 text-[11px] text-secondary" key={skill}>
+                                  {skill}
+                                </span>
                               ))}
                             </div>
                           </td>
+                          <td className="py-4 pr-4">
+                            <div className="flex max-w-xs flex-wrap gap-2">
+                              {(profile.missingSkills || []).slice(0, 8).map((skill) => (
+                                <span className="bg-primary/10 px-2 py-1 text-[11px] text-primary" key={skill}>
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="py-4 pr-4">
+                            <p className="max-w-lg text-sm leading-relaxed text-on-surface-variant">
+                              {profile.aiAnalysis}
+                            </p>
+                          </td>
+                          {index === 0 ? (
+                            <td className="py-4 align-top" rowSpan={visibleProfiles.length}>
+                              <button
+                                className="bg-surface-container-high px-4 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface hover:bg-surface-container-highest"
+                                onClick={() => setExpandedJobKey(expanded ? null : group.key)}
+                                type="button"
+                              >
+                                {expanded ? 'Show Top 5' : `More Profiles (${Math.max(0, group.profiles.length - group.topProfiles.length)})`}
+                              </button>
+                            </td>
+                          ) : null}
                         </tr>
-                      ) : null}
+                      ))}
                     </Fragment>
                   )
                 })}
