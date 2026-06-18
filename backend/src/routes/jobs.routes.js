@@ -580,8 +580,10 @@ async function ensureJobSchema() {
       INDEX idx_student_job_match (user_id, match_score),
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY (job_id) REFERENCES job_listings(id) ON DELETE CASCADE
-    );
+    )
+  `)
 
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS student_job_applications (
       id BIGINT AUTO_INCREMENT PRIMARY KEY,
       user_id INT NOT NULL,
@@ -599,7 +601,7 @@ async function ensureJobSchema() {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY (job_id) REFERENCES job_listings(id) ON DELETE CASCADE,
       FOREIGN KEY (recommendation_id) REFERENCES student_job_recommendations(id) ON DELETE SET NULL
-    );
+    )
   `)
 
   for (const job of defaultJobListings) {
