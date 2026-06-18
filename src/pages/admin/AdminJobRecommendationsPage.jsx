@@ -16,16 +16,23 @@ function AdminJobRecommendationsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [jobMarkdown, setJobMarkdown] = useState('')
   const [isAddingJob, setIsAddingJob] = useState(false)
+  const [applications, setApplications] = useState([])
+  const [updatingApplicationId, setUpdatingApplicationId] = useState(null)
 
   const loadRecommendations = async () => {
     setIsLoading(true)
     setError('')
     try {
-      const response = await apiFetch('/jobs/admin/recommendations')
+      const [response, applicationResponse] = await Promise.all([
+        apiFetch('/jobs/admin/recommendations'),
+        apiFetch('/jobs/admin/applications'),
+      ])
       setRecommendations(Array.isArray(response) ? response : [])
+      setApplications(Array.isArray(applicationResponse) ? applicationResponse : [])
     } catch (loadError) {
       setError(loadError?.message || 'Unable to load job recommendations.')
       setRecommendations([])
+      setApplications([])
     } finally {
       setIsLoading(false)
     }
@@ -41,7 +48,9 @@ function AdminJobRecommendationsPage() {
     setError('')
     try {
       const response = await apiFetch('/jobs/admin/recommendations/refresh', { method: 'POST' })
+      const applicationResponse = await apiFetch('/jobs/admin/applications')
       setRecommendations(Array.isArray(response) ? response : [])
+      setApplications(Array.isArray(applicationResponse) ? applicationResponse : [])
       setMessage('All operator job recommendations were refreshed.')
     } catch (refreshError) {
       setError(refreshError?.message || 'Unable to refresh recommendations.')
@@ -97,8 +106,36 @@ function AdminJobRecommendationsPage() {
     const students = new Set(recommendations.map((item) => item.userId)).size
     const jobs = new Set(recommendations.map((item) => item.jobId)).size
     const high = recommendations.filter((item) => item.probabilityLabel === 'High').length
-    return { students, jobs, high }
-  }, [recommendations])
+    return { students, jobs, high, applications: applications.length }
+  }, [applications.length, recommendations])
+
+  const updateApplicationStatus = async (application, status) => {
+    setUpdatingApplicationId(application.id)
+    setError('')
+    setMessage('')
+
+    try {
+      await apiFetch(`/jobs/admin/applications/${application.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status,
+          notes: application.notes || '',
+        }),
+      })
+      setApplications((current) =>
+        current.map((item) =>
+          item.id === application.id
+            ? { ...item, status, updatedAt: new Date().toISOString() }
+            : item,
+        ),
+      )
+      setMessage('Application status updated.')
+    } catch (updateError) {
+      setError(updateError?.message || 'Unable to update application status.')
+    } finally {
+      setUpdatingApplicationId(null)
+    }
+  }
 
   return (
     <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
@@ -135,7 +172,7 @@ function AdminJobRecommendationsPage() {
           </div>
         </header>
 
-        <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <section className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="bg-surface-container-lowest p-5 border-l-4 border-secondary">
             <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
               Recommended Students
@@ -153,6 +190,12 @@ function AdminJobRecommendationsPage() {
               High Probability
             </p>
             <p className="mt-2 font-headline text-4xl font-black text-secondary">{summary.high}</p>
+          </div>
+          <div className="bg-surface-container-lowest p-5 border-l-4 border-primary">
+            <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+              Applications
+            </p>
+            <p className="mt-2 font-headline text-4xl font-black text-primary">{summary.applications}</p>
           </div>
           <label className="bg-surface-container-lowest p-5 border-l-4 border-outline-variant">
             <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
@@ -210,6 +253,75 @@ function AdminJobRecommendationsPage() {
         </section>
 
         <section className="bg-surface-container-lowest p-6">
+          <div className="mb-8 border-b border-outline-variant/40 pb-6">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="font-headline text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
+                  Application Tracker
+                </p>
+                <h2 className="mt-2 font-headline text-xl font-black uppercase tracking-tight">
+                  Student Apply Activity
+                </h2>
+              </div>
+              <p className="text-sm text-on-surface-variant">
+                Tracks player clicks on Apply & Track from the job updates page.
+              </p>
+            </div>
+
+            <div className="mt-5 overflow-x-auto">
+              <table className="w-full min-w-[980px] text-left">
+                <thead>
+                  <tr className="border-b border-outline-variant">
+                    <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Student</th>
+                    <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Job</th>
+                    <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Match</th>
+                    <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Applied</th>
+                    <th className="py-3 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {applications.map((application) => (
+                    <tr className="border-b border-outline-variant/30 align-top" key={application.id}>
+                      <td className="py-4 pr-4">
+                        <p className="font-headline text-sm font-black uppercase">{studentLabel(application)}</p>
+                        <p className="mt-1 text-xs text-on-surface-variant">{application.email || application.username}</p>
+                      </td>
+                      <td className="py-4 pr-4">
+                        <p className="font-headline text-sm font-black uppercase">{application.job?.title}</p>
+                        <p className="mt-1 text-xs text-on-surface-variant">{application.job?.company} - {application.job?.location}</p>
+                      </td>
+                      <td className="py-4 pr-4">
+                        <p className="font-headline text-xl font-black text-secondary">{application.matchScore}%</p>
+                        <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">{application.probabilityLabel}</p>
+                      </td>
+                      <td className="py-4 pr-4 text-sm text-on-surface-variant">
+                        {application.appliedAt ? new Date(application.appliedAt).toLocaleString() : 'Tracked'}
+                      </td>
+                      <td className="py-4">
+                        <select
+                          className="bg-surface-container-highest border border-outline-variant px-3 py-2 font-headline text-xs font-bold uppercase tracking-widest outline-none"
+                          disabled={updatingApplicationId === application.id}
+                          onChange={(event) => updateApplicationStatus(application, event.target.value)}
+                          value={application.status}
+                        >
+                          {['applied', 'shortlisted', 'interview', 'selected', 'rejected'].map((status) => (
+                            <option key={status} value={status}>{status}</option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {!applications.length ? (
+              <div className="mt-5 bg-surface-container-high p-5 text-sm text-on-surface-variant">
+                No tracked applications yet.
+              </div>
+            ) : null}
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1060px] text-left">
               <thead>

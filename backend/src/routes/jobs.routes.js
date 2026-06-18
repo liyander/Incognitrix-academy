@@ -67,6 +67,15 @@ function normalizeRecommendation(row) {
     reasons: parseJson(row.reasons_json),
     aiAnalysis: row.ai_analysis,
     sourceSnapshot: parseJson(row.source_snapshot_json, {}),
+    application: row.application_id
+      ? {
+          id: row.application_id,
+          status: row.application_status,
+          appliedAt: row.applied_at,
+          updatedAt: row.application_updated_at,
+          notes: row.application_notes,
+        }
+      : null,
     updatedAt: row.updated_at,
     job: normalizeJob({
       id: row.job_id,
@@ -79,6 +88,45 @@ function normalizeRecommendation(row) {
       category: row.category,
       work_mode: row.work_mode,
       apply_url: row.apply_url,
+      about_role: row.about_role,
+      responsibilities_json: row.responsibilities_json,
+      requirements_json: row.requirements_json,
+      skills_json: row.skills_json,
+      details_markdown: row.details_markdown,
+      source: row.source,
+      is_active: row.is_active,
+      created_at: row.job_created_at,
+      updated_at: row.job_updated_at,
+    }),
+  }
+}
+
+function normalizeApplication(row) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    username: row.username,
+    registrationNumber: row.registration_number,
+    email: row.email,
+    jobId: row.job_id,
+    status: row.status,
+    applyUrl: row.apply_url,
+    matchScore: Number(row.match_score || 0),
+    probabilityLabel: row.probability_label,
+    appliedAt: row.applied_at,
+    updatedAt: row.updated_at,
+    notes: row.notes,
+    job: normalizeJob({
+      id: row.job_id,
+      slug: row.slug,
+      title: row.title,
+      company: row.company,
+      location: row.location,
+      salary: row.salary,
+      job_type: row.job_type,
+      category: row.category,
+      work_mode: row.work_mode,
+      apply_url: row.job_apply_url,
       about_role: row.about_role,
       responsibilities_json: row.responsibilities_json,
       requirements_json: row.requirements_json,
@@ -153,6 +201,56 @@ function parseMarkdownJob(markdown) {
   }
 }
 
+function buildScrapedJobMarkdown(job) {
+  return [
+    `### ${job.title}`,
+    `**Company:** ${job.company}`,
+    `**Location:** ${job.location || 'Not specified'}`,
+    `**Salary:** ${job.salary || 'Not disclosed'}`,
+    `**Type:** ${job.jobType || 'Entry Level'} | ${job.category || 'Cybersecurity'} | ${job.workMode || 'Not specified'}`,
+    `**Apply:** ${job.applyUrl || ''}`,
+    '',
+    '#### About the Role',
+    job.aboutRole || 'See job description.',
+    '',
+    '#### Requirements',
+    ...(job.requirements || ['See description.']).map((item) => `- ${item}`),
+    '',
+    '#### Key Skills',
+    (job.skills || []).length ? job.skills.map((item) => `- \`${item}\``).join('\n') : '- Not specified',
+    '',
+    '#### Full Job Description',
+    job.detailsMarkdown || job.aboutRole || '',
+  ].join('\n')
+}
+
+function inferSkillsFromDescription(description) {
+  const commonSkills = [
+    'Linux',
+    'Networking',
+    'Python',
+    'JavaScript',
+    'Docker',
+    'Kubernetes',
+    'Cloud',
+    'AWS',
+    'Azure',
+    'Security',
+    'SOC',
+    'Incident Response',
+    'Vulnerability Management',
+    'Penetration Testing',
+    'Web Security',
+    'Service Desk',
+    'Troubleshooting',
+    'Communication',
+    'Documentation',
+    'Problem Solving',
+  ]
+  const text = String(description || '').toLowerCase()
+  return commonSkills.filter((skill) => text.includes(skill.toLowerCase()))
+}
+
 function textTokens(value) {
   return new Set(
     String(value || '')
@@ -177,6 +275,109 @@ function fieldValue(body, field) {
   const value = body?.[field]
   if (Array.isArray(value)) return value.join('\n')
   return String(value || '')
+}
+
+async function syncScrapedJobsFromExternalDb() {
+  const [[tableRow]] = await pool.query(
+    `SELECT 1 AS exists_flag
+     FROM information_schema.tables
+     WHERE table_schema = 'job_db' AND table_name = 'scraped_jobs'
+     LIMIT 1`,
+  )
+
+  if (!tableRow?.exists_flag) {
+    return 0
+  }
+
+  const [rows] = await pool.query(
+    `SELECT
+       id,
+       \`Domain\` AS domain,
+       \`Company Name\` AS company,
+       \`Job Title\` AS title,
+       \`Location\` AS location,
+       \`Job Link\` AS job_link,
+       \`Package\` AS package_text,
+       \`Date and Year\` AS date_text,
+       \`Job Type\` AS job_type,
+       \`Requirements\` AS requirements_text,
+       \`Skills\` AS skills_text,
+       \`Job Description\` AS job_description,
+       \`Active\` AS active,
+       \`Date Fetched\` AS date_fetched
+     FROM job_db.scraped_jobs
+     WHERE COALESCE(\`Active\`, 'Yes') IN ('Yes', 'yes', '1', 'true', 'TRUE')
+     ORDER BY id DESC
+     LIMIT 500`,
+  )
+
+  for (const row of rows) {
+    const description = String(row.job_description || '').trim()
+    const explicitSkills = String(row.skills_text || '').trim().toLowerCase() === 'not specified'
+      ? []
+      : splitSkillText(row.skills_text)
+    const skills = explicitSkills.length ? explicitSkills : inferSkillsFromDescription(description)
+    const requirements = String(row.requirements_text || '').trim().toLowerCase() === 'see description'
+      ? []
+      : splitSkillText(row.requirements_text)
+    const job = {
+      slug: slugify(`scraped-${row.id}-${row.company}-${row.title}`),
+      title: String(row.title || 'Untitled Job').trim(),
+      company: String(row.company || 'Unknown Company').trim(),
+      location: String(row.location || '').trim(),
+      salary: String(row.package_text || 'Not Disclosed').trim(),
+      jobType: String(row.job_type || 'Internship / Entry Level').trim(),
+      category: String(row.domain || 'Cybersecurity').trim(),
+      workMode: String(row.location || '').toLowerCase().includes('remote') ? 'Remote' : 'On-site / Hybrid',
+      applyUrl: String(row.job_link || '').trim(),
+      aboutRole: description.slice(0, 2000),
+      responsibilities: [],
+      requirements: requirements.length ? requirements : ['See full job description.'],
+      skills,
+      detailsMarkdown: description,
+    }
+
+    await pool.query(
+      `INSERT INTO job_listings (
+        slug, title, company, location, salary, job_type, category, work_mode, apply_url,
+        about_role, responsibilities_json, requirements_json, skills_json, details_markdown, source, is_active
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'scraped_jobs', true)
+      ON DUPLICATE KEY UPDATE
+        title = VALUES(title),
+        company = VALUES(company),
+        location = VALUES(location),
+        salary = VALUES(salary),
+        job_type = VALUES(job_type),
+        category = VALUES(category),
+        work_mode = VALUES(work_mode),
+        apply_url = VALUES(apply_url),
+        about_role = VALUES(about_role),
+        responsibilities_json = VALUES(responsibilities_json),
+        requirements_json = VALUES(requirements_json),
+        skills_json = VALUES(skills_json),
+        details_markdown = VALUES(details_markdown),
+        source = 'scraped_jobs',
+        is_active = true`,
+      [
+        job.slug,
+        job.title,
+        job.company,
+        job.location,
+        job.salary,
+        job.jobType,
+        job.category,
+        job.workMode,
+        job.applyUrl,
+        job.aboutRole,
+        JSON.stringify(job.responsibilities || []),
+        JSON.stringify(job.requirements || []),
+        JSON.stringify(job.skills || []),
+        buildScrapedJobMarkdown(job),
+      ],
+    )
+  }
+
+  return rows.length
 }
 
 function buildEvidenceText(profile, user, rooms, attempts, certificates) {
@@ -380,6 +581,25 @@ async function ensureJobSchema() {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY (job_id) REFERENCES job_listings(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS student_job_applications (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      job_id BIGINT NOT NULL,
+      recommendation_id BIGINT NULL,
+      status VARCHAR(40) NOT NULL DEFAULT 'applied',
+      apply_url TEXT,
+      match_score INT DEFAULT 0,
+      probability_label VARCHAR(40),
+      notes LONGTEXT,
+      applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_student_job_application (user_id, job_id),
+      INDEX idx_job_application_status (status, applied_at),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (job_id) REFERENCES job_listings(id) ON DELETE CASCADE,
+      FOREIGN KEY (recommendation_id) REFERENCES student_job_recommendations(id) ON DELETE SET NULL
+    );
   `)
 
   for (const job of defaultJobListings) {
@@ -421,6 +641,10 @@ async function ensureJobSchema() {
       ],
     )
   }
+
+  await syncScrapedJobsFromExternalDb().catch((error) => {
+    console.warn('Skipped external scraped_jobs sync:', error?.message || error)
+  })
 
   schemaReady = true
 }
@@ -533,6 +757,11 @@ async function listRecommendations(whereSql, params) {
        sjr.ai_analysis,
        sjr.source_snapshot_json,
        sjr.updated_at,
+       sja.id AS application_id,
+       sja.status AS application_status,
+       sja.applied_at,
+       sja.updated_at AS application_updated_at,
+       sja.notes AS application_notes,
        jl.slug,
        jl.title,
        jl.company,
@@ -554,6 +783,7 @@ async function listRecommendations(whereSql, params) {
      FROM student_job_recommendations sjr
      JOIN users u ON u.id = sjr.user_id
      JOIN job_listings jl ON jl.id = sjr.job_id
+     LEFT JOIN student_job_applications sja ON sja.user_id = sjr.user_id AND sja.job_id = sjr.job_id
      ${whereSql}
      ORDER BY sjr.match_score DESC, sjr.updated_at DESC`,
     params,
@@ -654,6 +884,69 @@ router.post('/recommendations/refresh', async (req, res, next) => {
   }
 })
 
+router.post('/applications', async (req, res, next) => {
+  try {
+    await ensureJobSchema()
+    const recommendationId = Number(req.body?.recommendationId)
+    const jobId = Number(req.body?.jobId)
+
+    if (!Number.isInteger(recommendationId) && !Number.isInteger(jobId)) {
+      res.status(400).json({ message: 'Recommendation or job id is required.' })
+      return
+    }
+
+    const [rows] = await pool.query(
+      `SELECT
+         sjr.id AS recommendation_id,
+         sjr.job_id,
+         sjr.match_score,
+         sjr.probability_label,
+         jl.apply_url
+       FROM student_job_recommendations sjr
+       JOIN job_listings jl ON jl.id = sjr.job_id
+       WHERE sjr.user_id = ?
+         AND (${Number.isInteger(recommendationId) ? 'sjr.id = ?' : 'sjr.job_id = ?'})
+       LIMIT 1`,
+      [req.user.id, Number.isInteger(recommendationId) ? recommendationId : jobId],
+    )
+
+    if (!rows.length) {
+      res.status(404).json({ message: 'Recommended job not found for this player.' })
+      return
+    }
+
+    const recommendation = rows[0]
+    await pool.query(
+      `INSERT INTO student_job_applications (
+        user_id, job_id, recommendation_id, status, apply_url, match_score, probability_label
+      ) VALUES (?, ?, ?, 'applied', ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        recommendation_id = VALUES(recommendation_id),
+        apply_url = VALUES(apply_url),
+        match_score = VALUES(match_score),
+        probability_label = VALUES(probability_label),
+        updated_at = CURRENT_TIMESTAMP`,
+      [
+        req.user.id,
+        recommendation.job_id,
+        recommendation.recommendation_id,
+        recommendation.apply_url,
+        recommendation.match_score,
+        recommendation.probability_label,
+      ],
+    )
+
+    res.status(201).json({
+      status: 'applied',
+      applyUrl: recommendation.apply_url,
+      jobId: recommendation.job_id,
+      recommendationId: recommendation.recommendation_id,
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
 router.get('/admin/recommendations', requireAdmin, async (_req, res, next) => {
   try {
     const recommendations = await listRecommendations(
@@ -668,12 +961,94 @@ router.get('/admin/recommendations', requireAdmin, async (_req, res, next) => {
 
 router.post('/admin/recommendations/refresh', requireAdmin, async (_req, res, next) => {
   try {
+    await ensureJobSchema()
+    await syncScrapedJobsFromExternalDb().catch((error) => {
+      console.warn('Skipped external scraped_jobs sync during refresh:', error?.message || error)
+    })
     await refreshRecommendationsForAllOperators()
     const recommendations = await listRecommendations(
       'WHERE sjr.match_score >= 55 AND jl.is_active = true',
       [],
     )
     res.json(recommendations)
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.get('/admin/applications', requireAdmin, async (_req, res, next) => {
+  try {
+    await ensureJobSchema()
+    const [rows] = await pool.query(
+      `SELECT
+         sja.id,
+         sja.user_id,
+         u.username,
+         u.registration_number,
+         u.email,
+         sja.job_id,
+         sja.status,
+         sja.apply_url,
+         sja.match_score,
+         sja.probability_label,
+         sja.applied_at,
+         sja.updated_at,
+         sja.notes,
+         jl.slug,
+         jl.title,
+         jl.company,
+         jl.location,
+         jl.salary,
+         jl.job_type,
+         jl.category,
+         jl.work_mode,
+         jl.apply_url AS job_apply_url,
+         jl.about_role,
+         jl.responsibilities_json,
+         jl.requirements_json,
+         jl.skills_json,
+         jl.details_markdown,
+         jl.source,
+         jl.is_active,
+         jl.created_at AS job_created_at,
+         jl.updated_at AS job_updated_at
+       FROM student_job_applications sja
+       JOIN users u ON u.id = sja.user_id
+       JOIN job_listings jl ON jl.id = sja.job_id
+       ORDER BY sja.updated_at DESC, sja.applied_at DESC`,
+    )
+    res.json(rows.map(normalizeApplication))
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.patch('/admin/applications/:id', requireAdmin, async (req, res, next) => {
+  try {
+    await ensureJobSchema()
+    const applicationId = Number(req.params.id)
+    const status = String(req.body?.status || '').trim()
+    const notes = String(req.body?.notes || '').trim()
+    const allowedStatuses = new Set(['applied', 'shortlisted', 'interview', 'selected', 'rejected'])
+
+    if (!Number.isInteger(applicationId) || applicationId <= 0) {
+      res.status(400).json({ message: 'Invalid application id.' })
+      return
+    }
+
+    if (!allowedStatuses.has(status)) {
+      res.status(400).json({ message: 'Invalid application status.' })
+      return
+    }
+
+    await pool.query(
+      `UPDATE student_job_applications
+       SET status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [status, notes || null, applicationId],
+    )
+
+    res.json({ id: applicationId, status, notes: notes || null })
   } catch (error) {
     next(error)
   }

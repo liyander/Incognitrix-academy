@@ -27,6 +27,7 @@ function JobUpdatesPage() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [expandedJobId, setExpandedJobId] = useState(null)
+  const [applyingRecommendationId, setApplyingRecommendationId] = useState(null)
 
   const highMatches = useMemo(
     () => recommendations.filter((item) => item.probabilityLabel === 'High').length,
@@ -69,6 +70,47 @@ function JobUpdatesPage() {
       setError(refreshError?.message || 'Unable to refresh recommendations.')
     } finally {
       setIsRefreshing(false)
+    }
+  }
+
+  const applyForJob = async (item) => {
+    if (!item?.job?.applyUrl) {
+      return
+    }
+
+    setApplyingRecommendationId(item.id)
+    setError('')
+    setMessage('')
+
+    try {
+      const response = await apiFetch('/jobs/applications', {
+        method: 'POST',
+        body: JSON.stringify({
+          recommendationId: item.id,
+          jobId: item.jobId,
+        }),
+      })
+
+      setRecommendations((current) =>
+        current.map((recommendation) =>
+          recommendation.id === item.id
+            ? {
+                ...recommendation,
+                application: {
+                  ...(recommendation.application || {}),
+                  status: response?.status || 'applied',
+                  updatedAt: new Date().toISOString(),
+                },
+              }
+            : recommendation,
+        ),
+      )
+      setMessage('Application tracked for admin review.')
+      window.open(response?.applyUrl || item.job.applyUrl, '_blank', 'noopener,noreferrer')
+    } catch (applyError) {
+      setError(applyError?.message || 'Unable to track application.')
+    } finally {
+      setApplyingRecommendationId(null)
     }
   }
 
@@ -157,6 +199,11 @@ function JobUpdatesPage() {
                         <span className="text-[10px] uppercase tracking-widest text-on-surface-variant">
                           {formatDate(item.updatedAt)}
                         </span>
+                        {item.application ? (
+                          <span className="border border-secondary bg-secondary/10 px-2 py-1 font-label text-[10px] font-bold uppercase tracking-widest text-secondary">
+                            {item.application.status}
+                          </span>
+                        ) : null}
                       </div>
                       <h2 className="mt-3 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
                         {item.job?.title}
@@ -250,14 +297,18 @@ function JobUpdatesPage() {
                       {expanded ? 'Hide Details' : 'View Full Job'}
                     </button>
                     {item.job?.applyUrl ? (
-                      <a
-                        className="bg-secondary px-4 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-on-secondary"
-                        href={item.job.applyUrl}
-                        rel="noreferrer"
-                        target="_blank"
+                      <button
+                        className="bg-secondary px-4 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-on-secondary disabled:opacity-60"
+                        disabled={applyingRecommendationId === item.id}
+                        onClick={() => applyForJob(item)}
+                        type="button"
                       >
-                        Open Career Page
-                      </a>
+                        {applyingRecommendationId === item.id
+                          ? 'Tracking...'
+                          : item.application
+                            ? 'Open Again'
+                            : 'Apply & Track'}
+                      </button>
                     ) : null}
                   </div>
                 </article>
