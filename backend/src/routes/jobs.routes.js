@@ -5,6 +5,16 @@ import { buildJobMarkdown, defaultJobListings } from '../seed/jobListings.js'
 
 const router = express.Router()
 let schemaReady = false
+let lastScrapedJobSync = {
+  attemptedAt: null,
+  imported: 0,
+  status: 'not_started',
+  message: 'Scraped job sync has not run yet.',
+}
+
+const SCRAPED_JOB_DB = process.env.JOB_DB_NAME || 'job_db'
+const SCRAPED_JOB_TABLE = process.env.JOB_DB_TABLE || 'scraped_jobs'
+const SCRAPED_JOB_SYNC_INTERVAL_MS = 60 * 1000
 
 const PROFILE_FIELDS = [
   'internships',
@@ -277,15 +287,39 @@ function fieldValue(body, field) {
   return String(value || '')
 }
 
+function quoteIdentifier(value) {
+  const identifier = String(value || '').trim()
+  if (!/^[a-zA-Z0-9_]+$/.test(identifier)) {
+    throw new Error(`Invalid database identifier: ${identifier}`)
+  }
+  return `\`${identifier}\``
+}
+
 async function syncScrapedJobsFromExternalDb() {
+  const dbName = quoteIdentifier(SCRAPED_JOB_DB)
+  const tableName = quoteIdentifier(SCRAPED_JOB_TABLE)
+  lastScrapedJobSync = {
+    ...lastScrapedJobSync,
+    attemptedAt: new Date().toISOString(),
+    status: 'running',
+    message: `Checking ${SCRAPED_JOB_DB}.${SCRAPED_JOB_TABLE}`,
+  }
+
   const [[tableRow]] = await pool.query(
     `SELECT 1 AS exists_flag
      FROM information_schema.tables
-     WHERE table_schema = 'job_db' AND table_name = 'scraped_jobs'
+     WHERE table_schema = ? AND table_name = ?
      LIMIT 1`,
+    [SCRAPED_JOB_DB, SCRAPED_JOB_TABLE],
   )
 
   if (!tableRow?.exists_flag) {
+    lastScrapedJobSync = {
+      attemptedAt: new Date().toISOString(),
+      imported: 0,
+      status: 'missing',
+      message: `${SCRAPED_JOB_DB}.${SCRAPED_JOB_TABLE} was not found or is not visible to the configured DB user.`,
+    }
     return 0
   }
 
@@ -305,8 +339,8 @@ async function syncScrapedJobsFromExternalDb() {
        \`Job Description\` AS job_description,
        \`Active\` AS active,
        \`Date Fetched\` AS date_fetched
-     FROM job_db.scraped_jobs
-     WHERE COALESCE(\`Active\`, 'Yes') IN ('Yes', 'yes', '1', 'true', 'TRUE')
+     FROM ${dbName}.${tableName}
+     WHERE LOWER(TRIM(COALESCE(\`Active\`, 'Yes'))) IN ('yes', '1', 'true', 'active')
      ORDER BY id DESC
      LIMIT 500`,
   )
@@ -377,7 +411,39 @@ async function syncScrapedJobsFromExternalDb() {
     )
   }
 
+  lastScrapedJobSync = {
+    attemptedAt: new Date().toISOString(),
+    imported: rows.length,
+    status: 'ok',
+    message: `Synced ${rows.length} active job row${rows.length === 1 ? '' : 's'} from ${SCRAPED_JOB_DB}.${SCRAPED_JOB_TABLE}.`,
+  }
+
   return rows.length
+}
+
+async function syncScrapedJobsIfDue({ force = false } = {}) {
+  const lastAttempt = lastScrapedJobSync.attemptedAt
+    ? new Date(lastScrapedJobSync.attemptedAt).getTime()
+    : 0
+  const shouldSync = force || !lastAttempt || Date.now() - lastAttempt > SCRAPED_JOB_SYNC_INTERVAL_MS
+
+  if (!shouldSync) {
+    return lastScrapedJobSync
+  }
+
+  try {
+    await syncScrapedJobsFromExternalDb()
+  } catch (error) {
+    lastScrapedJobSync = {
+      attemptedAt: new Date().toISOString(),
+      imported: 0,
+      status: 'error',
+      message: error?.message || 'Unable to sync scraped jobs.',
+    }
+    console.warn('Skipped external scraped_jobs sync:', error?.message || error)
+  }
+
+  return lastScrapedJobSync
 }
 
 function buildEvidenceText(profile, user, rooms, attempts, certificates) {
@@ -642,9 +708,7 @@ async function ensureJobSchema() {
     )
   }
 
-  await syncScrapedJobsFromExternalDb().catch((error) => {
-    console.warn('Skipped external scraped_jobs sync:', error?.message || error)
-  })
+  await syncScrapedJobsIfDue({ force: true })
 
   schemaReady = true
 }
@@ -796,6 +860,7 @@ router.use(authenticate)
 router.get('/listings', async (_req, res, next) => {
   try {
     await ensureJobSchema()
+    await syncScrapedJobsIfDue()
     const [rows] = await pool.query('SELECT * FROM job_listings WHERE is_active = true ORDER BY category, company, title')
     res.json(rows.map(normalizeJob))
   } catch (error) {
@@ -852,6 +917,11 @@ router.put('/profile', async (req, res, next) => {
 
 router.get('/recommendations/me', async (req, res, next) => {
   try {
+    await ensureJobSchema()
+    const syncStatus = await syncScrapedJobsIfDue()
+    if (syncStatus.status === 'ok' && syncStatus.imported > 0) {
+      await refreshRecommendationsForUser(req.user.id)
+    }
     const recommendations = await listRecommendations(
       'WHERE sjr.user_id = ? AND sjr.match_score >= 45 AND jl.is_active = true',
       [req.user.id],
@@ -873,6 +943,8 @@ router.get('/recommendations/me', async (req, res, next) => {
 
 router.post('/recommendations/refresh', async (req, res, next) => {
   try {
+    await ensureJobSchema()
+    await syncScrapedJobsIfDue({ force: true })
     await refreshRecommendationsForUser(req.user.id)
     const recommendations = await listRecommendations(
       'WHERE sjr.user_id = ? AND sjr.match_score >= 45 AND jl.is_active = true',
@@ -949,6 +1021,11 @@ router.post('/applications', async (req, res, next) => {
 
 router.get('/admin/recommendations', requireAdmin, async (_req, res, next) => {
   try {
+    await ensureJobSchema()
+    const syncStatus = await syncScrapedJobsIfDue()
+    if (syncStatus.status === 'ok' && syncStatus.imported > 0) {
+      await refreshRecommendationsForAllOperators()
+    }
     const recommendations = await listRecommendations(
       'WHERE sjr.match_score >= 55 AND jl.is_active = true',
       [],
@@ -962,15 +1039,41 @@ router.get('/admin/recommendations', requireAdmin, async (_req, res, next) => {
 router.post('/admin/recommendations/refresh', requireAdmin, async (_req, res, next) => {
   try {
     await ensureJobSchema()
-    await syncScrapedJobsFromExternalDb().catch((error) => {
-      console.warn('Skipped external scraped_jobs sync during refresh:', error?.message || error)
-    })
+    await syncScrapedJobsIfDue({ force: true })
     await refreshRecommendationsForAllOperators()
     const recommendations = await listRecommendations(
       'WHERE sjr.match_score >= 55 AND jl.is_active = true',
       [],
     )
     res.json(recommendations)
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.get('/admin/scraped-jobs/status', requireAdmin, async (_req, res, next) => {
+  try {
+    await ensureJobSchema()
+    const [sourceRows] = await pool.query(
+      'SELECT COUNT(*) AS count FROM job_listings WHERE source = ? AND is_active = true',
+      ['scraped_jobs'],
+    )
+    res.json({
+      ...lastScrapedJobSync,
+      database: SCRAPED_JOB_DB,
+      table: SCRAPED_JOB_TABLE,
+      importedListings: Number(sourceRows[0]?.count || 0),
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.post('/admin/scraped-jobs/sync', requireAdmin, async (_req, res, next) => {
+  try {
+    await ensureJobSchema()
+    const syncStatus = await syncScrapedJobsIfDue({ force: true })
+    res.json(syncStatus)
   } catch (error) {
     next(error)
   }
