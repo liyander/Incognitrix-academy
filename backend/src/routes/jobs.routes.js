@@ -770,7 +770,9 @@ async function ensureJobSchema() {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY (job_id) REFERENCES job_listings(id) ON DELETE CASCADE
     );
+  `)
 
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS student_job_applications (
       id BIGINT AUTO_INCREMENT PRIMARY KEY,
       user_id INT NOT NULL,
