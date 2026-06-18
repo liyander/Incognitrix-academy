@@ -18,21 +18,17 @@ function AdminJobRecommendationsPage() {
   const [isAddingJob, setIsAddingJob] = useState(false)
   const [applications, setApplications] = useState([])
   const [updatingApplicationId, setUpdatingApplicationId] = useState(null)
-  const [scrapedJobStatus, setScrapedJobStatus] = useState(null)
-  const [isSyncingScrapedJobs, setIsSyncingScrapedJobs] = useState(false)
 
   const loadRecommendations = async () => {
     setIsLoading(true)
     setError('')
     try {
-      const [response, applicationResponse, scrapedStatusResponse] = await Promise.all([
+      const [response, applicationResponse] = await Promise.all([
         apiFetch('/jobs/admin/recommendations'),
         apiFetch('/jobs/admin/applications'),
-        apiFetch('/jobs/admin/scraped-jobs/status').catch(() => null),
       ])
       setRecommendations(Array.isArray(response) ? response : [])
       setApplications(Array.isArray(applicationResponse) ? applicationResponse : [])
-      setScrapedJobStatus(scrapedStatusResponse)
     } catch (loadError) {
       setError(loadError?.message || 'Unable to load job recommendations.')
       setRecommendations([])
@@ -52,35 +48,14 @@ function AdminJobRecommendationsPage() {
     setError('')
     try {
       const response = await apiFetch('/jobs/admin/recommendations/refresh', { method: 'POST' })
-      const [applicationResponse, scrapedStatusResponse] = await Promise.all([
-        apiFetch('/jobs/admin/applications'),
-        apiFetch('/jobs/admin/scraped-jobs/status').catch(() => null),
-      ])
+      const applicationResponse = await apiFetch('/jobs/admin/applications')
       setRecommendations(Array.isArray(response) ? response : [])
       setApplications(Array.isArray(applicationResponse) ? applicationResponse : [])
-      setScrapedJobStatus(scrapedStatusResponse)
       setMessage('All operator job recommendations were refreshed.')
     } catch (refreshError) {
       setError(refreshError?.message || 'Unable to refresh recommendations.')
     } finally {
       setIsRefreshing(false)
-    }
-  }
-
-  const syncScrapedJobs = async () => {
-    setIsSyncingScrapedJobs(true)
-    setMessage('')
-    setError('')
-    try {
-      const syncStatus = await apiFetch('/jobs/admin/scraped-jobs/sync', { method: 'POST' })
-      setScrapedJobStatus(syncStatus)
-      const response = await apiFetch('/jobs/admin/recommendations/refresh', { method: 'POST' })
-      setRecommendations(Array.isArray(response) ? response : [])
-      setMessage(syncStatus?.message || 'Scraped jobs synced.')
-    } catch (syncError) {
-      setError(syncError?.message || 'Unable to sync scraped jobs.')
-    } finally {
-      setIsSyncingScrapedJobs(false)
     }
   }
 
@@ -246,48 +221,6 @@ function AdminJobRecommendationsPage() {
             {error}
           </p>
         ) : null}
-
-        <section className="bg-surface-container-lowest border-l-4 border-primary p-6">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="font-headline text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
-                External Job Feed
-              </p>
-              <h2 className="mt-2 font-headline text-xl font-black uppercase tracking-tight">
-                {scrapedJobStatus?.database || 'job_db'}.{scrapedJobStatus?.table || 'scraped_jobs'}
-              </h2>
-              <p className="mt-2 max-w-3xl text-sm text-on-surface-variant">
-                {scrapedJobStatus?.message || 'Waiting for scraped job sync status.'}
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 sm:min-w-72">
-              <div className="bg-surface-container-high p-4">
-                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
-                  Feed Status
-                </p>
-                <p className="mt-1 font-headline text-lg font-black uppercase text-primary">
-                  {scrapedJobStatus?.status || 'unknown'}
-                </p>
-              </div>
-              <div className="bg-surface-container-high p-4">
-                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
-                  Imported
-                </p>
-                <p className="mt-1 font-headline text-lg font-black text-secondary">
-                  {scrapedJobStatus?.importedListings ?? scrapedJobStatus?.imported ?? 0}
-                </p>
-              </div>
-            </div>
-            <button
-              className="bg-primary px-5 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-primary disabled:opacity-60"
-              disabled={isSyncingScrapedJobs}
-              onClick={syncScrapedJobs}
-              type="button"
-            >
-              {isSyncingScrapedJobs ? 'Syncing...' : 'Sync job_db'}
-            </button>
-          </div>
-        </section>
 
         <section className="bg-surface-container-lowest border-l-4 border-primary p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
