@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../../services/api'
 
@@ -412,101 +412,106 @@ function AdminJobRecommendationsPage() {
             ) : null}
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1280px] text-left">
-              <thead>
-                <tr className="border-b border-outline-variant">
-                  <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">JD</th>
-                  <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Company</th>
-                  <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Top 5 Matches</th>
-                  <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Matching %</th>
-                  <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Skill Matched</th>
-                  <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Skill Gap</th>
-                  <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">AI Analysis</th>
-                  <th className="py-3 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">More</th>
-                </tr>
-              </thead>
-              <tbody>
-                {groupedRecommendations.map((group) => {
-                  const expanded = expandedJobKey === group.key
-                  const visibleProfiles = expanded ? group.profiles : group.topProfiles
-                  return (
-                    <Fragment key={group.key}>
-                      {visibleProfiles.map((profile, index) => (
-                        <tr className="border-b border-outline-variant/30 align-top" key={`${group.key}-${profile.id}`}>
-                          {index === 0 ? (
-                            <td className="bg-surface-container-lowest py-5 pr-5 align-top" rowSpan={visibleProfiles.length}>
-                              <p className="max-w-sm font-headline text-base font-black uppercase text-on-background">
-                                {group.job?.title}
-                              </p>
-                              <p className="mt-2 max-w-sm text-xs leading-relaxed text-on-surface-variant">
-                                {group.job?.category} - {group.job?.jobType}
-                              </p>
-                              <p className="mt-1 text-xs text-on-surface-variant">{group.job?.salary}</p>
-                            </td>
-                          ) : null}
-                          {index === 0 ? (
-                            <td className="bg-surface-container-lowest py-5 pr-5 align-top" rowSpan={visibleProfiles.length}>
-                              <p className="font-headline text-base font-black uppercase text-on-background">
-                                {group.job?.company}
-                              </p>
-                              <p className="mt-2 text-xs text-on-surface-variant">{group.job?.location}</p>
-                              <p className="text-xs text-on-surface-variant">{group.job?.workMode}</p>
-                            </td>
-                          ) : null}
-                          <td className="py-4 pr-4">
-                            <p className="font-headline text-sm font-black uppercase text-on-background">
-                              {studentLabel(profile)}
-                            </p>
-                            <p className="mt-1 text-xs text-on-surface-variant">{profile.email || profile.username}</p>
-                          </td>
-                          <td className="py-4 pr-4">
-                            <p className="font-headline text-2xl font-black text-secondary">{profile.matchScore}%</p>
-                            <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
-                              {profile.probabilityLabel}
-                            </p>
-                          </td>
-                          <td className="py-4 pr-4">
-                            <div className="flex max-w-xs flex-wrap gap-2">
-                              {(profile.matchedSkills || []).slice(0, 8).map((skill) => (
-                                <span className="bg-secondary/10 px-2 py-1 text-[11px] text-secondary" key={skill}>
-                                  {skill}
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="py-4 pr-4">
-                            <div className="flex max-w-xs flex-wrap gap-2">
-                              {(profile.missingSkills || []).slice(0, 8).map((skill) => (
-                                <span className="bg-primary/10 px-2 py-1 text-[11px] text-primary" key={skill}>
-                                  {skill}
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="py-4 pr-4">
-                            <p className="max-w-lg text-sm leading-relaxed text-on-surface-variant">
-                              {profile.aiAnalysis}
-                            </p>
-                          </td>
-                          {index === 0 ? (
-                            <td className="py-4 align-top" rowSpan={visibleProfiles.length}>
-                              <button
-                                className="bg-surface-container-high px-4 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface hover:bg-surface-container-highest"
-                                onClick={() => setExpandedJobKey(expanded ? null : group.key)}
-                                type="button"
-                              >
-                                {expanded ? 'Show Top 5' : `More Profiles (${Math.max(0, group.profiles.length - group.topProfiles.length)})`}
-                              </button>
-                            </td>
-                          ) : null}
-                        </tr>
-                      ))}
-                    </Fragment>
-                  )
-                })}
-              </tbody>
-            </table>
+          <div className="space-y-6">
+            {groupedRecommendations.map((group) => {
+              const expanded = expandedJobKey === group.key
+              const visibleProfiles = expanded ? group.profiles : group.topProfiles
+              const hiddenProfileCount = Math.max(0, group.profiles.length - group.topProfiles.length)
+
+              return (
+                <article className="border border-outline-variant/60 bg-surface-container-high" key={group.key}>
+                  <div className="grid grid-cols-1 gap-4 border-b border-outline-variant/50 bg-surface-container-lowest p-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(220px,0.7fr)_auto] lg:items-start">
+                    <div>
+                      <p className="font-label text-[10px] font-bold uppercase tracking-[0.24em] text-primary">JD</p>
+                      <h3 className="mt-2 break-words font-headline text-xl font-black uppercase leading-tight text-on-background">
+                        {group.job?.title}
+                      </h3>
+                      <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">
+                        {group.job?.category} - {group.job?.jobType} - {group.job?.salary}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-label text-[10px] font-bold uppercase tracking-[0.24em] text-primary">Company</p>
+                      <p className="mt-2 font-headline text-lg font-black uppercase text-on-background">
+                        {group.job?.company}
+                      </p>
+                      <p className="mt-1 text-sm text-on-surface-variant">{group.job?.location}</p>
+                      <p className="text-sm text-on-surface-variant">{group.job?.workMode}</p>
+                    </div>
+                    <button
+                      className="bg-surface-container-high px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface hover:bg-surface-container-highest"
+                      onClick={() => setExpandedJobKey(expanded ? null : group.key)}
+                      type="button"
+                    >
+                      {expanded ? 'Show Top 5' : `More Profiles (${hiddenProfileCount})`}
+                    </button>
+                  </div>
+
+                  <div className="divide-y divide-outline-variant/30">
+                    <div className="hidden grid-cols-[1fr_120px_1.2fr_1.2fr_1.6fr] gap-4 px-5 py-3 lg:grid">
+                      <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Register Number</p>
+                      <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Matching %</p>
+                      <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Skill Matched</p>
+                      <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Skill Gap</p>
+                      <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">AI Analysis</p>
+                    </div>
+
+                    {visibleProfiles.map((profile) => (
+                      <div className="grid grid-cols-1 gap-4 px-5 py-5 lg:grid-cols-[1fr_120px_1.2fr_1.2fr_1.6fr]" key={profile.id}>
+                        <div>
+                          <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant lg:hidden">
+                            Register Number
+                          </p>
+                          <p className="break-words font-headline text-sm font-black uppercase text-on-background">
+                            {studentLabel(profile)}
+                          </p>
+                          <p className="mt-1 break-words text-xs text-on-surface-variant">{profile.email || profile.username}</p>
+                        </div>
+                        <div>
+                          <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant lg:hidden">
+                            Matching %
+                          </p>
+                          <p className="font-headline text-2xl font-black text-secondary">{profile.matchScore}%</p>
+                          <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                            {profile.probabilityLabel}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant lg:hidden">
+                            Skill Matched
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {(profile.matchedSkills || []).slice(0, 8).map((skill) => (
+                              <span className="bg-secondary/10 px-2 py-1 text-[11px] text-secondary" key={skill}>
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant lg:hidden">
+                            Skill Gap
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {(profile.missingSkills || []).slice(0, 8).map((skill) => (
+                              <span className="bg-primary/10 px-2 py-1 text-[11px] text-primary" key={skill}>
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant lg:hidden">
+                            AI Analysis
+                          </p>
+                          <p className="text-sm leading-relaxed text-on-surface-variant">{profile.aiAnalysis}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              )
+            })}
           </div>
 
           {!groupedRecommendations.length && !isLoading ? (
