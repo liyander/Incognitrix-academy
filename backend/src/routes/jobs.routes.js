@@ -368,6 +368,22 @@ function isCyberSecurityJob(row, skills = [], requirements = []) {
   return cyberRelevanceScore(row, skills, requirements) >= 3
 }
 
+function isCyberSecurityListing(job) {
+  const skills = parseJson(job.skills_json)
+  const requirements = parseJson(job.requirements_json)
+  return isCyberSecurityJob(
+    {
+      title: job.title,
+      domain: job.category,
+      skills_text: skills.join(' '),
+      requirements_text: requirements.join(' '),
+      job_description: [job.about_role, job.details_markdown].filter(Boolean).join('\n'),
+    },
+    skills,
+    requirements,
+  )
+}
+
 function textTokens(value) {
   return new Set(
     String(value || '')
@@ -886,7 +902,8 @@ async function loadEvidenceForUser(userId) {
 
 async function refreshRecommendationsForUser(userId) {
   await ensureJobSchema()
-  const [jobs] = await pool.query('SELECT * FROM job_listings WHERE is_active = true ORDER BY company, title')
+  const [allJobs] = await pool.query('SELECT * FROM job_listings WHERE is_active = true ORDER BY company, title')
+  const jobs = allJobs.filter(isCyberSecurityListing)
   const evidence = await loadEvidenceForUser(userId)
   const results = []
 
@@ -981,7 +998,9 @@ async function listRecommendations(whereSql, params) {
      ORDER BY sjr.match_score DESC, sjr.updated_at DESC`,
     params,
   )
-  return rows.map(normalizeRecommendation)
+  return rows
+    .filter((row) => isCyberSecurityListing(row))
+    .map(normalizeRecommendation)
 }
 
 router.use(authenticate)
@@ -991,7 +1010,7 @@ router.get('/listings', async (_req, res, next) => {
     await ensureJobSchema()
     await syncScrapedJobsIfDue()
     const [rows] = await pool.query('SELECT * FROM job_listings WHERE is_active = true ORDER BY category, company, title')
-    res.json(rows.map(normalizeJob))
+    res.json(rows.filter(isCyberSecurityListing).map(normalizeJob))
   } catch (error) {
     next(error)
   }
@@ -1052,13 +1071,13 @@ router.get('/recommendations/me', async (req, res, next) => {
       await refreshRecommendationsForUser(req.user.id)
     }
     const recommendations = await listRecommendations(
-      'WHERE sjr.user_id = ? AND sjr.match_score >= 45 AND jl.is_active = true',
+      'WHERE sjr.user_id = ? AND sjr.match_score >= 55 AND jl.is_active = true',
       [req.user.id],
     )
     if (!recommendations.length) {
       await refreshRecommendationsForUser(req.user.id)
       const refreshed = await listRecommendations(
-        'WHERE sjr.user_id = ? AND sjr.match_score >= 45 AND jl.is_active = true',
+        'WHERE sjr.user_id = ? AND sjr.match_score >= 55 AND jl.is_active = true',
         [req.user.id],
       )
       res.json(refreshed)
@@ -1076,7 +1095,7 @@ router.post('/recommendations/refresh', async (req, res, next) => {
     await syncScrapedJobsIfDue({ force: true })
     await refreshRecommendationsForUser(req.user.id)
     const recommendations = await listRecommendations(
-      'WHERE sjr.user_id = ? AND sjr.match_score >= 45 AND jl.is_active = true',
+      'WHERE sjr.user_id = ? AND sjr.match_score >= 55 AND jl.is_active = true',
       [req.user.id],
     )
     res.json(recommendations)
