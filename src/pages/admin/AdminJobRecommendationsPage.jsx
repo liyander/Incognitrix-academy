@@ -7,7 +7,13 @@ function studentLabel(item) {
 }
 
 function jobIdentity(item) {
-  const primary = [item.job?.company, item.job?.title, item.job?.applyUrl, item.job?.location, item.job?.salary]
+  const primary = [item.job?.company, item.job?.title, item.job?.location]
+    .map((value) =>
+      String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim(),
+    )
     .filter(Boolean)
     .join('|')
   return primary || String(item.jobId || item.id)

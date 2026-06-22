@@ -247,7 +247,6 @@ function inferSkillsFromDescription(description) {
     'Cloud',
     'AWS',
     'Azure',
-    'Security',
     'SOC',
     'Incident Response',
     'Vulnerability Management',
@@ -327,6 +326,11 @@ const NON_CYBER_EXCLUSION_PATTERNS = [
   /\bonboarding\b/i,
   /\bcontent writer\b/i,
   /\bgraphic design\b/i,
+  /\bsoftware engineer\b/i,
+  /\bsoftware developer\b/i,
+  /\bproduct management\b/i,
+  /\bdata analyst\b/i,
+  /\bmachine learning\b/i,
 ]
 
 function cyberRelevanceScore(row, skills = [], requirements = []) {
@@ -473,7 +477,7 @@ async function syncScrapedJobsFromExternalDb() {
     }
 
     const job = {
-      slug: slugify(`scraped-${row.company}-${row.title}-${row.location}-${row.job_link}`),
+      slug: slugify(`scraped-${row.company}-${row.title}-${row.location}`),
       title: String(row.title || 'Untitled Job').trim(),
       company: String(row.company || 'Unknown Company').trim(),
       location: String(row.location || '').trim(),
