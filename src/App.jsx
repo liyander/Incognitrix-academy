@@ -49,6 +49,65 @@ import RedTeamOperatorPage from './pages/RedTeamOperatorPage'
 import UpcomingCtfPage from './pages/UpcomingCtfPage'
 import { getSavedTheme, toggleTheme as toggleThemeSetting } from './services/theme'
 
+function ControlledOutageScreen({ outage, canRecover, isRecovering, recoverError, onRecover }) {
+  return (
+    <main className="min-h-screen bg-surface text-on-background flex items-center justify-center px-6 py-10">
+      <section className="w-full max-w-3xl border border-primary bg-surface-container-low p-8 shadow-2xl">
+        <p className="font-headline text-xs font-bold uppercase tracking-[0.45em] text-primary">
+          Mission integrity failure
+        </p>
+        <h1 className="mt-5 font-headline text-5xl font-bold uppercase leading-none">
+          Platform component error
+        </h1>
+        <p className="mt-5 max-w-2xl text-lg leading-8 text-on-surface-variant">
+          A controlled platform failure is currently active. Core mission routes are unavailable until the drill is cleared.
+        </p>
+        <div className="mt-8 grid gap-4 border-t border-outline-variant pt-6 sm:grid-cols-2">
+          <div className="bg-surface-container-high p-5">
+            <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
+              Triggered by
+            </p>
+            <p className="mt-2 font-headline text-xl font-bold uppercase">
+              {outage?.triggeredBy || 'Admin'}
+            </p>
+          </div>
+          <div className="bg-surface-container-high p-5">
+            <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
+              Drill timestamp
+            </p>
+            <p className="mt-2 font-headline text-xl font-bold uppercase">
+              {outage?.triggeredAt ? new Date(outage.triggeredAt).toLocaleString() : 'Active'}
+            </p>
+          </div>
+        </div>
+        <div className="mt-5 bg-surface-container-high p-5">
+          <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
+            Diagnostic
+          </p>
+          <p className="mt-2 text-on-surface-variant">
+            {outage?.reason || 'Controlled platform outage drill'}
+          </p>
+        </div>
+        {canRecover ? (
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              className="bg-primary px-6 py-4 font-headline text-xs font-bold uppercase tracking-widest text-on-primary disabled:opacity-60"
+              disabled={isRecovering}
+              onClick={onRecover}
+              type="button"
+            >
+              {isRecovering ? 'Recovering...' : 'Clear Drill And Restore'}
+            </button>
+            {recoverError ? (
+              <p className="text-sm font-semibold text-primary">{recoverError}</p>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
+    </main>
+  )
+}
+
 function firstEnabledRoute(config) {
   if (config.routes.dashboard) return '/'
   if (config.routes.learningPaths) return '/learn/paths'
@@ -65,6 +124,8 @@ function App() {
   const [isBootstrapping, setIsBootstrapping] = useState(true)
   const [syncTick, setSyncTick] = useState(0)
   const [theme, setTheme] = useState(getSavedTheme)
+  const [isRecoveringOutage, setIsRecoveringOutage] = useState(false)
+  const [outageRecoverError, setOutageRecoverError] = useState('')
   const platformConfigSaveRef = useRef({ inFlight: false, version: 0 })
   const location = useLocation()
   const isPublicVerificationRoute = location.pathname.startsWith('/verify-certificate')
@@ -217,6 +278,35 @@ function App() {
       })
   }
 
+  const recoverControlledOutage = async () => {
+    setIsRecoveringOutage(true)
+    setOutageRecoverError('')
+    try {
+      await apiFetch('/platform-config/0p5-c0r3/r3st0r3', {
+        method: 'POST',
+      })
+      const nextConfig = savePlatformConfig({
+        ...platformConfig,
+        features: {
+          ...platformConfig.features,
+          controlledOutage: {
+            active: false,
+          },
+        },
+      })
+      setPlatformConfig(nextConfig)
+      setSyncTick((value) => value + 1)
+    } catch (error) {
+      if (isAuthError(error)) {
+        handleSessionExpired()
+        return
+      }
+      setOutageRecoverError(error?.message || 'Recovery failed.')
+    } finally {
+      setIsRecoveringOutage(false)
+    }
+  }
+
   if (authSession && !authSession.token) {
     logoutUser()
     return <Navigate to="/login" replace />
@@ -236,6 +326,19 @@ function App() {
   }
 
   void syncTick
+
+  const controlledOutage = platformConfig.features?.controlledOutage
+  if (controlledOutage?.active) {
+    return (
+      <ControlledOutageScreen
+        outage={controlledOutage}
+        canRecover={authSession?.role === 'admin'}
+        isRecovering={isRecoveringOutage}
+        recoverError={outageRecoverError}
+        onRecover={recoverControlledOutage}
+      />
+    )
+  }
 
   if (isPublicVerificationRoute) {
     return (

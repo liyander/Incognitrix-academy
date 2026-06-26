@@ -22,6 +22,46 @@ function parseJsonField(value, fallback = {}) {
   return value
 }
 
+function requireAdminOr404(req, res, next) {
+  if (req.user?.role !== 'admin') {
+    return res.status(404).json({ message: 'Not found' })
+  }
+
+  return next()
+}
+
+async function getStoredPlatformConfig() {
+  const [rows] = await pool.query(
+    'SELECT routes_json, features_json, ai_json, api_json FROM platform_config WHERE id = 1 LIMIT 1',
+  )
+
+  const row = rows[0] || {}
+  return {
+    routes: parseJsonField(row.routes_json, {}),
+    features: parseJsonField(row.features_json, {}),
+    ai: parseJsonField(row.ai_json, {}),
+    api: parseJsonField(row.api_json, {}),
+  }
+}
+
+async function saveStoredPlatformConfig(config) {
+  await pool.query(
+    `INSERT INTO platform_config (id, routes_json, features_json, ai_json, api_json)
+     VALUES (1, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       routes_json = VALUES(routes_json),
+       features_json = VALUES(features_json),
+       ai_json = VALUES(ai_json),
+       api_json = VALUES(api_json)`,
+    [
+      JSON.stringify(config.routes || {}),
+      JSON.stringify(config.features || {}),
+      JSON.stringify(config.ai || {}),
+      JSON.stringify(config.api || {}),
+    ],
+  )
+}
+
 const DEFAULT_API_CONFIG = {
   ai: {
     baseUrl: '',
@@ -117,6 +157,54 @@ router.get('/', async (_req, res) => {
     features: parseJsonField(rows[0].features_json, {}),
     ai: buildAiPlatformConfig(parseJsonField(rows[0].ai_json, {})),
     api: buildApiConfigForClient(parseJsonField(rows[0].api_json, {})),
+  })
+})
+
+router.post('/0p5-c0r3/s1gn4l-dr0p', authenticate, requireAdminOr404, async (req, res) => {
+  const currentConfig = await getStoredPlatformConfig()
+  const reason = String(req.body?.reason || 'Controlled platform outage drill').trim()
+  const outage = {
+    active: true,
+    reason,
+    triggeredBy: req.user?.username || 'admin',
+    triggeredAt: new Date().toISOString(),
+  }
+  const nextConfig = {
+    ...currentConfig,
+    features: {
+      ...currentConfig.features,
+      controlledOutage: outage,
+    },
+  }
+
+  await saveStoredPlatformConfig(nextConfig)
+
+  return res.json({
+    status: 'degraded',
+    message: 'Controlled outage drill is active.',
+    outage,
+  })
+})
+
+router.post('/0p5-c0r3/r3st0r3', authenticate, requireAdminOr404, async (req, res) => {
+  const currentConfig = await getStoredPlatformConfig()
+  const nextConfig = {
+    ...currentConfig,
+    features: {
+      ...currentConfig.features,
+      controlledOutage: {
+        active: false,
+        recoveredBy: req.user?.username || 'admin',
+        recoveredAt: new Date().toISOString(),
+      },
+    },
+  }
+
+  await saveStoredPlatformConfig(nextConfig)
+
+  return res.json({
+    status: 'recovered',
+    message: 'Controlled outage drill has been cleared.',
   })
 })
 

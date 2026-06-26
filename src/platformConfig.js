@@ -18,6 +18,9 @@ export const DEFAULT_PLATFORM_CONFIG = {
     publicRegistration: true,
     registrationDynamicMin: 23,
     registrationDynamicMax: 30,
+    controlledOutage: {
+      active: false,
+    },
   },
   ai: {
     model: 'moonshotai/kimi-k2-thinking',
