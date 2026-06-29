@@ -30,6 +30,7 @@ import AdminTopPlayerResumesPage from './pages/admin/AdminTopPlayerResumesPage'
 import DeveloperDashboardPage from './pages/developer/DeveloperDashboardPage'
 import DashboardPage from './pages/DashboardPage'
 import JobUpdatesPage from './pages/JobUpdatesPage'
+import InterviewPointPage from './pages/InterviewPointPage'
 import CvesPage from './pages/CvesPage'
 import CveDetailPage from './pages/CveDetailPage'
 import CertificateVerificationPage from './pages/CertificateVerificationPage'
@@ -493,6 +494,10 @@ function App() {
           <Route
             path="/jobs"
             element={<JobUpdatesPage />}
+          />
+          <Route
+            path="/interview-point"
+            element={<InterviewPointPage />}
           />
           <Route
             path="/roadmap"

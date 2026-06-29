@@ -368,7 +368,7 @@ function isCyberSecurityJob(row, skills = [], requirements = []) {
   return cyberRelevanceScore(row, skills, requirements) >= 3
 }
 
-function isCyberSecurityListing(job) {
+export function isCyberSecurityListing(job) {
   const skills = parseJson(job.skills_json)
   const requirements = parseJson(job.requirements_json)
   return isCyberSecurityJob(
@@ -728,7 +728,7 @@ function scoreJob(job, evidence) {
   }
 }
 
-async function ensureJobSchema() {
+export async function ensureJobSchema() {
   if (schemaReady) return
 
   await pool.query(`
