@@ -67,6 +67,60 @@ function safeHttpUrl(value) {
   }
 }
 
+function decodeHtml(value) {
+  const namedEntities = {
+    amp: '&',
+    apos: "'",
+    gt: '>',
+    lt: '<',
+    nbsp: ' ',
+    quot: '"',
+  }
+  return String(value || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, entity) => {
+      if (entity.startsWith('#')) {
+        const hex = entity[1]?.toLowerCase() === 'x'
+        const codePoint = Number.parseInt(entity.slice(hex ? 2 : 1), hex ? 16 : 10)
+        return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : match
+      }
+      return namedEntities[entity.toLowerCase()] ?? match
+    })
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function resolveDuckDuckGoUrl(value) {
+  try {
+    const url = new URL(decodeHtml(value), 'https://duckduckgo.com')
+    const destination = url.searchParams.get('uddg')
+    return safeHttpUrl(destination || url.toString())
+  } catch {
+    return ''
+  }
+}
+
+function parseDuckDuckGoResults(html) {
+  const results = []
+  const blocks = String(html || '').split(/(?=<div[^>]+class="[^"]*\bresult\b)/i)
+  for (const block of blocks) {
+    const link = block.match(/<a[^>]+class="[^"]*\bresult__a\b[^"]*"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i)
+      || block.match(/<a[^>]+href="([^"]+)"[^>]+class="[^"]*\bresult__a\b[^"]*"[^>]*>([\s\S]*?)<\/a>/i)
+    if (!link) continue
+    const snippet = block.match(/<(?:a|div)[^>]+class="[^"]*\bresult__snippet\b[^"]*"[^>]*>([\s\S]*?)<\/(?:a|div)>/i)
+    const item = {
+      title: normalizeText(decodeHtml(link[2]), 500),
+      url: resolveDuckDuckGoUrl(link[1]),
+      snippet: normalizeText(decodeHtml(snippet?.[1]), 1500),
+    }
+    if (item.title && item.url && !results.some((existing) => existing.url === item.url)) {
+      results.push(item)
+    }
+    if (results.length === 8) break
+  }
+  return results
+}
+
 function clampQuestionCount(value) {
   const count = Number(value)
   return Number.isInteger(count) ? Math.max(1, Math.min(25, count)) : 5
@@ -144,11 +198,40 @@ async function getSearchConfig() {
   }
 }
 
+async function searchDuckDuckGo(query) {
+  try {
+    const body = new URLSearchParams({
+      q: query,
+      kl: 'wt-wt',
+      kp: '1',
+    })
+    const response = await fetch('https://html.duckduckgo.com/html/', {
+      method: 'POST',
+      headers: {
+        Accept: 'text/html,application/xhtml+xml',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (compatible; IncognitrixAcademy/1.0; interview-research)',
+      },
+      body,
+      redirect: 'follow',
+      signal: AbortSignal.timeout(12000),
+    })
+    if (!response.ok) return []
+    return parseDuckDuckGoResults(await response.text())
+  } catch (error) {
+    console.warn('DuckDuckGo interview search failed:', error?.message || error)
+    return []
+  }
+}
+
 async function searchInterviewSources({ roleTitle, company }) {
+  const query = [company, roleTitle, 'interview questions experience'].filter(Boolean).join(' ')
+  const duckDuckGoResults = await searchDuckDuckGo(query)
+  if (duckDuckGoResults.length) return duckDuckGoResults
+
   const { braveApiKey } = await getSearchConfig()
   if (!braveApiKey) return []
 
-  const query = [company, roleTitle, 'interview questions experience'].filter(Boolean).join(' ')
   try {
     const url = new URL('https://api.search.brave.com/res/v1/web/search')
     url.searchParams.set('q', query)
