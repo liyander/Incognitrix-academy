@@ -122,6 +122,10 @@ export async function initializeDatabaseIfNeeded() {
           vulnerability_report LONGTEXT,
           method_followed LONGTEXT,
           references_text LONGTEXT,
+          publication_title VARCHAR(255) NULL,
+          publication_source_url TEXT NULL,
+          publication_date DATE NULL,
+          publication_image_data LONGTEXT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         );
@@ -273,6 +277,10 @@ export async function initializeDatabaseIfNeeded() {
       )
       await addColumnIfMissing('platform_config', 'ai_json', 'JSON NULL')
       await addColumnIfMissing('platform_config', 'api_json', 'JSON NULL')
+      await addColumnIfMissing('cves', 'publication_title', 'VARCHAR(255) NULL')
+      await addColumnIfMissing('cves', 'publication_source_url', 'TEXT NULL')
+      await addColumnIfMissing('cves', 'publication_date', 'DATE NULL')
+      await addColumnIfMissing('cves', 'publication_image_data', 'LONGTEXT NULL')
       await addColumnIfMissing('career_path_modules', 'module_image_data', 'LONGTEXT NULL')
       await addColumnIfMissing('career_path_modules', 'linked_path_id', 'VARCHAR(191) NULL')
       await addColumnIfMissing('notifications', 'target_user_id', 'INT NULL')
@@ -387,6 +395,10 @@ export async function initializeDatabaseIfNeeded() {
         vulnerability_report LONGTEXT,
         method_followed LONGTEXT,
         references_text LONGTEXT,
+        publication_title VARCHAR(255) NULL,
+        publication_source_url TEXT NULL,
+        publication_date DATE NULL,
+        publication_image_data LONGTEXT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       );

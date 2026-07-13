@@ -1,8 +1,24 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { getCveById, addCve, updateCve, deleteCve } from '../../data/cvesData'
 
 import { ConfirmModal } from '../../components/ConfirmModal'
+
+function createCveFormData(cve) {
+  return {
+    cve_id: cve?.cve_id || '',
+    short_description: cve?.short_description || '',
+    found_year: cve?.found_year || new Date().getFullYear(),
+    credit: cve?.credit || '',
+    vulnerability_report: cve?.vulnerability_report || '',
+    method_followed: cve?.method_followed || '',
+    references_text: cve?.references_text || '',
+    publication_title: cve?.publication_title || '',
+    publication_source_url: cve?.publication_source_url || '',
+    publication_date: cve?.publication_date ? String(cve.publication_date).slice(0, 10) : '',
+    publication_image_data: cve?.publication_image_data || '',
+  }
+}
 
 function AdminCveEditorPage() {
   const navigate = useNavigate()
@@ -10,37 +26,11 @@ function AdminCveEditorPage() {
   const { id } = useParams()
   const isNewCve = id === 'new' || location.pathname === '/admin/cves/new'
 
-  const [cve, setCve] = useState(null)
-  const [formData, setFormData] = useState({
-    cve_id: '',
-    short_description: '',
-    found_year: new Date().getFullYear(),
-    credit: '',
-    vulnerability_report: '',
-    method_followed: '',
-    references_text: '',
-  })
+  const cve = isNewCve ? null : getCveById(id)
+  const [formData, setFormData] = useState(() => createCveFormData(cve))
   
   const [saved, setSaved] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
-
-  useEffect(() => {
-    if (!isNewCve) {
-      const foundCve = getCveById(id)
-      if (foundCve && !cve) {
-        setCve(foundCve)
-        setFormData({
-          cve_id: foundCve.cve_id || '',
-          short_description: foundCve.short_description || '',
-          found_year: foundCve.found_year || '',
-          credit: foundCve.credit || '',
-          vulnerability_report: foundCve.vulnerability_report || '',
-          method_followed: foundCve.method_followed || '',
-          references_text: foundCve.references_text || '',
-        })
-      }
-    }
-  }, [id, isNewCve])
 
   const [isModalOpen, setIsModalOpen] = useState(false)
 
@@ -90,6 +80,31 @@ function AdminCveEditorPage() {
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handlePublicationImage = (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      setErrorMessage('Publication proof must be a PNG, JPEG, or WebP image.')
+      event.target.value = ''
+      return
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      setErrorMessage('Publication proof image must be 3 MB or smaller.')
+      event.target.value = ''
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setFormData((prev) => ({ ...prev, publication_image_data: String(reader.result || '') }))
+      setErrorMessage('')
+    }
+    reader.onerror = () => setErrorMessage('Unable to read the selected publication image.')
+    reader.readAsDataURL(file)
   }
 
   if (!isNewCve && !cve) {
@@ -279,6 +294,98 @@ function AdminCveEditorPage() {
               value={formData.references_text}
               onChange={handleInputChange}
             />
+          </div>
+        </section>
+
+        <section className="bg-surface-container-lowest p-8 border-l-4 border-primary space-y-8">
+          <div>
+            <p className="font-label text-[10px] font-bold uppercase tracking-widest text-primary mb-2">
+              Publication evidence
+            </p>
+            <h2 className="font-headline text-xl font-bold uppercase tracking-tight text-on-surface">
+              Published Page Proof
+            </h2>
+            <p className="font-body text-sm text-on-surface-variant mt-2">
+              Attach a screenshot of the official advisory, disclosure, or published CVE page.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-2">
+              <label className="block text-xs font-label uppercase tracking-widest text-on-surface-variant font-bold mb-2">
+                Publication title
+              </label>
+              <input
+                className="w-full bg-surface-container-highest border-l-2 border-l-primary border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                name="publication_title"
+                type="text"
+                placeholder="e.g. NVD vulnerability detail page"
+                value={formData.publication_title}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-label uppercase tracking-widest text-on-surface-variant font-bold mb-2">
+                Published page URL
+              </label>
+              <input
+                className="w-full bg-surface-container-highest border-l-2 border-l-primary border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                name="publication_source_url"
+                type="url"
+                placeholder="https://..."
+                value={formData.publication_source_url}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-label uppercase tracking-widest text-on-surface-variant font-bold mb-2">
+                Publication date
+              </label>
+              <input
+                className="w-full bg-surface-container-highest border-l-2 border-l-primary border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                name="publication_date"
+                type="date"
+                value={formData.publication_date}
+                onChange={handleInputChange}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-label uppercase tracking-widest text-on-surface-variant font-bold mb-2">
+              Published page screenshot
+            </label>
+            <div className="border border-outline-variant/40 bg-surface p-4">
+              {formData.publication_image_data ? (
+                <div className="space-y-4">
+                  <img
+                    src={formData.publication_image_data}
+                    alt="Publication proof preview"
+                    className="w-full max-h-[480px] object-contain bg-black/20 border border-outline-variant/30"
+                  />
+                  <div className="flex flex-wrap gap-3">
+                    <label className="cursor-pointer bg-secondary-container px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-secondary-container hover:text-primary transition-colors">
+                      Replace image
+                      <input className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={handlePublicationImage} />
+                    </label>
+                    <button
+                      type="button"
+                      className="border border-error/60 px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-error hover:bg-error hover:text-white transition-colors"
+                      onClick={() => setFormData((prev) => ({ ...prev, publication_image_data: '' }))}
+                    >
+                      Remove image
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="min-h-40 cursor-pointer flex flex-col items-center justify-center gap-3 border border-dashed border-outline-variant p-8 text-center hover:border-primary transition-colors">
+                  <span className="material-symbols-outlined text-4xl text-primary">add_photo_alternate</span>
+                  <span className="font-headline text-xs font-bold uppercase tracking-widest text-on-surface">Upload publication screenshot</span>
+                  <span className="font-body text-xs text-on-surface-variant">PNG, JPEG, or WebP up to 3 MB</span>
+                  <input className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={handlePublicationImage} />
+                </label>
+              )}
+            </div>
           </div>
         </section>
 

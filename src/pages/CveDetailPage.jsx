@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getCveById, subscribeCvesData } from '../data/cvesData'
 import { parseMarkdownToHtml } from '../utils/markdown'
+import CvePublicationProof from '../components/CvePublicationProof'
 
 function looksLikeCodeContent(text) {
   const lines = String(text || '').split('\n')
@@ -157,6 +158,8 @@ function CveDetailPage() {
             dangerouslySetInnerHTML={{ __html: renderCveContent(cve.vulnerability_report) }}
           ></div>
         </section>
+
+        <CvePublicationProof cve={cve} />
 
         <section className="bg-surface-container-lowest p-8 border-l border-outline-variant/30">
           <h2 className="font-headline text-xl font-bold uppercase tracking-tight text-on-surface mb-6 flex items-center gap-3">
