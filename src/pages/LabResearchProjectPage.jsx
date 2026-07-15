@@ -180,7 +180,7 @@ function LabResearchProjectPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 px-6 md:px-10 py-10">
+      <div className="flex-1 px-6 md:px-10 pt-24 pb-10">
         <div className="bg-surface-container-lowest p-8 text-center">
           <p className="text-on-surface-variant">Loading research project...</p>
         </div>
@@ -190,7 +190,7 @@ function LabResearchProjectPage() {
 
   if (!project) {
     return (
-      <div className="flex-1 px-6 md:px-10 py-10">
+      <div className="flex-1 px-6 md:px-10 pt-24 pb-10">
         <div className="bg-error/10 border-l-4 border-error p-6">
           <p className="text-error font-headline text-xs font-bold uppercase tracking-widest">
             {error || 'Research project not found'}
@@ -215,7 +215,7 @@ function LabResearchProjectPage() {
     }`
 
   return (
-    <div className="flex-1 px-6 md:px-10 py-10 pb-24 md:pb-10">
+    <div className="flex-1 px-6 md:px-10 pt-24 pb-24 md:pb-10">
       <Link
         className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors"
         to="/lab-research"

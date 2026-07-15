@@ -33,7 +33,7 @@ function LabResearchPage() {
   }, [])
 
   return (
-    <div className="flex-1 px-6 md:px-10 py-10 pb-24 md:pb-10">
+    <div className="flex-1 px-6 md:px-10 pt-24 pb-24 md:pb-10">
       <header className="bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 mb-8">
         <p className="font-headline text-[10px] tracking-[0.25em] uppercase text-primary font-bold">
           Knowledge Transfer
