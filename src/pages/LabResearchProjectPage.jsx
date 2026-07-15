@@ -128,11 +128,18 @@ function LabResearchProjectPage() {
     const onFullscreen = () => {
       if (!document.fullscreenElement) void handleViolation('fullscreen-exit')
     }
+    // Alt-Tab to another application keeps the page visible, so
+    // visibilitychange never fires — window blur is what catches it.
+    const onBlur = () => {
+      void handleViolation('tab-switch')
+    }
     document.addEventListener('visibilitychange', onVisibility)
     document.addEventListener('fullscreenchange', onFullscreen)
+    window.addEventListener('blur', onBlur)
     return () => {
       document.removeEventListener('visibilitychange', onVisibility)
       document.removeEventListener('fullscreenchange', onFullscreen)
+      window.removeEventListener('blur', onBlur)
       proctorRef.current = { active: false, violated: false, attemptId: null }
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(() => {})
