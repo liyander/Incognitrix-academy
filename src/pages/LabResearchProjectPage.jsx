@@ -4,11 +4,16 @@ import {
   answerLabQuizQuestion,
   fetchLabCodeChallenge,
   fetchLabProject,
-  fetchLabQuizAttempt,
   startLabQuiz,
   submitLabCode,
+  terminateLabQuiz,
 } from '../services/labResearch'
-import { isRunnableInBrowser, runCodeAgainstTests } from '../utils/codeRunner'
+import {
+  captureFrameScreenshot,
+  isRunnableInBrowser,
+  runCodeAgainstTests,
+  runUiChecksInFrame,
+} from '../utils/codeRunner'
 
 const TABS = {
   research: 'research',
@@ -56,7 +61,10 @@ function LabResearchProjectPage() {
   const [runningTests, setRunningTests] = useState(false)
   const [runStatus, setRunStatus] = useState('')
   const [localRun, setLocalRun] = useState(null)
+  const [preview, setPreview] = useState(null)
   const codeInitializedRef = useRef(false)
+  const previewFrameRef = useRef(null)
+  const previewLoadResolveRef = useRef(null)
 
   const loadProject = async () => {
     try {
@@ -70,14 +78,8 @@ function LabResearchProjectPage() {
           codeInitializedRef.current = true
         }
       }
-      if (data.activeQuizAttemptId && !attempt) {
-        try {
-          const existing = await fetchLabQuizAttempt(data.activeQuizAttemptId)
-          setAttempt(existing)
-        } catch {
-          // Attempt may have been cleaned up; the player can start a new one.
-        }
-      }
+      // Active attempts are never resumed: the assessment is proctored, so a
+      // refresh or crash forfeits the attempt and the next one gets new questions.
       return data
     } catch (err) {
       setError(err.message || 'Failed to load research project')
@@ -92,16 +94,77 @@ function LabResearchProjectPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId])
 
-  const handleStartQuiz = async ({ restart = false } = {}) => {
+  // Proctoring state lives in refs so the global event listeners always see
+  // the current values without re-binding.
+  const proctorRef = useRef({ active: false, violated: false, attemptId: null })
+
+  const exitFullscreen = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {})
+    }
+  }
+
+  const handleViolation = async (reason) => {
+    const proctor = proctorRef.current
+    if (!proctor.active || proctor.violated || !proctor.attemptId) return
+    proctorRef.current = { active: false, violated: true, attemptId: null }
+    setQuizError(reason === 'tab-switch'
+      ? 'Assessment auto-submitted: you switched tabs or left the window.'
+      : 'Assessment auto-submitted: fullscreen mode was exited.')
+    exitFullscreen()
+    try {
+      const updated = await terminateLabQuiz(proctor.attemptId, reason)
+      setAttempt(updated)
+      void loadProject()
+    } catch {
+      setAttempt((current) => (current ? { ...current, status: 'terminated', terminatedReason: reason } : current))
+    }
+  }
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.hidden) void handleViolation('tab-switch')
+    }
+    const onFullscreen = () => {
+      if (!document.fullscreenElement) void handleViolation('fullscreen-exit')
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    document.addEventListener('fullscreenchange', onFullscreen)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      document.removeEventListener('fullscreenchange', onFullscreen)
+      proctorRef.current = { active: false, violated: false, attemptId: null }
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {})
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleStartQuiz = async () => {
+    setQuizError('')
+    // Fullscreen must be requested inside the click gesture and is mandatory.
+    if (!document.fullscreenElement) {
+      try {
+        await document.documentElement.requestFullscreen({ navigationUI: 'hide' })
+      } catch {
+        setQuizError('Fullscreen is required to attend this assessment. Allow fullscreen and try again.')
+        return
+      }
+    }
     try {
       setQuizLoading(true)
-      setQuizError('')
-      const data = await startLabQuiz(projectId, { restart })
+      const data = await startLabQuiz(projectId)
       setAttempt(data)
       setAnswers({})
       setActiveTab(TABS.quiz)
+      proctorRef.current = { active: true, violated: false, attemptId: data.id }
+      if (document.hidden || !document.fullscreenElement) {
+        void handleViolation(document.hidden ? 'tab-switch' : 'fullscreen-exit')
+      }
     } catch (err) {
       setQuizError(err.message || 'Failed to start the knowledge check')
+      exitFullscreen()
     } finally {
       setQuizLoading(false)
     }
@@ -118,7 +181,9 @@ function LabResearchProjectPage() {
       setQuizError('')
       const updated = await answerLabQuizQuestion(attempt.id, question.id, answer)
       setAttempt(updated)
-      if (updated.status === 'completed') {
+      if (updated.status !== 'active') {
+        proctorRef.current = { active: false, violated: false, attemptId: null }
+        exitFullscreen()
         void loadProject()
       }
     } catch (err) {
@@ -134,6 +199,7 @@ function LabResearchProjectPage() {
       setCodeError('')
       setSubmission(null)
       setLocalRun(null)
+      setPreview(null)
       const data = await fetchLabCodeChallenge(projectId, { regenerate })
       setChallenge(data)
       if (regenerate || !codeInitializedRef.current) {
@@ -147,6 +213,37 @@ function LabResearchProjectPage() {
     }
   }
 
+  const isUiChallenge = challenge?.kind === 'ui'
+
+  // Renders the player's HTML into the sandboxed preview iframe and resolves
+  // once it has loaded (the changing key forces a fresh document each run).
+  const renderPreview = (html) =>
+    new Promise((resolve) => {
+      previewLoadResolveRef.current = resolve
+      setPreview({ html, nonce: Date.now() })
+      // Safety net in case the load event never fires.
+      setTimeout(() => {
+        if (previewLoadResolveRef.current === resolve) {
+          previewLoadResolveRef.current = null
+          resolve()
+        }
+      }, 3000)
+    })
+
+  const handlePreviewLoad = () => {
+    const resolve = previewLoadResolveRef.current
+    previewLoadResolveRef.current = null
+    // Give inline scripts a moment to run before checks execute.
+    if (resolve) setTimeout(resolve, 200)
+  }
+
+  const runUiChallenge = async () => {
+    setRunStatus('Rendering your page...')
+    await renderPreview(code)
+    setRunStatus('Verifying UI requirements...')
+    return runUiChecksInFrame(previewFrameRef.current, challenge.testCases)
+  }
+
   const handleRunTests = async () => {
     if (code.trim().length < 10) {
       setCodeError('Write your solution before running the tests.')
@@ -156,12 +253,14 @@ function LabResearchProjectPage() {
       setRunningTests(true)
       setCodeError('')
       setRunStatus('Running tests in your browser...')
-      const run = await runCodeAgainstTests({
-        language: challenge.language,
-        code,
-        testCases: challenge.testCases,
-        onStatus: setRunStatus,
-      })
+      const run = isUiChallenge
+        ? await runUiChallenge()
+        : await runCodeAgainstTests({
+          language: challenge.language,
+          code,
+          testCases: challenge.testCases,
+          onStatus: setRunStatus,
+        })
       setLocalRun(run)
       setSubmission(null)
       return run
@@ -183,7 +282,24 @@ function LabResearchProjectPage() {
       setSubmittingCode(true)
       setCodeError('')
       let browserResults = null
-      if (isRunnableInBrowser(challenge.language)) {
+      let screenshot = null
+      if (isUiChallenge) {
+        const run = await runUiChallenge()
+        setLocalRun(run)
+        browserResults = run.results
+        if (!run.passed) {
+          setSubmission(null)
+          setCodeError('Some UI requirements failed in the rendered page. Fix your page and submit again.')
+          return
+        }
+        setRunStatus('Capturing a screenshot of your rendered page for the admin...')
+        try {
+          screenshot = await captureFrameScreenshot(previewFrameRef.current)
+        } catch (screenshotError) {
+          console.error('Screenshot capture failed:', screenshotError)
+        }
+        setRunStatus('Submitting for verification...')
+      } else if (isRunnableInBrowser(challenge.language)) {
         setRunStatus('Running tests in your browser...')
         const run = await runCodeAgainstTests({
           language: challenge.language,
@@ -198,8 +314,9 @@ function LabResearchProjectPage() {
           setCodeError('Some test cases failed in the browser runner. Fix your solution and submit again.')
           return
         }
+        setRunStatus('Verifying on the server...')
       }
-      const result = await submitLabCode(challenge.id, code, browserResults)
+      const result = await submitLabCode(challenge.id, code, browserResults, screenshot)
       setSubmission(result)
       setLocalRun(null)
       if (result.accepted) {
@@ -352,7 +469,7 @@ function LabResearchProjectPage() {
           ) : null}
           <div className="bg-surface-container-lowest border-l-4 border-primary p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <p className="text-sm text-on-surface-variant">
-              Ready? Take the AI knowledge check — answer every question correctly to reach 100/100.
+              Ready? Attend the proctored AI assessment — it runs in fullscreen with fresh questions every attempt, and answering every question correctly scores 100/100.
             </p>
             <button
               className="bg-primary text-on-primary px-6 py-3 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors disabled:opacity-60"
@@ -360,7 +477,7 @@ function LabResearchProjectPage() {
               onClick={() => handleStartQuiz()}
               type="button"
             >
-              {quizLoading ? 'Preparing Questions...' : project.progress.quizCompleted ? 'Review Knowledge Check' : 'Start Knowledge Check'}
+              {quizLoading ? 'Preparing Questions...' : 'Attend Assessment'}
             </button>
           </div>
         </div>
@@ -387,18 +504,27 @@ function LabResearchProjectPage() {
 
           {!attempt ? (
             <div className="bg-surface-container-lowest border-l-4 border-primary p-8 text-center">
-              <p className="font-headline text-lg font-bold uppercase">AI Knowledge Check</p>
+              <p className="font-headline text-lg font-bold uppercase">Proctored AI Assessment</p>
               <p className="text-sm text-on-surface-variant mt-2 max-w-xl mx-auto">
-                The AI will generate questions from this project&apos;s research write-up. Answer every question correctly to score 100
-                and mark this project as completed. You can retry incorrect answers.
+                The AI generates a completely new set of questions from this project&apos;s research write-up on every attempt.
+                Answer every question correctly to score 100 and mark this project as completed. Incorrect answers can be retried within the attempt.
               </p>
+              <div className="mt-4 mx-auto max-w-xl bg-error/10 border-l-4 border-error p-4 text-left">
+                <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-error mb-1">Proctoring Rules</p>
+                <ul className="text-xs space-y-1 text-on-surface">
+                  <li>• The assessment runs in fullscreen mode.</li>
+                  <li>• Switching tabs, minimizing, or leaving the window auto-submits it instantly.</li>
+                  <li>• Exiting fullscreen auto-submits it instantly.</li>
+                  <li>• A forfeited attempt keeps its score; the next attempt gets new questions.</li>
+                </ul>
+              </div>
               <button
                 className="mt-6 bg-primary text-on-primary px-8 py-3 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors disabled:opacity-60"
                 disabled={quizLoading}
                 onClick={() => handleStartQuiz()}
                 type="button"
               >
-                {quizLoading ? 'Preparing Questions...' : 'Start Knowledge Check'}
+                {quizLoading ? 'Preparing Questions...' : 'Attend Assessment'}
               </button>
             </div>
           ) : (
@@ -411,7 +537,9 @@ function LabResearchProjectPage() {
                   <p className="text-xs text-on-surface-variant mt-1">
                     {attempt.status === 'completed'
                       ? 'Completed — every answer was correct.'
-                      : 'Answer every question correctly to reach 100. Incorrect answers can be retried.'}
+                      : attempt.status === 'terminated'
+                        ? 'This attempt was auto-submitted. Attend again for a new set of questions.'
+                        : 'Proctored mode is active: stay in fullscreen and do not switch tabs, or the assessment is auto-submitted.'}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -420,14 +548,21 @@ function LabResearchProjectPage() {
                       Completed
                     </span>
                   ) : null}
-                  <button
-                    className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors disabled:opacity-60"
-                    disabled={quizLoading}
-                    onClick={() => handleStartQuiz({ restart: true })}
-                    type="button"
-                  >
-                    {quizLoading ? 'Generating...' : 'New Question Set'}
-                  </button>
+                  {attempt.status === 'terminated' ? (
+                    <span className="px-4 py-2 bg-error/15 text-error font-headline text-xs font-bold uppercase tracking-widest">
+                      Auto-Submitted
+                    </span>
+                  ) : null}
+                  {attempt.status !== 'active' && !project.progress.quizCompleted ? (
+                    <button
+                      className="px-4 py-2 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors disabled:opacity-60"
+                      disabled={quizLoading}
+                      onClick={() => handleStartQuiz()}
+                      type="button"
+                    >
+                      {quizLoading ? 'Preparing...' : 'Attend Again (New Questions)'}
+                    </button>
+                  ) : null}
                 </div>
               </div>
 
@@ -475,7 +610,7 @@ function LabResearchProjectPage() {
                         />
                         <button
                           className="bg-primary text-on-primary px-6 py-2.5 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors disabled:opacity-60"
-                          disabled={submittingQuestionId === question.id || attempt.status === 'completed'}
+                          disabled={submittingQuestionId === question.id || attempt.status !== 'active'}
                           onClick={() => handleAnswerSubmit(question)}
                           type="button"
                         >
@@ -543,7 +678,22 @@ function LabResearchProjectPage() {
                   </div>
                 </div>
                 <ContentBlock text={challenge.scenario} />
-                {challenge.testCases.length ? (
+                {isUiChallenge && challenge.testCases.length ? (
+                  <div className="mt-6">
+                    <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">
+                      UI Requirements ({challenge.testCases.length}) — all must pass in your rendered page
+                    </p>
+                    <ul className="space-y-2">
+                      {challenge.testCases.map((check) => (
+                        <li className="flex items-start gap-3 text-sm leading-6" key={check.index}>
+                          <span className="material-symbols-outlined text-primary text-base mt-0.5">rule</span>
+                          {check.description}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {!isUiChallenge && challenge.testCases.length ? (
                   <div className="mt-6 overflow-x-auto">
                     <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">
                       Test Cases ({challenge.testCases.length}) — all must pass
@@ -587,17 +737,19 @@ function LabResearchProjectPage() {
                 />
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-4">
                   <p className="text-xs text-on-surface-variant">
-                    Implement solve(input) exactly as the scenario describes. Your code compiles and runs directly in the browser against every test case.
+                    {isUiChallenge
+                      ? 'Write a standalone HTML page (inline CSS and JS). Run it to render it right here and verify every UI requirement. On submit, a screenshot of your rendered page is sent to the admin with the results.'
+                      : 'Implement solve(input) exactly as the scenario describes. Your code compiles and runs directly in the browser, and the server re-runs it independently on submit.'}
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-                    {isRunnableInBrowser(challenge.language) ? (
+                    {isUiChallenge || isRunnableInBrowser(challenge.language) ? (
                       <button
                         className="bg-surface-container-high text-on-surface px-6 py-3 font-headline text-xs font-bold uppercase tracking-widest hover:text-secondary transition-colors disabled:opacity-60"
                         disabled={runningTests || submittingCode || challenge.status === 'accepted'}
                         onClick={handleRunTests}
                         type="button"
                       >
-                        {runningTests ? 'Running...' : 'Run Tests'}
+                        {runningTests ? 'Running...' : isUiChallenge ? 'Run & Render' : 'Run Tests'}
                       </button>
                     ) : null}
                     <button
@@ -616,6 +768,27 @@ function LabResearchProjectPage() {
                   </p>
                 ) : null}
               </section>
+
+              {isUiChallenge && preview ? (
+                <section className="bg-surface-container-lowest border-l-4 border-secondary p-8">
+                  <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-4 text-secondary flex items-center gap-2">
+                    <span className="material-symbols-outlined">preview</span>
+                    Rendered Page
+                  </h2>
+                  <iframe
+                    className="w-full min-h-[420px] bg-white border border-outline-variant"
+                    key={preview.nonce}
+                    onLoad={handlePreviewLoad}
+                    ref={previewFrameRef}
+                    sandbox="allow-scripts allow-same-origin"
+                    srcDoc={preview.html}
+                    title="Rendered page preview"
+                  />
+                  <p className="text-xs text-on-surface-variant mt-3">
+                    This is your page rendered live. The UI requirement checks run against this exact document, and its screenshot is attached to your submission for the admin.
+                  </p>
+                </section>
+              ) : null}
 
               {submission || localRun ? (
                 <section className={`bg-surface-container-lowest border-l-4 p-8 ${(submission ? submission.accepted : localRun.passed) ? 'border-secondary' : 'border-error'}`}>

@@ -226,6 +226,61 @@ __lab_namespace = {}
   return results
 }
 
+// Evaluates UI challenge checks inside a rendered same-origin iframe.
+// Each check is a boolean JavaScript expression executed in the iframe's
+// global scope, so `document` refers to the player's rendered page.
+export function runUiChecksInFrame(iframe, checks) {
+  const win = iframe?.contentWindow
+  const results = (checks || []).map((check, index) => {
+    const base = {
+      index: check.index || index + 1,
+      description: check.description || `Check ${index + 1}`,
+      passed: false,
+      detail: '',
+    }
+    if (!win) {
+      return { ...base, detail: 'The preview did not render.' }
+    }
+    try {
+      const evaluate = new win.Function(`return !!(${check.expression})`)
+      const passed = Boolean(evaluate.call(win))
+      return { ...base, passed, detail: passed ? '' : 'The rendered page does not satisfy this requirement yet.' }
+    } catch (error) {
+      return { ...base, detail: `Check failed to run: ${error?.message || error}` }
+    }
+  })
+  return {
+    passed: results.length > 0 && results.every((item) => item.passed),
+    results,
+  }
+}
+
+const SCREENSHOT_MAX_WIDTH = 1100
+
+// Captures the rendered iframe document as a JPEG data URL for the admin
+// audit trail. html2canvas ships with html2pdf.js, already in node_modules.
+export async function captureFrameScreenshot(iframe) {
+  const doc = iframe?.contentDocument
+  if (!doc?.documentElement) {
+    throw new Error('The preview is not rendered, so no screenshot can be captured.')
+  }
+  const { default: html2canvas } = await import('html2canvas')
+  const canvas = await html2canvas(doc.documentElement, {
+    backgroundColor: '#ffffff',
+    logging: false,
+    useCORS: true,
+  })
+  let output = canvas
+  if (canvas.width > SCREENSHOT_MAX_WIDTH) {
+    const scale = SCREENSHOT_MAX_WIDTH / canvas.width
+    output = document.createElement('canvas')
+    output.width = SCREENSHOT_MAX_WIDTH
+    output.height = Math.round(canvas.height * scale)
+    output.getContext('2d').drawImage(canvas, 0, 0, output.width, output.height)
+  }
+  return output.toDataURL('image/jpeg', 0.75)
+}
+
 // Runs the submitted code against every test case in the browser.
 // Returns { results, passed } where each result mirrors the backend shape.
 export async function runCodeAgainstTests({ language, code, testCases, onStatus }) {

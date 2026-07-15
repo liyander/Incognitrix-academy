@@ -5,6 +5,7 @@ import {
   deleteLabProject,
   fetchAdminLabProjects,
   fetchLabProjectCompletions,
+  fetchLabSubmission,
   updateLabProject,
 } from '../../services/labResearch'
 
@@ -39,6 +40,8 @@ function AdminLabResearchPage() {
   const [formData, setFormData] = useState(initialFormState)
   const [completions, setCompletions] = useState(null)
   const [completionsLoading, setCompletionsLoading] = useState(false)
+  const [submissionView, setSubmissionView] = useState(null)
+  const [submissionLoading, setSubmissionLoading] = useState(false)
 
   const loadProjects = async () => {
     try {
@@ -161,12 +164,26 @@ function AdminLabResearchPage() {
     try {
       setCompletionsLoading(true)
       setError('')
+      setSubmissionView(null)
       const data = await fetchLabProjectCompletions(projectId)
       setCompletions(data)
     } catch (err) {
       setError(err.message || 'Failed to load completions')
     } finally {
       setCompletionsLoading(false)
+    }
+  }
+
+  const handleViewSubmission = async (submissionId) => {
+    try {
+      setSubmissionLoading(true)
+      setError('')
+      const data = await fetchLabSubmission(submissionId)
+      setSubmissionView(data)
+    } catch (err) {
+      setError(err.message || 'Failed to load the submission')
+    } finally {
+      setSubmissionLoading(false)
     }
   }
 
@@ -485,7 +502,8 @@ function AdminLabResearchPage() {
                       <th className="py-3 pr-4">Quiz Score</th>
                       <th className="py-3 pr-4">Knowledge Check</th>
                       <th className="py-3 pr-4">Code Lab</th>
-                      <th className="py-3">Code Attempts</th>
+                      <th className="py-3 pr-4">Code Attempts</th>
+                      <th className="py-3">Submission</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -522,13 +540,108 @@ function AdminLabResearchPage() {
                             <span className="text-xs text-on-surface-variant">Disabled</span>
                           )}
                         </td>
-                        <td className="py-3">{player.codeAttempts}</td>
+                        <td className="py-3 pr-4">{player.codeAttempts}</td>
+                        <td className="py-3">
+                          {player.latestSubmission ? (
+                            <button
+                              className="px-3 py-1.5 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold uppercase tracking-widest hover:text-primary transition-colors disabled:opacity-60"
+                              disabled={submissionLoading}
+                              onClick={() => handleViewSubmission(player.latestSubmission.id)}
+                              type="button"
+                            >
+                              View{player.latestSubmission.hasScreenshot ? ' + Screenshot' : ''}
+                            </button>
+                          ) : (
+                            <span className="text-xs text-on-surface-variant">—</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             )}
+
+            {submissionLoading ? (
+              <p className="mt-6 text-sm text-on-surface-variant">Loading submission...</p>
+            ) : submissionView ? (
+              <div className="mt-8 border-t border-outline-variant pt-6">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <h3 className="font-headline text-lg font-bold uppercase tracking-tight">
+                      Submission — {submissionView.username}
+                    </h3>
+                    <p className="text-xs text-on-surface-variant mt-1">
+                      {submissionView.kind === 'ui' ? 'UI Feature Challenge' : `Function Challenge (${submissionView.language})`}
+                      {' · '}{new Date(submissionView.createdAt).toLocaleString()}
+                      {' · '}
+                      <span className={submissionView.passed ? 'text-secondary' : 'text-error'}>
+                        {submissionView.passed ? 'Accepted' : 'Not Accepted'}
+                      </span>
+                    </p>
+                  </div>
+                  <button
+                    className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-error transition-colors"
+                    onClick={() => setSubmissionView(null)}
+                    type="button"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                {submissionView.screenshot ? (
+                  <div className="mb-6">
+                    <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">
+                      Rendered Page Screenshot
+                    </p>
+                    <img
+                      alt={`Rendered page submitted by ${submissionView.username}`}
+                      className="max-w-full border border-outline-variant bg-white"
+                      src={submissionView.screenshot}
+                    />
+                  </div>
+                ) : null}
+
+                {submissionView.feedback ? (
+                  <p className="text-sm mb-4">{submissionView.feedback}</p>
+                ) : null}
+
+                {Array.isArray(submissionView.results) && submissionView.results.length ? (
+                  <div className="space-y-2 mb-6">
+                    {submissionView.results.map((result) => (
+                      <div
+                        className={`p-3 flex items-start gap-2 ${result.passed ? 'bg-secondary/10' : 'bg-error/10'}`}
+                        key={result.index}
+                      >
+                        <span className={`material-symbols-outlined text-base ${result.passed ? 'text-secondary' : 'text-error'}`}>
+                          {result.passed ? 'check_circle' : 'cancel'}
+                        </span>
+                        <div>
+                          <p className="font-headline text-[10px] font-bold uppercase tracking-widest">
+                            Test {result.index}: {result.passed ? 'Passed' : 'Failed'}
+                          </p>
+                          {result.description ? (
+                            <p className="text-xs text-on-surface-variant">{result.description}</p>
+                          ) : null}
+                          {!result.passed && result.detail ? (
+                            <p className="text-xs">{result.detail}</p>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                <details>
+                  <summary className="cursor-pointer font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                    Submitted Code
+                  </summary>
+                  <pre className="mt-3 max-h-96 overflow-auto bg-[#0d1117] text-[#e6edf3] font-mono text-xs leading-6 p-4">
+                    {submissionView.code}
+                  </pre>
+                </details>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </section>

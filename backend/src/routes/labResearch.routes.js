@@ -3,6 +3,7 @@ import OpenAI from 'openai'
 import { pool } from '../db/pool.js'
 import { authenticate, requireAdmin } from '../middleware/auth.js'
 import { getAiRuntimeConfig } from '../services/aiSettings.js'
+import { executeCodeOnServer } from '../services/codeExecutor.js'
 
 const router = Router()
 let schemaReady = false
@@ -136,6 +137,7 @@ async function ensureLabResearchSchema() {
       project_id BIGINT NOT NULL,
       user_id INT NOT NULL,
       scenario LONGTEXT NOT NULL,
+      challenge_kind ENUM('function', 'ui') NOT NULL DEFAULT 'function',
       language VARCHAR(60) NOT NULL DEFAULT 'javascript',
       starter_code LONGTEXT NULL,
       test_cases_json LONGTEXT NOT NULL,
@@ -155,10 +157,25 @@ async function ensureLabResearchSchema() {
       passed TINYINT(1) NOT NULL DEFAULT 0,
       results_json LONGTEXT NULL,
       feedback LONGTEXT NULL,
+      screenshot LONGTEXT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (challenge_id) REFERENCES lab_research_code_challenges(id) ON DELETE CASCADE
     )
   `)
+  // Columns added after the initial release; ignore "duplicate column" errors
+  // when the table already has them.
+  try {
+    await pool.query("ALTER TABLE lab_research_code_challenges ADD COLUMN challenge_kind ENUM('function', 'ui') NOT NULL DEFAULT 'function' AFTER scenario")
+  } catch { /* column exists */ }
+  try {
+    await pool.query('ALTER TABLE lab_research_code_submissions ADD COLUMN screenshot LONGTEXT NULL AFTER feedback')
+  } catch { /* column exists */ }
+  try {
+    await pool.query("ALTER TABLE lab_research_quiz_attempts MODIFY status ENUM('active', 'completed', 'terminated') NOT NULL DEFAULT 'active'")
+  } catch { /* already migrated */ }
+  try {
+    await pool.query('ALTER TABLE lab_research_quiz_attempts ADD COLUMN terminated_reason VARCHAR(60) NULL AFTER completed_at')
+  } catch { /* column exists */ }
   schemaReady = true
 }
 
@@ -240,7 +257,7 @@ function projectContext(project) {
   }
 }
 
-function buildFallbackQuestions(project, count) {
+function buildFallbackQuestions(project, count, priorPrompts = []) {
   const topics = String(project.topics || '')
     .split(/[,;\n•-]/)
     .map((item) => normalizeText(item, 140))
@@ -255,11 +272,13 @@ function buildFallbackQuestions(project, count) {
     (subject) => `If you had to teach a teammate about ${subject} as used in "${project.title}", what are the essential points you would cover?`,
   ]
   const questions = []
+  const seen = new Set(priorPrompts.map((item) => String(item).toLowerCase()))
   let index = 0
-  while (questions.length < count && index < count * 6) {
+  while (questions.length < count && index < count * 12) {
     const subject = subjects[index % subjects.length]
-    const prompt = patterns[index % patterns.length](subject)
-    if (!questions.some((item) => item.prompt === prompt)) {
+    const prompt = patterns[(index + Math.floor(index / patterns.length)) % patterns.length](subject)
+    if (!seen.has(prompt.toLowerCase()) && !questions.some((item) => item.prompt === prompt)) {
+      seen.add(prompt.toLowerCase())
       questions.push({
         prompt,
         idealAnswer: `A correct answer should accurately describe ${subject} using the details documented in the project explanation, connect it to how "${project.title}" was implemented, and show understanding of why it was needed.`,
@@ -271,9 +290,9 @@ function buildFallbackQuestions(project, count) {
   return questions
 }
 
-async function generateQuizQuestions(project, count) {
+async function generateQuizQuestions(project, count, priorPrompts = []) {
   const aiConfig = await getAiRuntimeConfig()
-  if (!aiConfig.apiKey) return buildFallbackQuestions(project, count)
+  if (!aiConfig.apiKey) return buildFallbackQuestions(project, count, priorPrompts)
   try {
     const client = new OpenAI({ baseURL: aiConfig.baseUrl, apiKey: aiConfig.apiKey })
     const response = await client.chat.completions.create({
@@ -286,34 +305,42 @@ async function generateQuizQuestions(project, count) {
         {
           role: 'system',
           content:
-            'You are a strict examiner for a lab research knowledge check. Using ONLY the supplied project documentation, write comprehension questions that verify the learner truly understood the project: its implementation, its technology stack, and the topics one must learn to build a similar project. Return strict JSON only: {"questions":[{"prompt":"string","idealAnswer":"string","rubric":"string"}]}. Every question must be answerable from the supplied content. Mix conceptual, implementation-detail, and "how would you rebuild this" questions. Ideal answers must be grounded in the documentation.',
+            'You are a strict examiner for a lab research knowledge check. Using ONLY the supplied project documentation, write comprehension questions that verify the learner truly understood the project: its implementation, its technology stack, and the topics one must learn to build a similar project. Return strict JSON only: {"questions":[{"prompt":"string","idealAnswer":"string","rubric":"string"}]}. Every question must be answerable from the supplied content. Mix conceptual, implementation-detail, and "how would you rebuild this" questions. NEVER repeat or closely paraphrase any prompt in excludedPrompts — every question must be genuinely new; vary the angle, the sub-topic, and the phrasing. Ideal answers must be grounded in the documentation.',
         },
         {
           role: 'user',
           content: JSON.stringify({
             requestedQuestionCount: count,
             nonce: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            excludedPrompts: priorPrompts.slice(0, 100),
             project: projectContext(project),
           }),
         },
       ],
     })
     const parsed = extractJsonObject(extractMessageText(response?.choices?.[0]?.message))
-    const questions = (Array.isArray(parsed?.questions) ? parsed.questions : [])
-      .map((item) => ({
+    const seen = new Set(priorPrompts.map((item) => String(item).toLowerCase()))
+    const questions = []
+    for (const item of Array.isArray(parsed?.questions) ? parsed.questions : []) {
+      const question = {
         prompt: normalizeText(item?.prompt, 3000),
         idealAnswer: normalizeText(item?.idealAnswer, 6000),
         rubric: normalizeText(item?.rubric, 3000),
-      }))
-      .filter((item) => item.prompt && item.idealAnswer)
-      .slice(0, count)
+      }
+      const key = question.prompt.toLowerCase()
+      if (question.prompt && question.idealAnswer && !seen.has(key)) {
+        seen.add(key)
+        questions.push(question)
+      }
+      if (questions.length === count) break
+    }
     if (questions.length < count) {
-      questions.push(...buildFallbackQuestions(project, count - questions.length))
+      questions.push(...buildFallbackQuestions(project, count - questions.length, [...priorPrompts, ...questions.map((item) => item.prompt)]))
     }
     return questions.slice(0, count)
   } catch (error) {
     console.error('Lab research question generation failed:', error)
-    return buildFallbackQuestions(project, count)
+    return buildFallbackQuestions(project, count, priorPrompts)
   }
 }
 
@@ -407,6 +434,7 @@ async function getQuizAttempt(attemptId, userId) {
     id: attempt.id,
     projectId: attempt.project_id,
     status: attempt.status,
+    terminatedReason: attempt.terminated_reason || null,
     score,
     correctCount,
     totalQuestions: mapped.length,
@@ -415,33 +443,60 @@ async function getQuizAttempt(attemptId, userId) {
   }
 }
 
+const UI_STARTER_CODE = `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    /* Your styles here */
+  </style>
+</head>
+<body>
+  <!-- Build the requested UI here -->
+  <script>
+    // Your interactivity here
+  </script>
+</body>
+</html>
+`
+
 function buildFallbackCodeChallenge(project) {
-  const isWeb = project.project_type === 'web'
-  const scenario = isWeb
-    ? `Scenario based on "${project.title}": build a small utility used by a web application like this project. Write a JavaScript function named solve(input) that receives a JSON string describing user records: an array of {"name": string, "score": number}. Return an object {"count": totalRecords, "top": nameOfHighestScore, "average": averageScoreRoundedTo2Decimals}. Handle an empty array by returning {"count":0,"top":null,"average":0}.`
-    : `Scenario based on "${project.title}": write a function named solve(input) in JavaScript. The input is a string of space-separated integers. Return an object {"sum": sumOfAll, "max": largestValue, "evens": countOfEvenNumbers}. Handle an empty string by returning {"sum":0,"max":null,"evens":0}.`
-  const testCases = isWeb
-    ? [
-      { input: '[{"name":"aro","score":80},{"name":"vel","score":95}]', expectedOutput: '{"count":2,"top":"vel","average":87.5}', description: 'Two records, distinct scores' },
-      { input: '[{"name":"solo","score":42}]', expectedOutput: '{"count":1,"top":"solo","average":42}', description: 'Single record' },
-      { input: '[]', expectedOutput: '{"count":0,"top":null,"average":0}', description: 'Empty dataset edge case' },
-    ]
-    : [
+  if (project.project_type === 'web') {
+    return {
+      kind: 'ui',
+      scenario: `UI scenario based on "${project.title}": build a small status dashboard widget as a single HTML page. Requirements: (1) a heading element with id "dashboard-title" containing the project name, (2) at least three elements with the class "stat-card", each containing a child element with the class "stat-value", (3) a button with id "refresh-btn" that, when clicked, updates an element with id "last-updated" to show a new timestamp. Style it so the cards sit side by side.`,
+      language: 'html',
+      starterCode: UI_STARTER_CODE,
+      testCases: [
+        { description: 'A heading with id "dashboard-title" exists and is not empty', expression: '!!document.querySelector("#dashboard-title") && document.querySelector("#dashboard-title").textContent.trim().length > 0' },
+        { description: 'At least three elements with class "stat-card" exist', expression: 'document.querySelectorAll(".stat-card").length >= 3' },
+        { description: 'Every stat card contains a ".stat-value" child', expression: 'Array.from(document.querySelectorAll(".stat-card")).every(function(card){ return card.querySelector(".stat-value"); })' },
+        { description: 'Clicking #refresh-btn fills #last-updated with text', expression: '(function(){ var btn = document.querySelector("#refresh-btn"); var out = document.querySelector("#last-updated"); if (!btn || !out) return false; btn.click(); return out.textContent.trim().length > 0; })()' },
+      ],
+    }
+  }
+  return {
+    kind: 'function',
+    scenario: `Scenario based on "${project.title}": write a function named solve(input) in JavaScript. The input is a string of space-separated integers. Return an object {"sum": sumOfAll, "max": largestValue, "evens": countOfEvenNumbers}. Handle an empty string by returning {"sum":0,"max":null,"evens":0}.`,
+    language: 'javascript',
+    starterCode: 'function solve(input) {\n  // Write your implementation here\n}\n',
+    testCases: [
       { input: '3 8 5 2', expectedOutput: '{"sum":18,"max":8,"evens":2}', description: 'Mixed integers' },
       { input: '7', expectedOutput: '{"sum":7,"max":7,"evens":0}', description: 'Single value' },
       { input: '', expectedOutput: '{"sum":0,"max":null,"evens":0}', description: 'Empty input edge case' },
-    ]
-  return {
-    scenario,
-    language: 'javascript',
-    starterCode: 'function solve(input) {\n  // Write your implementation here\n}\n',
-    testCases,
+    ],
   }
 }
+
+const FUNCTION_CHALLENGE_PROMPT =
+  'Design one self-contained coding challenge inspired by a documented lab research project. Return strict JSON only: {"scenario":"string","language":"string","starterCode":"string","testCases":[{"input":"string","expectedOutput":"string","description":"string"}]}. Rules: the challenge must be solvable as a single pure function named solve(input) that takes one string input and returns a value whose JSON serialization is compared to expectedOutput; pick the language that matches the project stack (javascript or python); write a realistic scenario tied to the project domain (2-3 paragraphs); provide 3-6 deterministic test cases including at least one edge case; expectedOutput must be exact JSON-serializable text.'
+
+const UI_CHALLENGE_PROMPT =
+  'Design one self-contained front-end UI coding challenge inspired by a documented web project. The player writes a SINGLE standalone HTML file (inline CSS and JavaScript, no external resources) that is rendered in a sandboxed iframe. Return strict JSON only: {"scenario":"string","testCases":[{"description":"string","expression":"string"}]}. Rules: the scenario (2-3 paragraphs) must describe a concrete small UI feature tied to the project domain, listing exact required element ids/classes and behaviors; provide 4-8 test cases where each expression is a single synchronous JavaScript boolean expression evaluated inside the rendered page with full DOM access (document, querySelector, simulated .click() calls are allowed); expressions must be deterministic, self-contained, must not use async/await, timers, network, or alert/confirm/prompt; each expression must verify exactly what its description says; include at least one interaction check that clicks an element and asserts the resulting DOM change.'
 
 async function generateCodeChallenge(project) {
   const aiConfig = await getAiRuntimeConfig()
   if (!aiConfig.apiKey) return buildFallbackCodeChallenge(project)
+  const isUi = project.project_type === 'web'
   try {
     const client = new OpenAI({ baseURL: aiConfig.baseUrl, apiKey: aiConfig.apiKey })
     const response = await client.chat.completions.create({
@@ -451,11 +506,7 @@ async function generateCodeChallenge(project) {
       max_tokens: 3000,
       stream: false,
       messages: [
-        {
-          role: 'system',
-          content:
-            'Design one self-contained coding challenge inspired by a documented lab research project. Return strict JSON only: {"scenario":"string","language":"string","starterCode":"string","testCases":[{"input":"string","expectedOutput":"string","description":"string"}]}. Rules: the challenge must be solvable as a single pure function named solve(input) that takes one string input and returns a value whose JSON serialization is compared to expectedOutput; pick the language that matches the project stack (javascript or python); write a realistic scenario tied to the project domain (2-3 paragraphs); provide 3-6 deterministic test cases including at least one edge case; expectedOutput must be exact JSON-serializable text.',
-        },
+        { role: 'system', content: isUi ? UI_CHALLENGE_PROMPT : FUNCTION_CHALLENGE_PROMPT },
         {
           role: 'user',
           content: JSON.stringify({
@@ -466,6 +517,20 @@ async function generateCodeChallenge(project) {
       ],
     })
     const parsed = extractJsonObject(extractMessageText(response?.choices?.[0]?.message))
+    const scenario = normalizeText(parsed?.scenario, 8000)
+
+    if (isUi) {
+      const testCases = (Array.isArray(parsed?.testCases) ? parsed.testCases : [])
+        .map((item) => ({
+          description: normalizeText(item?.description, 500),
+          expression: normalizeText(item?.expression, 2000),
+        }))
+        .filter((item) => item.description && item.expression)
+        .slice(0, 8)
+      if (!scenario || testCases.length < 3) return buildFallbackCodeChallenge(project)
+      return { kind: 'ui', scenario, language: 'html', starterCode: UI_STARTER_CODE, testCases }
+    }
+
     const testCases = (Array.isArray(parsed?.testCases) ? parsed.testCases : [])
       .map((item) => ({
         input: normalizeText(item?.input, 4000),
@@ -474,12 +539,12 @@ async function generateCodeChallenge(project) {
       }))
       .filter((item) => item.expectedOutput)
       .slice(0, 6)
-    const scenario = normalizeText(parsed?.scenario, 8000)
     if (!scenario || testCases.length < 2) return buildFallbackCodeChallenge(project)
     const language = ['javascript', 'python'].includes(String(parsed?.language || '').toLowerCase())
       ? String(parsed.language).toLowerCase()
       : 'javascript'
     return {
+      kind: 'function',
       scenario,
       language,
       starterCode: normalizeText(parsed?.starterCode, 4000) ||
@@ -593,6 +658,156 @@ function outputsMatch(expectedOutput, actualSerialized) {
   }
 }
 
+// Grades a run produced by the server-side executor (authoritative).
+function gradeServerRun(challenge, execution) {
+  const testCases = parseJson(challenge.test_cases_json, [])
+  if (execution.error) {
+    return {
+      passed: false,
+      results: testCases.map((testCase, index) => ({
+        index: index + 1,
+        description: testCase.description || `Test case ${index + 1}`,
+        input: testCase.input,
+        expectedOutput: testCase.expectedOutput,
+        actualOutput: '',
+        passed: false,
+        detail: execution.error,
+      })),
+      feedback: execution.error,
+    }
+  }
+  const results = testCases.map((testCase, index) => {
+    const run = execution.runs[index]
+    if (!run?.ok) {
+      return {
+        index: index + 1,
+        description: testCase.description || `Test case ${index + 1}`,
+        input: testCase.input,
+        expectedOutput: testCase.expectedOutput,
+        actualOutput: '',
+        passed: false,
+        detail: `Runtime error: ${normalizeText(run?.message, 1000) || 'unknown error'}`,
+      }
+    }
+    const actualOutput = normalizeText(run.output, 4000)
+    const passed = outputsMatch(testCase.expectedOutput, actualOutput)
+    return {
+      index: index + 1,
+      description: testCase.description || `Test case ${index + 1}`,
+      input: testCase.input,
+      expectedOutput: testCase.expectedOutput,
+      actualOutput,
+      passed,
+      detail: passed ? '' : 'Output does not match the expected output.',
+    }
+  })
+  const passed = results.length > 0 && results.every((item) => item.passed)
+  return {
+    passed,
+    results,
+    feedback: passed
+      ? 'Verified on the server: all test cases passed. Solution accepted.'
+      : `Verified on the server: ${results.filter((item) => !item.passed).length} of ${results.length} test cases failed.`,
+  }
+}
+
+// Grades a UI submission. The DOM checks ran in the player's browser, so the
+// reported outcomes are cross-verified here by an AI review of the submitted
+// HTML against each check; the rendered-page screenshot is stored for the
+// admin as the human-audit trail.
+async function gradeUiSubmission(challenge, code, browserResults) {
+  const testCases = parseJson(challenge.test_cases_json, [])
+  const reported = Array.isArray(browserResults) ? browserResults : []
+  const clientResults = testCases.map((testCase, index) => {
+    const run = reported.find((item) => Number(item?.index) === index + 1) || reported[index]
+    return {
+      index: index + 1,
+      description: testCase.description || `Check ${index + 1}`,
+      expression: testCase.expression,
+      passed: Boolean(run?.passed),
+      detail: normalizeText(run?.detail, 1000),
+    }
+  })
+  const clientPassed = clientResults.length > 0 && clientResults.every((item) => item.passed)
+  if (!clientPassed) {
+    return {
+      passed: false,
+      results: clientResults,
+      feedback: `${clientResults.filter((item) => !item.passed).length} of ${clientResults.length} UI checks failed in the rendered page.`,
+    }
+  }
+
+  const aiConfig = await getAiRuntimeConfig()
+  if (!aiConfig.apiKey) {
+    return {
+      passed: true,
+      results: clientResults,
+      feedback: 'All UI checks passed in the rendered page. The screenshot is attached for admin review.',
+    }
+  }
+  try {
+    const client = new OpenAI({ baseURL: aiConfig.baseUrl, apiKey: aiConfig.apiKey })
+    const response = await client.chat.completions.create({
+      model: aiConfig.model,
+      temperature: 0,
+      top_p: aiConfig.topP,
+      max_tokens: 1500,
+      stream: false,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You audit a front-end submission. Given a standalone HTML file and a list of DOM checks (JavaScript boolean expressions with descriptions), decide for each check whether the HTML, when rendered, would genuinely satisfy it. Flag code that games the checks without implementing the described feature (e.g. hidden elements that only satisfy selectors, overriding querySelector, stubbing click handlers to just set text). Return strict JSON only: {"checks":[{"index":1,"satisfied":true|false,"reason":"string"}],"verdict":"pass|fail","feedback":"string"}.',
+        },
+        {
+          role: 'user',
+          content: JSON.stringify({
+            scenario: challenge.scenario,
+            checks: testCases.map((testCase, index) => ({
+              index: index + 1,
+              description: testCase.description,
+              expression: testCase.expression,
+            })),
+            submittedHtml: normalizeText(code, 40000),
+          }),
+        },
+      ],
+    })
+    const parsed = extractJsonObject(extractMessageText(response?.choices?.[0]?.message))
+    if (!parsed || !Array.isArray(parsed.checks)) {
+      return {
+        passed: true,
+        results: clientResults,
+        feedback: 'All UI checks passed in the rendered page. The screenshot is attached for admin review.',
+      }
+    }
+    const results = clientResults.map((item) => {
+      const audit = parsed.checks.find((check) => Number(check?.index) === item.index)
+      const satisfied = audit ? Boolean(audit.satisfied) : true
+      return {
+        ...item,
+        passed: item.passed && satisfied,
+        detail: satisfied ? item.detail : normalizeText(audit?.reason, 1000) || 'The AI audit found this check is not genuinely implemented.',
+      }
+    })
+    const passed = results.every((item) => item.passed) && parsed.verdict !== 'fail'
+    return {
+      passed,
+      results,
+      feedback: passed
+        ? normalizeText(parsed.feedback, 2000) || 'All UI checks passed and the AI audit confirmed the implementation. Screenshot attached for admin review.'
+        : normalizeText(parsed.feedback, 2000) || 'The AI audit rejected the submission: the checks are not genuinely implemented.',
+    }
+  } catch (error) {
+    console.error('Lab research UI audit failed:', error)
+    return {
+      passed: true,
+      results: clientResults,
+      feedback: 'All UI checks passed in the rendered page. The screenshot is attached for admin review.',
+    }
+  }
+}
+
 // Grades a submission executed in the player's browser. The client reports the
 // actual output per test; pass/fail is recomputed here against the stored
 // expected outputs rather than trusting the client's own verdicts.
@@ -626,9 +841,11 @@ function gradeBrowserRun(challenge, browserResults) {
 }
 
 function mapChallenge(challenge, { includeTests = true } = {}) {
+  const kind = challenge.challenge_kind === 'ui' ? 'ui' : 'function'
   return {
     id: challenge.id,
     projectId: challenge.project_id,
+    kind,
     scenario: challenge.scenario,
     language: challenge.language,
     starterCode: challenge.starter_code || '',
@@ -639,6 +856,7 @@ function mapChallenge(challenge, { includeTests = true } = {}) {
         index: index + 1,
         input: testCase.input,
         expectedOutput: testCase.expectedOutput,
+        expression: kind === 'ui' ? testCase.expression : undefined,
         description: testCase.description || `Test case ${index + 1}`,
       }))
       : [],
@@ -771,6 +989,26 @@ router.get('/admin/projects/:id/completions', requireAdmin, async (req, res, nex
        ORDER BY pr.quiz_completed_at IS NULL, pr.quiz_completed_at DESC, pr.updated_at DESC`,
       [req.params.id],
     )
+    const [submissionRows] = await pool.query(
+      `SELECT s.id, s.passed, s.created_at, s.screenshot IS NOT NULL AS has_screenshot, c.user_id, c.challenge_kind
+       FROM lab_research_code_submissions s
+       JOIN lab_research_code_challenges c ON c.id = s.challenge_id
+       WHERE c.project_id = ?
+       ORDER BY s.created_at DESC`,
+      [req.params.id],
+    )
+    const latestSubmissionByUser = new Map()
+    for (const row of submissionRows) {
+      if (!latestSubmissionByUser.has(row.user_id)) {
+        latestSubmissionByUser.set(row.user_id, {
+          id: row.id,
+          passed: Boolean(row.passed),
+          kind: row.challenge_kind === 'ui' ? 'ui' : 'function',
+          hasScreenshot: Boolean(row.has_screenshot),
+          createdAt: row.created_at,
+        })
+      }
+    }
     return res.json({
       project: mapProject(project),
       players: rows.map((row) => ({
@@ -783,7 +1021,40 @@ router.get('/admin/projects/:id/completions', requireAdmin, async (req, res, nex
         codeAttempts: Number(row.code_attempts || 0),
         codeAccepted: Boolean(row.code_accepted_at),
         codeAcceptedAt: row.code_accepted_at,
+        latestSubmission: latestSubmissionByUser.get(row.user_id) || null,
       })),
+    })
+  } catch (error) {
+    return next(error)
+  }
+})
+
+router.get('/admin/submissions/:submissionId', requireAdmin, async (req, res, next) => {
+  try {
+    await ensureLabResearchSchema()
+    const [[row]] = await pool.query(
+      `SELECT s.*, c.scenario, c.challenge_kind, c.language, c.project_id, u.username, u.email
+       FROM lab_research_code_submissions s
+       JOIN lab_research_code_challenges c ON c.id = s.challenge_id
+       JOIN users u ON u.id = c.user_id
+       WHERE s.id = ? LIMIT 1`,
+      [req.params.submissionId],
+    )
+    if (!row) return res.status(404).json({ message: 'Submission not found.' })
+    return res.json({
+      id: row.id,
+      projectId: row.project_id,
+      username: row.username,
+      email: row.email,
+      kind: row.challenge_kind === 'ui' ? 'ui' : 'function',
+      language: row.language,
+      scenario: row.scenario,
+      code: row.code,
+      passed: Boolean(row.passed),
+      results: parseJson(row.results_json, []),
+      feedback: row.feedback,
+      screenshot: row.screenshot || null,
+      createdAt: row.created_at,
     })
   } catch (error) {
     return next(error)
@@ -855,21 +1126,25 @@ router.post('/projects/:id/quiz', async (req, res, next) => {
     const project = await getActiveProject(req.params.id)
     if (!project) return res.status(404).json({ message: 'Research project not found.' })
 
-    const [[existing]] = await pool.query(
-      `SELECT id FROM lab_research_quiz_attempts
-       WHERE project_id = ? AND user_id = ? AND status = 'active'
-       ORDER BY created_at DESC LIMIT 1`,
+    // Terminate any dangling active attempt (e.g. after a refresh or crash)
+    // so it can never be resumed outside the proctored session; its questions
+    // still count as "seen" so the new attempt gets fresh ones.
+    await pool.query(
+      `UPDATE lab_research_quiz_attempts
+       SET status = 'terminated', terminated_reason = 'abandoned', completed_at = NOW()
+       WHERE project_id = ? AND user_id = ? AND status = 'active'`,
       [project.id, req.user.id],
     )
-    if (existing && !req.body?.restart) {
-      const attempt = await getQuizAttempt(existing.id, req.user.id)
-      return res.json(attempt)
-    }
-    if (existing) {
-      await pool.query('DELETE FROM lab_research_quiz_attempts WHERE id = ?', [existing.id])
-    }
 
-    const questions = await generateQuizQuestions(project, Number(project.question_count || 5))
+    const [priorRows] = await pool.query(
+      `SELECT q.prompt FROM lab_research_quiz_questions q
+       JOIN lab_research_quiz_attempts a ON a.id = q.attempt_id
+       WHERE a.project_id = ? AND a.user_id = ?
+       ORDER BY q.created_at DESC LIMIT 100`,
+      [project.id, req.user.id],
+    )
+    const priorPrompts = priorRows.map((row) => row.prompt)
+    const questions = await generateQuizQuestions(project, Number(project.question_count || 5), priorPrompts)
     const [result] = await pool.query(
       'INSERT INTO lab_research_quiz_attempts (project_id, user_id) VALUES (?, ?)',
       [project.id, req.user.id],
@@ -900,6 +1175,43 @@ router.get('/quiz/:attemptId', async (req, res, next) => {
   }
 })
 
+// Auto-submits (terminates) an active attempt when the proctored session is
+// broken: tab switch, fullscreen exit, or page unload. The current score is
+// kept, but the attempt can no longer be continued.
+router.post('/quiz/:attemptId/terminate', async (req, res, next) => {
+  try {
+    await ensureLabResearchSchema()
+    const allowedReasons = ['tab-switch', 'fullscreen-exit', 'abandoned']
+    const reason = allowedReasons.includes(req.body?.reason) ? req.body.reason : 'abandoned'
+    const [[attempt]] = await pool.query(
+      'SELECT * FROM lab_research_quiz_attempts WHERE id = ? AND user_id = ? LIMIT 1',
+      [req.params.attemptId, req.user.id],
+    )
+    if (!attempt) return res.status(404).json({ message: 'Quiz attempt not found.' })
+    if (attempt.status !== 'active') {
+      const current = await getQuizAttempt(attempt.id, req.user.id)
+      return res.json(current)
+    }
+    const [[counts]] = await pool.query(
+      `SELECT COUNT(*) AS total, SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) AS correct
+       FROM lab_research_quiz_questions WHERE attempt_id = ?`,
+      [attempt.id],
+    )
+    const total = Number(counts.total || 0)
+    const correct = Number(counts.correct || 0)
+    const score = total ? Math.round((correct / total) * 100) : 0
+    await pool.query(
+      "UPDATE lab_research_quiz_attempts SET status = 'terminated', terminated_reason = ?, score = ?, completed_at = NOW() WHERE id = ?",
+      [reason, score, attempt.id],
+    )
+    await upsertProgress(attempt.project_id, req.user.id, score === 100 ? { quizScore: 100, quizCompleted: true } : { quizScore: score })
+    const updated = await getQuizAttempt(attempt.id, req.user.id)
+    return res.json(updated)
+  } catch (error) {
+    return next(error)
+  }
+})
+
 router.post('/quiz/:attemptId/questions/:questionId/answer', async (req, res, next) => {
   try {
     await ensureLabResearchSchema()
@@ -912,8 +1224,12 @@ router.post('/quiz/:attemptId/questions/:questionId/answer', async (req, res, ne
       [req.params.attemptId, req.user.id],
     )
     if (!attempt) return res.status(404).json({ message: 'Quiz attempt not found.' })
-    if (attempt.status === 'completed') {
-      return res.status(409).json({ message: 'This knowledge check is already completed.' })
+    if (attempt.status !== 'active') {
+      return res.status(409).json({
+        message: attempt.status === 'terminated'
+          ? 'This assessment was auto-submitted because the proctored session was broken. Start a new attempt.'
+          : 'This knowledge check is already completed.',
+      })
     }
     const [[question]] = await pool.query(
       'SELECT * FROM lab_research_quiz_questions WHERE id = ? AND attempt_id = ? LIMIT 1',
@@ -989,9 +1305,9 @@ router.post('/projects/:id/code', async (req, res, next) => {
 
     const generated = await generateCodeChallenge(project)
     const [result] = await pool.query(
-      `INSERT INTO lab_research_code_challenges (project_id, user_id, scenario, language, starter_code, test_cases_json)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [project.id, req.user.id, generated.scenario, generated.language, generated.starterCode, JSON.stringify(generated.testCases)],
+      `INSERT INTO lab_research_code_challenges (project_id, user_id, scenario, challenge_kind, language, starter_code, test_cases_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [project.id, req.user.id, generated.scenario, generated.kind || 'function', generated.language, generated.starterCode, JSON.stringify(generated.testCases)],
     )
     await upsertProgress(project.id, req.user.id, {})
     const [[challenge]] = await pool.query('SELECT * FROM lab_research_code_challenges WHERE id = ?', [result.insertId])
@@ -1024,13 +1340,33 @@ router.post('/code/:challengeId/submit', async (req, res, next) => {
       return res.status(403).json({ message: 'The code lab is disabled for this project.' })
     }
 
-    const evaluation = Array.isArray(req.body?.browserResults)
-      ? gradeBrowserRun(challenge, req.body.browserResults)
-      : await evaluateCodeSubmission(project, challenge, code)
+    const kind = challenge.challenge_kind === 'ui' ? 'ui' : 'function'
+    const screenshot = typeof req.body?.screenshot === 'string' && req.body.screenshot.startsWith('data:image/')
+      ? req.body.screenshot.slice(0, 4 * 1024 * 1024)
+      : null
+
+    let evaluation
+    if (kind === 'ui') {
+      evaluation = await gradeUiSubmission(challenge, code, req.body?.browserResults)
+    } else {
+      // Cheat-proof path: re-run the code on the server; only fall back to the
+      // AI judge (then to re-graded browser results) when execution is not
+      // possible on this host.
+      const testCases = parseJson(challenge.test_cases_json, [])
+      const execution = await executeCodeOnServer(challenge.language, code, testCases.map((testCase) => ({ input: testCase.input })))
+      if (execution.supported) {
+        evaluation = gradeServerRun(challenge, execution)
+      } else if (Array.isArray(req.body?.browserResults)) {
+        evaluation = gradeBrowserRun(challenge, req.body.browserResults)
+      } else {
+        evaluation = await evaluateCodeSubmission(project, challenge, code)
+      }
+    }
+
     await pool.query(
-      `INSERT INTO lab_research_code_submissions (challenge_id, code, passed, results_json, feedback)
-       VALUES (?, ?, ?, ?, ?)`,
-      [challenge.id, code, evaluation.passed ? 1 : 0, JSON.stringify(evaluation.results), evaluation.feedback],
+      `INSERT INTO lab_research_code_submissions (challenge_id, code, passed, results_json, feedback, screenshot)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [challenge.id, code, evaluation.passed ? 1 : 0, JSON.stringify(evaluation.results), evaluation.feedback, screenshot],
     )
     await upsertProgress(challenge.project_id, req.user.id, {
       incrementCodeAttempts: true,

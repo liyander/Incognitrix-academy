@@ -49,6 +49,13 @@ export function fetchLabQuizAttempt(attemptId) {
   return apiFetch(`/lab-research/quiz/${attemptId}`)
 }
 
+export function terminateLabQuiz(attemptId, reason) {
+  return apiFetch(`/lab-research/quiz/${attemptId}/terminate`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  })
+}
+
 export function answerLabQuizQuestion(attemptId, questionId, answer) {
   return apiFetch(`/lab-research/quiz/${attemptId}/questions/${questionId}/answer`, {
     method: 'POST',
@@ -63,9 +70,16 @@ export function fetchLabCodeChallenge(projectId, { regenerate = false } = {}) {
   })
 }
 
-export function submitLabCode(challengeId, code, browserResults = null) {
+export function submitLabCode(challengeId, code, browserResults = null, screenshot = null) {
+  const payload = { code }
+  if (browserResults) payload.browserResults = browserResults
+  if (screenshot) payload.screenshot = screenshot
   return apiFetch(`/lab-research/code/${challengeId}/submit`, {
     method: 'POST',
-    body: JSON.stringify(browserResults ? { code, browserResults } : { code }),
+    body: JSON.stringify(payload),
   })
+}
+
+export function fetchLabSubmission(submissionId) {
+  return apiFetch(`/lab-research/admin/submissions/${submissionId}`)
 }
