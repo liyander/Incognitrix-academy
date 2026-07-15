@@ -565,6 +565,66 @@ async function evaluateCodeSubmission(project, challenge, code) {
   }
 }
 
+function deepEqual(a, b) {
+  if (a === b) return true
+  if (typeof a !== typeof b) return false
+  if (typeof a === 'number') return Number.isNaN(a) && Number.isNaN(b)
+  if (a === null || b === null || typeof a !== 'object') return false
+  if (Array.isArray(a) !== Array.isArray(b)) return false
+  const keysA = Object.keys(a)
+  const keysB = Object.keys(b)
+  if (keysA.length !== keysB.length) return false
+  return keysA.every((key) => deepEqual(a[key], b[key]))
+}
+
+function outputsMatch(expectedOutput, actualSerialized) {
+  const expectedText = String(expectedOutput ?? '').trim()
+  const actualText = String(actualSerialized ?? '').trim()
+  if (expectedText === actualText) return true
+  try {
+    return deepEqual(JSON.parse(expectedText), JSON.parse(actualText))
+  } catch {
+    try {
+      const parsedActual = JSON.parse(actualText)
+      return typeof parsedActual === 'string' && parsedActual.trim() === expectedText
+    } catch {
+      return false
+    }
+  }
+}
+
+// Grades a submission executed in the player's browser. The client reports the
+// actual output per test; pass/fail is recomputed here against the stored
+// expected outputs rather than trusting the client's own verdicts.
+function gradeBrowserRun(challenge, browserResults) {
+  const testCases = parseJson(challenge.test_cases_json, [])
+  const reported = Array.isArray(browserResults) ? browserResults : []
+  const results = testCases.map((testCase, index) => {
+    const run = reported.find((item) => Number(item?.index) === index + 1) || reported[index]
+    const actualOutput = normalizeText(run?.actualOutput, 4000)
+    const detail = normalizeText(run?.detail, 1000)
+    const errored = !run || (!actualOutput && detail)
+    const passed = !errored && outputsMatch(testCase.expectedOutput, actualOutput)
+    return {
+      index: index + 1,
+      description: testCase.description || `Test case ${index + 1}`,
+      input: testCase.input,
+      expectedOutput: testCase.expectedOutput,
+      actualOutput,
+      passed,
+      detail: passed ? '' : detail || 'Output does not match the expected output.',
+    }
+  })
+  const passed = results.length > 0 && results.every((item) => item.passed)
+  return {
+    passed,
+    results,
+    feedback: passed
+      ? 'All test cases passed in the browser runner. Solution accepted.'
+      : `${results.filter((item) => !item.passed).length} of ${results.length} test cases failed. Review the failing outputs and try again.`,
+  }
+}
+
 function mapChallenge(challenge, { includeTests = true } = {}) {
   return {
     id: challenge.id,
@@ -964,7 +1024,9 @@ router.post('/code/:challengeId/submit', async (req, res, next) => {
       return res.status(403).json({ message: 'The code lab is disabled for this project.' })
     }
 
-    const evaluation = await evaluateCodeSubmission(project, challenge, code)
+    const evaluation = Array.isArray(req.body?.browserResults)
+      ? gradeBrowserRun(challenge, req.body.browserResults)
+      : await evaluateCodeSubmission(project, challenge, code)
     await pool.query(
       `INSERT INTO lab_research_code_submissions (challenge_id, code, passed, results_json, feedback)
        VALUES (?, ?, ?, ?, ?)`,

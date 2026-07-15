@@ -63,9 +63,9 @@ export function fetchLabCodeChallenge(projectId, { regenerate = false } = {}) {
   })
 }
 
-export function submitLabCode(challengeId, code) {
+export function submitLabCode(challengeId, code, browserResults = null) {
   return apiFetch(`/lab-research/code/${challengeId}/submit`, {
     method: 'POST',
-    body: JSON.stringify({ code }),
+    body: JSON.stringify(browserResults ? { code, browserResults } : { code }),
   })
 }

@@ -8,6 +8,7 @@ import {
   startLabQuiz,
   submitLabCode,
 } from '../services/labResearch'
+import { isRunnableInBrowser, runCodeAgainstTests } from '../utils/codeRunner'
 
 const TABS = {
   research: 'research',
@@ -52,6 +53,9 @@ function LabResearchProjectPage() {
   const [code, setCode] = useState('')
   const [submittingCode, setSubmittingCode] = useState(false)
   const [submission, setSubmission] = useState(null)
+  const [runningTests, setRunningTests] = useState(false)
+  const [runStatus, setRunStatus] = useState('')
+  const [localRun, setLocalRun] = useState(null)
   const codeInitializedRef = useRef(false)
 
   const loadProject = async () => {
@@ -129,6 +133,7 @@ function LabResearchProjectPage() {
       setCodeLoading(true)
       setCodeError('')
       setSubmission(null)
+      setLocalRun(null)
       const data = await fetchLabCodeChallenge(projectId, { regenerate })
       setChallenge(data)
       if (regenerate || !codeInitializedRef.current) {
@@ -142,6 +147,33 @@ function LabResearchProjectPage() {
     }
   }
 
+  const handleRunTests = async () => {
+    if (code.trim().length < 10) {
+      setCodeError('Write your solution before running the tests.')
+      return null
+    }
+    try {
+      setRunningTests(true)
+      setCodeError('')
+      setRunStatus('Running tests in your browser...')
+      const run = await runCodeAgainstTests({
+        language: challenge.language,
+        code,
+        testCases: challenge.testCases,
+        onStatus: setRunStatus,
+      })
+      setLocalRun(run)
+      setSubmission(null)
+      return run
+    } catch (err) {
+      setCodeError(err.message || 'Failed to run the tests')
+      return null
+    } finally {
+      setRunningTests(false)
+      setRunStatus('')
+    }
+  }
+
   const handleCodeSubmit = async () => {
     if (code.trim().length < 10) {
       setCodeError('Write your solution before submitting.')
@@ -150,8 +182,26 @@ function LabResearchProjectPage() {
     try {
       setSubmittingCode(true)
       setCodeError('')
-      const result = await submitLabCode(challenge.id, code)
+      let browserResults = null
+      if (isRunnableInBrowser(challenge.language)) {
+        setRunStatus('Running tests in your browser...')
+        const run = await runCodeAgainstTests({
+          language: challenge.language,
+          code,
+          testCases: challenge.testCases,
+          onStatus: setRunStatus,
+        })
+        setLocalRun(run)
+        browserResults = run.results
+        if (!run.passed) {
+          setSubmission(null)
+          setCodeError('Some test cases failed in the browser runner. Fix your solution and submit again.')
+          return
+        }
+      }
+      const result = await submitLabCode(challenge.id, code, browserResults)
       setSubmission(result)
+      setLocalRun(null)
       if (result.accepted) {
         setChallenge((current) => (current ? { ...current, status: 'accepted' } : current))
         void loadProject()
@@ -160,6 +210,7 @@ function LabResearchProjectPage() {
       setCodeError(err.message || 'Failed to submit the code')
     } finally {
       setSubmittingCode(false)
+      setRunStatus('')
     }
   }
 
@@ -536,30 +587,55 @@ function LabResearchProjectPage() {
                 />
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-4">
                   <p className="text-xs text-on-surface-variant">
-                    Implement solve(input) exactly as the scenario describes. The AI judge runs your code against every test case.
+                    Implement solve(input) exactly as the scenario describes. Your code compiles and runs directly in the browser against every test case.
                   </p>
-                  <button
-                    className="bg-primary text-on-primary px-8 py-3 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors disabled:opacity-60"
-                    disabled={submittingCode || challenge.status === 'accepted'}
-                    onClick={handleCodeSubmit}
-                    type="button"
-                  >
-                    {submittingCode ? 'AI Judging...' : challenge.status === 'accepted' ? 'Accepted' : 'Submit Solution'}
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                    {isRunnableInBrowser(challenge.language) ? (
+                      <button
+                        className="bg-surface-container-high text-on-surface px-6 py-3 font-headline text-xs font-bold uppercase tracking-widest hover:text-secondary transition-colors disabled:opacity-60"
+                        disabled={runningTests || submittingCode || challenge.status === 'accepted'}
+                        onClick={handleRunTests}
+                        type="button"
+                      >
+                        {runningTests ? 'Running...' : 'Run Tests'}
+                      </button>
+                    ) : null}
+                    <button
+                      className="bg-primary text-on-primary px-8 py-3 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors disabled:opacity-60"
+                      disabled={submittingCode || runningTests || challenge.status === 'accepted'}
+                      onClick={handleCodeSubmit}
+                      type="button"
+                    >
+                      {submittingCode ? 'Verifying...' : challenge.status === 'accepted' ? 'Accepted' : 'Submit Solution'}
+                    </button>
+                  </div>
                 </div>
+                {runStatus ? (
+                  <p className="mt-3 font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
+                    {runStatus}
+                  </p>
+                ) : null}
               </section>
 
-              {submission ? (
-                <section className={`bg-surface-container-lowest border-l-4 p-8 ${submission.accepted ? 'border-secondary' : 'border-error'}`}>
-                  <h2 className={`font-headline text-xl font-bold uppercase tracking-tight mb-4 flex items-center gap-2 ${submission.accepted ? 'text-secondary' : 'text-error'}`}>
-                    <span className="material-symbols-outlined">{submission.accepted ? 'verified' : 'report'}</span>
-                    {submission.accepted ? 'Accepted — All Test Cases Passed' : 'Not Accepted'}
+              {submission || localRun ? (
+                <section className={`bg-surface-container-lowest border-l-4 p-8 ${(submission ? submission.accepted : localRun.passed) ? 'border-secondary' : 'border-error'}`}>
+                  <h2 className={`font-headline text-xl font-bold uppercase tracking-tight mb-4 flex items-center gap-2 ${(submission ? submission.accepted : localRun.passed) ? 'text-secondary' : 'text-error'}`}>
+                    <span className="material-symbols-outlined">
+                      {(submission ? submission.accepted : localRun.passed) ? 'verified' : 'report'}
+                    </span>
+                    {submission
+                      ? submission.accepted
+                        ? 'Accepted — All Test Cases Passed'
+                        : 'Not Accepted'
+                      : localRun.passed
+                        ? 'Local Run — All Test Cases Passed (submit to record it)'
+                        : 'Local Run — Some Test Cases Failed'}
                   </h2>
-                  {submission.feedback ? (
+                  {submission?.feedback ? (
                     <p className="text-sm mb-4">{submission.feedback}</p>
                   ) : null}
                   <div className="space-y-2">
-                    {(submission.results || []).map((result) => (
+                    {((submission ? submission.results : localRun.results) || []).map((result) => (
                       <div
                         className={`p-4 flex flex-col gap-1 ${result.passed ? 'bg-secondary/10' : 'bg-error/10'}`}
                         key={result.index}
