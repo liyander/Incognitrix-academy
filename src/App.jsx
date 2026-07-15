@@ -250,7 +250,7 @@ function App() {
         <div className="text-center space-y-4">
           <div className="mx-auto h-10 w-10 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
           <p className="font-headline text-xs uppercase tracking-[0.3em] text-primary font-bold">
-            Syncing platform state
+            this is a test
           </p>
         </div>
       </main>
