@@ -18,6 +18,7 @@ import developerRoutes from './routes/developer.routes.js'
 import jobsRoutes from './routes/jobs.routes.js'
 import resumesRoutes from './routes/resumes.routes.js'
 import interviewsRoutes from './routes/interviews.routes.js'
+import labResearchRoutes from './routes/labResearch.routes.js'
 import publicApiRoutes from './api/publicApi.routes.js'
 
 const app = express()
@@ -62,6 +63,7 @@ app.use('/api/developer', developerRoutes)
 app.use('/api/jobs', jobsRoutes)
 app.use('/api/resumes', resumesRoutes)
 app.use('/api/interviews', interviewsRoutes)
+app.use('/api/lab-research', labResearchRoutes)
 app.use('/api/public', publicApiRoutes)
 
 app.use((err, _req, res, _next) => {

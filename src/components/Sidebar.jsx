@@ -135,6 +135,10 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
             <span className="material-symbols-outlined">record_voice_over</span>
             <span className="nav-label">Interview Point</span>
           </NavLink>
+          <NavLink className={navLinkClass} onClick={onClose} to="/lab-research">
+            <span className="material-symbols-outlined">biotech</span>
+            <span className="nav-label">Lab Research</span>
+          </NavLink>
           <NavLink className={navLinkClass} onClick={onClose} to="/roadmap">
             <span className="material-symbols-outlined">route</span>
             <span className="nav-label">Roadmap</span>
@@ -340,6 +344,18 @@ function Sidebar({ config, isSidebarOpen, onClose }) {
           <span className="material-symbols-outlined">record_voice_over</span>
           <span className="font-headline text-[8px] font-bold uppercase tracking-widest">
             Interview
+          </span>
+        </NavLink>
+        <NavLink
+          className={({ isActive }) =>
+            `min-w-16 flex flex-col items-center gap-1 ${isActive ? 'text-primary' : 'text-on-surface-variant'}`
+          }
+          onClick={onClose}
+          to="/lab-research"
+        >
+          <span className="material-symbols-outlined">biotech</span>
+          <span className="font-headline text-[8px] font-bold uppercase tracking-widest">
+            Research
           </span>
         </NavLink>
         <NavLink

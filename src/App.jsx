@@ -27,6 +27,7 @@ import AdminAiControlPage from './pages/admin/AdminAiControlPage'
 import AdminInterviewQuestionsPage from './pages/admin/AdminInterviewQuestionsPage'
 import AdminJobRecommendationsPage from './pages/admin/AdminJobRecommendationsPage'
 import AdminTopPlayerResumesPage from './pages/admin/AdminTopPlayerResumesPage'
+import AdminLabResearchPage from './pages/admin/AdminLabResearchPage'
 import DeveloperDashboardPage from './pages/developer/DeveloperDashboardPage'
 import DashboardPage from './pages/DashboardPage'
 import JobUpdatesPage from './pages/JobUpdatesPage'
@@ -48,6 +49,8 @@ import SettingsPage from './pages/SettingsPage'
 import RegistrationPage from './pages/RegistrationPage'
 import RedTeamOperatorPage from './pages/RedTeamOperatorPage'
 import UpcomingCtfPage from './pages/UpcomingCtfPage'
+import LabResearchPage from './pages/LabResearchPage'
+import LabResearchProjectPage from './pages/LabResearchProjectPage'
 import { getSavedTheme, toggleTheme as toggleThemeSetting } from './services/theme'
 
 function ControlledOutageScreen() {
@@ -338,6 +341,7 @@ function App() {
           <Route path="/admin/interview-questions" element={<AdminInterviewQuestionsPage />} />
           <Route path="/admin/jobs" element={<AdminJobRecommendationsPage />} />
           <Route path="/admin/top-resumes" element={<AdminTopPlayerResumesPage />} />
+          <Route path="/admin/lab-research" element={<AdminLabResearchPage />} />
           <Route path="/developer" element={<DeveloperDashboardPage />} />
           <Route path="*" element={<NotFoundPage variant="admin" />} />
         </Routes>
@@ -498,6 +502,14 @@ function App() {
           <Route
             path="/interview-point"
             element={<InterviewPointPage />}
+          />
+          <Route
+            path="/lab-research"
+            element={<LabResearchPage />}
+          />
+          <Route
+            path="/lab-research/:projectId"
+            element={<LabResearchProjectPage />}
           />
           <Route
             path="/roadmap"
