@@ -238,7 +238,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
           </NavLink>
           <a
             className="text-on-surface-variant hover:text-on-surface transition-colors duration-200"
-            href="http://110.172.151.108:8000"
+            href="http://110.172.151.108"
           >
             CTF Arena
           </a>
