@@ -257,28 +257,108 @@ export function runUiChecksInFrame(iframe, checks) {
 
 const SCREENSHOT_MAX_WIDTH = 1100
 
-// Captures the rendered iframe document as a JPEG data URL for the admin
-// audit trail. html2canvas ships with html2pdf.js, already in node_modules.
-export async function captureFrameScreenshot(iframe) {
-  const doc = iframe?.contentDocument
-  if (!doc?.documentElement) {
-    throw new Error('The preview is not rendered, so no screenshot can be captured.')
-  }
-  const { default: html2canvas } = await import('html2canvas')
-  const canvas = await html2canvas(doc.documentElement, {
-    backgroundColor: '#ffffff',
-    logging: false,
-    useCORS: true,
-  })
+function scaleCanvasToJpeg(canvas) {
   let output = canvas
   if (canvas.width > SCREENSHOT_MAX_WIDTH) {
     const scale = SCREENSHOT_MAX_WIDTH / canvas.width
     output = document.createElement('canvas')
     output.width = SCREENSHOT_MAX_WIDTH
-    output.height = Math.round(canvas.height * scale)
+    output.height = Math.max(1, Math.round(canvas.height * scale))
     output.getContext('2d').drawImage(canvas, 0, 0, output.width, output.height)
   }
   return output.toDataURL('image/jpeg', 0.75)
+}
+
+// A capture that came back with no pixels (or an all-transparent canvas)
+// means the renderer silently failed — treat it as a failure so the
+// fallback strategy runs instead of storing a blank image.
+function isUsableCanvas(canvas) {
+  if (!canvas || canvas.width < 8 || canvas.height < 8) return false
+  try {
+    const probe = canvas.getContext('2d').getImageData(0, 0, Math.min(canvas.width, 50), Math.min(canvas.height, 50)).data
+    for (let i = 3; i < probe.length; i += 4) {
+      if (probe[i] !== 0) return true
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
+async function captureWithHtml2Canvas(doc) {
+  const { default: html2canvas } = await import('html2canvas')
+  const canvas = await html2canvas(doc.documentElement, {
+    backgroundColor: '#ffffff',
+    logging: false,
+    useCORS: true,
+    windowWidth: doc.documentElement.scrollWidth || 1024,
+    windowHeight: doc.documentElement.scrollHeight || 768,
+  })
+  if (!isUsableCanvas(canvas)) {
+    throw new Error('html2canvas produced an empty capture')
+  }
+  return scaleCanvasToJpeg(canvas)
+}
+
+// Fallback renderer: serializes the live document into an SVG foreignObject
+// and rasterizes it. Form fields keep their typed values via attribute sync.
+async function captureWithForeignObject(doc) {
+  for (const input of doc.querySelectorAll('input')) {
+    if (input.type === 'checkbox' || input.type === 'radio') {
+      if (input.checked) input.setAttribute('checked', '')
+      else input.removeAttribute('checked')
+    } else {
+      input.setAttribute('value', input.value)
+    }
+  }
+  for (const textarea of doc.querySelectorAll('textarea')) {
+    textarea.textContent = textarea.value
+  }
+
+  const width = Math.min(Math.max(doc.documentElement.scrollWidth || 1024, 320), 1600)
+  const height = Math.min(Math.max(doc.documentElement.scrollHeight || 768, 240), 2400)
+  const clone = doc.documentElement.cloneNode(true)
+  clone.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml')
+  for (const script of clone.querySelectorAll('script')) {
+    script.remove()
+  }
+  const serialized = new XMLSerializer().serializeToString(clone)
+  const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${serialized}</foreignObject></svg>`
+  const blobUrl = URL.createObjectURL(new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' }))
+  try {
+    const image = await new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => resolve(img)
+      img.onerror = () => reject(new Error('The rendered page could not be rasterized.'))
+      img.src = blobUrl
+    })
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const context = canvas.getContext('2d')
+    context.fillStyle = '#ffffff'
+    context.fillRect(0, 0, width, height)
+    context.drawImage(image, 0, 0)
+    return scaleCanvasToJpeg(canvas)
+  } finally {
+    URL.revokeObjectURL(blobUrl)
+  }
+}
+
+// Captures the rendered iframe document as a JPEG data URL for the admin
+// audit trail. Tries html2canvas first (best fidelity), then falls back to
+// SVG foreignObject rasterization, which handles srcdoc iframes reliably.
+export async function captureFrameScreenshot(iframe) {
+  const doc = iframe?.contentDocument
+  if (!doc?.documentElement) {
+    throw new Error('The preview is not rendered, so no screenshot can be captured.')
+  }
+  try {
+    return await captureWithHtml2Canvas(doc)
+  } catch (error) {
+    console.warn('html2canvas capture failed, falling back to SVG rasterization:', error?.message || error)
+    return captureWithForeignObject(doc)
+  }
 }
 
 // Runs the submitted code against every test case in the browser.

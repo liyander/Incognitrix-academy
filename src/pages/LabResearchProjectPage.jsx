@@ -62,9 +62,11 @@ function LabResearchProjectPage() {
   const [runStatus, setRunStatus] = useState('')
   const [localRun, setLocalRun] = useState(null)
   const [preview, setPreview] = useState(null)
+  const [screenshotNote, setScreenshotNote] = useState('')
   const codeInitializedRef = useRef(false)
   const previewFrameRef = useRef(null)
   const previewLoadResolveRef = useRef(null)
+  const lastScreenshotRef = useRef(null)
 
   const loadProject = async () => {
     try {
@@ -206,6 +208,8 @@ function LabResearchProjectPage() {
       setCodeError('')
       setSubmission(null)
       setLocalRun(null)
+      setScreenshotNote('')
+      lastScreenshotRef.current = null
       setPreview(null)
       const data = await fetchLabCodeChallenge(projectId, { regenerate })
       setChallenge(data)
@@ -248,7 +252,15 @@ function LabResearchProjectPage() {
     setRunStatus('Rendering your page...')
     await renderPreview(code)
     setRunStatus('Verifying UI requirements...')
-    return runUiChecksInFrame(previewFrameRef.current, challenge.testCases)
+    const run = runUiChecksInFrame(previewFrameRef.current, challenge.testCases)
+    // Capture eagerly while the preview is fresh; submit reuses this if a
+    // fresh capture fails at submission time.
+    try {
+      lastScreenshotRef.current = await captureFrameScreenshot(previewFrameRef.current)
+    } catch (screenshotError) {
+      console.warn('Screenshot capture during run failed:', screenshotError)
+    }
+    return run
   }
 
   const handleRunTests = async () => {
@@ -304,7 +316,9 @@ function LabResearchProjectPage() {
           screenshot = await captureFrameScreenshot(previewFrameRef.current)
         } catch (screenshotError) {
           console.error('Screenshot capture failed:', screenshotError)
+          screenshot = lastScreenshotRef.current
         }
+        setScreenshotNote(screenshot ? '' : 'The rendered-page screenshot could not be captured; the submission was sent without it.')
         setRunStatus('Submitting for verification...')
       } else if (isRunnableInBrowser(challenge.language)) {
         setRunStatus('Running tests in your browser...')
@@ -795,6 +809,12 @@ function LabResearchProjectPage() {
                     This is your page rendered live. The UI requirement checks run against this exact document, and its screenshot is attached to your submission for the admin.
                   </p>
                 </section>
+              ) : null}
+
+              {screenshotNote ? (
+                <div className="bg-error/10 border-l-4 border-error p-4">
+                  <p className="text-error font-headline text-xs font-bold uppercase tracking-widest">{screenshotNote}</p>
+                </div>
               ) : null}
 
               {submission || localRun ? (
