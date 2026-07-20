@@ -315,7 +315,10 @@ function LabResearchProjectPage() {
         browserResults = run.results
         if (!run.passed) {
           setSubmission(null)
-          setCodeError('Some UI requirements failed in the rendered page. Fix your page and submit again.')
+          setCodeError(
+            'Some UI requirements failed in the rendered page — check the details below each requirement. ' +
+            'If a requirement shows "Check failed to run", it is not something your code can fix; use "New Scenario" to generate a corrected set of requirements.',
+          )
           return
         }
         setRunStatus('Capturing a screenshot of your rendered page for the admin...')

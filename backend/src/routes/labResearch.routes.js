@@ -549,6 +549,18 @@ async function generateCodeChallenge(project) {
           expression: normalizeText(item?.expression, 2000),
         }))
         .filter((item) => item.description && item.expression)
+        // A syntactically broken expression (stray await, unbalanced parens,
+        // reserved-word misuse, etc.) can never be satisfied by any HTML the
+        // player writes — it would fail every single attempt. Only keep
+        // checks that at least parse as valid JavaScript.
+        .filter((item) => {
+          try {
+            new Function(`return !!(${item.expression})`)
+            return true
+          } catch {
+            return false
+          }
+        })
         .slice(0, 8)
       if (!scenario || testCases.length < 3) return buildFallbackCodeChallenge(project)
       return { kind: 'ui', scenario, language: 'html', starterCode: UI_STARTER_CODE, testCases }
