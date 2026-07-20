@@ -80,6 +80,10 @@ export function submitLabCode(challengeId, code, browserResults = null, screensh
   })
 }
 
+export function fetchLabPlayerDetail(projectId, userId) {
+  return apiFetch(`/lab-research/admin/projects/${projectId}/players/${userId}`)
+}
+
 export function fetchLabSubmission(submissionId) {
   return apiFetch(`/lab-research/admin/submissions/${submissionId}`)
 }

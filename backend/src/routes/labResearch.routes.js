@@ -1061,6 +1061,88 @@ router.get('/admin/submissions/:submissionId', requireAdmin, async (req, res, ne
   }
 })
 
+// Full drill-down for one player on one project: every quiz attempt with the
+// questions asked and the answers given, plus all code submissions.
+router.get('/admin/projects/:id/players/:userId', requireAdmin, async (req, res, next) => {
+  try {
+    await ensureLabResearchSchema()
+    const [[project]] = await pool.query('SELECT * FROM lab_research_projects WHERE id = ? LIMIT 1', [req.params.id])
+    if (!project) return res.status(404).json({ message: 'Project not found.' })
+    const [[user]] = await pool.query('SELECT id, username, email FROM users WHERE id = ? LIMIT 1', [req.params.userId])
+    if (!user) return res.status(404).json({ message: 'Player not found.' })
+
+    const [attemptRows] = await pool.query(
+      `SELECT * FROM lab_research_quiz_attempts
+       WHERE project_id = ? AND user_id = ?
+       ORDER BY created_at DESC LIMIT 20`,
+      [project.id, user.id],
+    )
+    const attempts = []
+    for (const attempt of attemptRows) {
+      const [questionRows] = await pool.query(
+        'SELECT * FROM lab_research_quiz_questions WHERE attempt_id = ? ORDER BY position',
+        [attempt.id],
+      )
+      attempts.push({
+        id: attempt.id,
+        status: attempt.status,
+        terminatedReason: attempt.terminated_reason || null,
+        score: Number(attempt.score || 0),
+        createdAt: attempt.created_at,
+        completedAt: attempt.completed_at,
+        questions: questionRows.map((row) => ({
+          position: Number(row.position),
+          prompt: row.prompt,
+          answer: row.answer_text || '',
+          answered: Boolean(row.evaluated_at),
+          isCorrect: row.evaluated_at ? Boolean(row.is_correct) : null,
+          score: row.evaluated_at ? Number(row.score || 0) : null,
+          feedback: row.evaluated_at ? row.feedback : null,
+          idealAnswer: row.ideal_answer,
+        })),
+      })
+    }
+
+    const [submissionRows] = await pool.query(
+      `SELECT s.id, s.passed, s.created_at, s.screenshot IS NOT NULL AS has_screenshot, c.challenge_kind, c.language
+       FROM lab_research_code_submissions s
+       JOIN lab_research_code_challenges c ON c.id = s.challenge_id
+       WHERE c.project_id = ? AND c.user_id = ?
+       ORDER BY s.created_at DESC LIMIT 20`,
+      [project.id, user.id],
+    )
+
+    const [[progress]] = await pool.query(
+      'SELECT * FROM lab_research_progress WHERE project_id = ? AND user_id = ? LIMIT 1',
+      [project.id, user.id],
+    )
+
+    return res.json({
+      project: { id: project.id, title: project.title, codingEnabled: Boolean(project.coding_enabled) },
+      player: { userId: user.id, username: user.username, email: user.email },
+      progress: {
+        quizScore: Number(progress?.quiz_score || 0),
+        quizCompleted: Boolean(progress?.quiz_completed_at),
+        quizCompletedAt: progress?.quiz_completed_at || null,
+        codeAttempts: Number(progress?.code_attempts || 0),
+        codeAccepted: Boolean(progress?.code_accepted_at),
+        codeAcceptedAt: progress?.code_accepted_at || null,
+      },
+      attempts,
+      submissions: submissionRows.map((row) => ({
+        id: row.id,
+        passed: Boolean(row.passed),
+        kind: row.challenge_kind === 'ui' ? 'ui' : 'function',
+        language: row.language,
+        hasScreenshot: Boolean(row.has_screenshot),
+        createdAt: row.created_at,
+      })),
+    })
+  } catch (error) {
+    return next(error)
+  }
+})
+
 // ---------------------------------------------------------------------------
 // Player endpoints
 // ---------------------------------------------------------------------------
