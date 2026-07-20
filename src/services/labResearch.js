@@ -84,6 +84,13 @@ export function fetchLabPlayerDetail(projectId, userId) {
   return apiFetch(`/lab-research/admin/projects/${projectId}/players/${userId}`)
 }
 
+export function resetLabPlayerProgress(projectId, userId, scope) {
+  return apiFetch(`/lab-research/admin/projects/${projectId}/players/${userId}/reset`, {
+    method: 'POST',
+    body: JSON.stringify({ scope }),
+  })
+}
+
 export function fetchLabSubmission(submissionId) {
   return apiFetch(`/lab-research/admin/submissions/${submissionId}`)
 }

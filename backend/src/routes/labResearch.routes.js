@@ -1143,6 +1143,44 @@ router.get('/admin/projects/:id/players/:userId', requireAdmin, async (req, res,
   }
 })
 
+// Resets a player's progress on a project so they can attempt again.
+// scope: 'code' clears the code challenge and submissions, 'quiz' clears
+// assessment attempts, 'all' clears both.
+router.post('/admin/projects/:id/players/:userId/reset', requireAdmin, async (req, res, next) => {
+  try {
+    await ensureLabResearchSchema()
+    const scope = ['code', 'quiz', 'all'].includes(req.body?.scope) ? req.body.scope : 'all'
+    const [[project]] = await pool.query('SELECT id FROM lab_research_projects WHERE id = ? LIMIT 1', [req.params.id])
+    if (!project) return res.status(404).json({ message: 'Project not found.' })
+    const [[user]] = await pool.query('SELECT id FROM users WHERE id = ? LIMIT 1', [req.params.userId])
+    if (!user) return res.status(404).json({ message: 'Player not found.' })
+
+    if (scope === 'code' || scope === 'all') {
+      await pool.query(
+        'DELETE FROM lab_research_code_challenges WHERE project_id = ? AND user_id = ?',
+        [project.id, user.id],
+      )
+      await pool.query(
+        'UPDATE lab_research_progress SET code_attempts = 0, code_accepted_at = NULL WHERE project_id = ? AND user_id = ?',
+        [project.id, user.id],
+      )
+    }
+    if (scope === 'quiz' || scope === 'all') {
+      await pool.query(
+        'DELETE FROM lab_research_quiz_attempts WHERE project_id = ? AND user_id = ?',
+        [project.id, user.id],
+      )
+      await pool.query(
+        'UPDATE lab_research_progress SET quiz_score = 0, quiz_completed_at = NULL WHERE project_id = ? AND user_id = ?',
+        [project.id, user.id],
+      )
+    }
+    return res.json({ success: true, scope })
+  } catch (error) {
+    return next(error)
+  }
+})
+
 // ---------------------------------------------------------------------------
 // Player endpoints
 // ---------------------------------------------------------------------------

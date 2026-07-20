@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { fetchLabPlayerDetail, fetchLabSubmission } from '../../services/labResearch'
+import { fetchLabPlayerDetail, fetchLabSubmission, resetLabPlayerProgress } from '../../services/labResearch'
 
 function AdminLabResearchPlayerPage() {
   const navigate = useNavigate()
@@ -10,32 +10,56 @@ function AdminLabResearchPlayerPage() {
   const [error, setError] = useState('')
   const [submissionView, setSubmissionView] = useState(null)
   const [submissionLoading, setSubmissionLoading] = useState(false)
+  const [resetting, setResetting] = useState(false)
+  const [success, setSuccess] = useState('')
+
+  const loadDetail = async () => {
+    try {
+      setLoading(true)
+      const data = await fetchLabPlayerDetail(projectId, userId)
+      setDetail(data)
+      setError('')
+    } catch (err) {
+      setError(err.message || 'Failed to load the player details')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      try {
-        setLoading(true)
-        const data = await fetchLabPlayerDetail(projectId, userId)
-        if (!cancelled) {
-          setDetail(data)
-          setError('')
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err.message || 'Failed to load the player details')
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      }
-    }
-    void load()
-    return () => {
-      cancelled = true
-    }
+    void loadDetail()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, userId])
+
+  const handleReset = async (scope) => {
+    const labels = {
+      code: 'code lab progress (challenge, submissions, and acceptance)',
+      quiz: 'assessment progress (all attempts and the completion status)',
+      all: 'entire progress on this project (assessment and code lab)',
+    }
+    if (!window.confirm(`Reset this player's ${labels[scope]}? The player will be able to attempt again from scratch.`)) {
+      return
+    }
+    try {
+      setResetting(true)
+      setError('')
+      setSuccess('')
+      setSubmissionView(null)
+      await resetLabPlayerProgress(projectId, userId, scope)
+      setSuccess(
+        scope === 'code'
+          ? 'Code lab progress reset — the player can generate a new scenario and resubmit.'
+          : scope === 'quiz'
+            ? 'Assessment progress reset — the player can attend again with new questions.'
+            : 'All progress reset — the player starts this project from scratch.',
+      )
+      await loadDetail()
+    } catch (err) {
+      setError(err.message || 'Failed to reset the player progress')
+    } finally {
+      setResetting(false)
+    }
+  }
 
   const handleViewSubmission = async (submissionId) => {
     try {
@@ -83,9 +107,43 @@ function AdminLabResearchPlayerPage() {
                   </span>
                 ) : null}
               </div>
+              <div className="flex flex-wrap gap-2 mt-6">
+                <button
+                  className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-error transition-colors disabled:opacity-60"
+                  disabled={resetting}
+                  onClick={() => handleReset('quiz')}
+                  type="button"
+                >
+                  Reset Assessment
+                </button>
+                {detail.project.codingEnabled || detail.progress.codeAccepted || detail.submissions.length ? (
+                  <button
+                    className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-error transition-colors disabled:opacity-60"
+                    disabled={resetting}
+                    onClick={() => handleReset('code')}
+                    type="button"
+                  >
+                    Reset Code Submission
+                  </button>
+                ) : null}
+                <button
+                  className="px-4 py-2 bg-error/15 text-error font-headline text-xs font-bold uppercase tracking-widest hover:bg-error/25 transition-colors disabled:opacity-60"
+                  disabled={resetting}
+                  onClick={() => handleReset('all')}
+                  type="button"
+                >
+                  {resetting ? 'Resetting...' : 'Reset All Progress'}
+                </button>
+              </div>
             </>
           ) : null}
         </header>
+
+        {success ? (
+          <div className="mb-6 bg-secondary/10 border-l-4 border-secondary p-4">
+            <p className="text-secondary font-headline text-xs font-bold uppercase tracking-widest">{success}</p>
+          </div>
+        ) : null}
 
         {error ? (
           <div className="mb-6 bg-error/10 border-l-4 border-error p-4">
