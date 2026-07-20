@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   createLabProject,
   deleteLabProject,
   fetchAdminLabProjects,
-  fetchLabPlayerDetail,
   fetchLabProjectCompletions,
   fetchLabSubmission,
   updateLabProject,
@@ -43,8 +42,6 @@ function AdminLabResearchPage() {
   const [completionsLoading, setCompletionsLoading] = useState(false)
   const [submissionView, setSubmissionView] = useState(null)
   const [submissionLoading, setSubmissionLoading] = useState(false)
-  const [playerDetail, setPlayerDetail] = useState(null)
-  const [playerDetailLoading, setPlayerDetailLoading] = useState(false)
 
   const loadProjects = async () => {
     try {
@@ -168,27 +165,12 @@ function AdminLabResearchPage() {
       setCompletionsLoading(true)
       setError('')
       setSubmissionView(null)
-      setPlayerDetail(null)
       const data = await fetchLabProjectCompletions(projectId)
       setCompletions(data)
     } catch (err) {
       setError(err.message || 'Failed to load completions')
     } finally {
       setCompletionsLoading(false)
-    }
-  }
-
-  const handleViewPlayer = async (projectId, userId) => {
-    try {
-      setPlayerDetailLoading(true)
-      setError('')
-      setSubmissionView(null)
-      const data = await fetchLabPlayerDetail(projectId, userId)
-      setPlayerDetail(data)
-    } catch (err) {
-      setError(err.message || 'Failed to load the player details')
-    } finally {
-      setPlayerDetailLoading(false)
     }
   }
 
@@ -528,18 +510,16 @@ function AdminLabResearchPage() {
                     {completions.players.map((player) => (
                       <tr className="border-b border-outline-variant/40" key={player.userId}>
                         <td className="py-3 pr-4">
-                          <button
-                            className="text-left group"
-                            disabled={playerDetailLoading}
-                            onClick={() => handleViewPlayer(completions.project.id, player.userId)}
-                            title="View this player's answers and submissions"
-                            type="button"
+                          <Link
+                            className="block text-left group"
+                            title="Open this player's answers and submissions"
+                            to={`/admin/lab-research/projects/${completions.project.id}/players/${player.userId}`}
                           >
                             <p className="font-headline text-xs font-bold uppercase text-primary group-hover:underline">
                               {player.username}
                             </p>
                             <p className="text-xs text-on-surface-variant">{player.email}</p>
-                          </button>
+                          </Link>
                         </td>
                         <td className="py-3 pr-4 font-headline font-bold">{player.quizScore}/100</td>
                         <td className="py-3 pr-4">
@@ -589,147 +569,6 @@ function AdminLabResearchPage() {
                 </table>
               </div>
             )}
-
-            {playerDetailLoading ? (
-              <p className="mt-6 text-sm text-on-surface-variant">Loading player details...</p>
-            ) : playerDetail ? (
-              <div className="mt-8 border-t border-outline-variant pt-6">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div>
-                    <h3 className="font-headline text-lg font-bold uppercase tracking-tight">
-                      {playerDetail.player.username} — Full Activity
-                    </h3>
-                    <p className="text-xs text-on-surface-variant mt-1">{playerDetail.player.email}</p>
-                  </div>
-                  <button
-                    className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-error transition-colors"
-                    onClick={() => setPlayerDetail(null)}
-                    type="button"
-                  >
-                    Close
-                  </button>
-                </div>
-
-                <div className="flex flex-wrap gap-2 mb-6">
-                  <span className={`px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest ${playerDetail.progress.quizCompleted ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
-                    Knowledge Check {playerDetail.progress.quizCompleted ? 'Completed 100/100' : `${playerDetail.progress.quizScore}/100`}
-                  </span>
-                  {playerDetail.project.codingEnabled || playerDetail.progress.codeAccepted ? (
-                    <span className={`px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest ${playerDetail.progress.codeAccepted ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
-                      Code Lab {playerDetail.progress.codeAccepted ? 'Accepted' : 'Not Accepted'} · {playerDetail.progress.codeAttempts} attempt{playerDetail.progress.codeAttempts === 1 ? '' : 's'}
-                    </span>
-                  ) : null}
-                </div>
-
-                <h4 className="font-headline text-sm font-bold uppercase tracking-widest text-primary mb-3">
-                  Assessment Attempts ({playerDetail.attempts.length})
-                </h4>
-                {playerDetail.attempts.length === 0 ? (
-                  <p className="text-sm text-on-surface-variant mb-6">This player has not attended the assessment yet.</p>
-                ) : (
-                  <div className="space-y-4 mb-6">
-                    {playerDetail.attempts.map((attempt) => (
-                      <details className="bg-surface-container-high" key={attempt.id} open={playerDetail.attempts.length === 1}>
-                        <summary className="cursor-pointer p-4 flex flex-wrap items-center gap-3">
-                          <span className="font-headline text-xs font-bold uppercase tracking-widest">
-                            {new Date(attempt.createdAt).toLocaleString()}
-                          </span>
-                          <span className={`px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest ${
-                            attempt.status === 'completed'
-                              ? 'bg-secondary/15 text-secondary'
-                              : attempt.status === 'terminated'
-                                ? 'bg-error/15 text-error'
-                                : 'bg-surface-container-highest text-on-surface-variant'
-                          }`}>
-                            {attempt.status === 'terminated'
-                              ? `Auto-Submitted (${attempt.terminatedReason || 'left session'})`
-                              : attempt.status}
-                          </span>
-                          <span className="font-headline text-xs font-bold">{attempt.score}/100</span>
-                        </summary>
-                        <div className="px-4 pb-4 space-y-3">
-                          {attempt.questions.map((question) => (
-                            <div
-                              className={`bg-surface-container-lowest border-l-4 p-4 ${question.isCorrect ? 'border-secondary' : question.answered ? 'border-error' : 'border-outline-variant'}`}
-                              key={question.position}
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <p className="text-sm leading-6">
-                                  <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mr-2">
-                                    Q{question.position}
-                                  </span>
-                                  {question.prompt}
-                                </p>
-                                <span className={`shrink-0 px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest ${
-                                  question.isCorrect
-                                    ? 'bg-secondary/15 text-secondary'
-                                    : question.answered
-                                      ? 'bg-error/15 text-error'
-                                      : 'bg-surface-container-high text-on-surface-variant'
-                                }`}>
-                                  {question.isCorrect ? 'Correct' : question.answered ? 'Incorrect' : 'Unanswered'}
-                                </span>
-                              </div>
-                              {question.answered ? (
-                                <div className="mt-3 bg-surface-container-high p-3">
-                                  <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">
-                                    Player&apos;s Answer{question.score !== null ? ` · scored ${question.score}/100` : ''}
-                                  </p>
-                                  <p className="text-sm whitespace-pre-line">{question.answer || '—'}</p>
-                                  {question.feedback ? (
-                                    <p className="text-xs text-on-surface-variant mt-2">AI feedback: {question.feedback}</p>
-                                  ) : null}
-                                </div>
-                              ) : (
-                                <p className="mt-3 text-xs text-on-surface-variant">No answer submitted.</p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    ))}
-                  </div>
-                )}
-
-                <h4 className="font-headline text-sm font-bold uppercase tracking-widest text-primary mb-3">
-                  Code Submissions ({playerDetail.submissions.length})
-                </h4>
-                {playerDetail.submissions.length === 0 ? (
-                  <p className="text-sm text-on-surface-variant">No code submissions yet.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {playerDetail.submissions.map((item) => (
-                      <div className="bg-surface-container-high p-3 flex flex-wrap items-center justify-between gap-3" key={item.id}>
-                        <div className="flex flex-wrap items-center gap-3">
-                          <span className="font-headline text-xs font-bold uppercase tracking-widest">
-                            {new Date(item.createdAt).toLocaleString()}
-                          </span>
-                          <span className="px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest bg-surface-container-highest text-on-surface-variant">
-                            {item.kind === 'ui' ? 'UI Feature' : item.language}
-                          </span>
-                          <span className={`px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest ${item.passed ? 'bg-secondary/15 text-secondary' : 'bg-error/15 text-error'}`}>
-                            {item.passed ? 'Accepted' : 'Failed'}
-                          </span>
-                          {item.hasScreenshot ? (
-                            <span className="px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest bg-primary/15 text-primary">
-                              Screenshot
-                            </span>
-                          ) : null}
-                        </div>
-                        <button
-                          className="px-3 py-1.5 bg-surface-container-highest text-on-surface font-headline text-[10px] font-bold uppercase tracking-widest hover:text-primary transition-colors disabled:opacity-60"
-                          disabled={submissionLoading}
-                          onClick={() => handleViewSubmission(item.id)}
-                          type="button"
-                        >
-                          View Code &amp; Tests
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : null}
 
             {submissionLoading ? (
               <p className="mt-6 text-sm text-on-surface-variant">Loading submission...</p>

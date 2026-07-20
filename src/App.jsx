@@ -28,6 +28,7 @@ import AdminInterviewQuestionsPage from './pages/admin/AdminInterviewQuestionsPa
 import AdminJobRecommendationsPage from './pages/admin/AdminJobRecommendationsPage'
 import AdminTopPlayerResumesPage from './pages/admin/AdminTopPlayerResumesPage'
 import AdminLabResearchPage from './pages/admin/AdminLabResearchPage'
+import AdminLabResearchPlayerPage from './pages/admin/AdminLabResearchPlayerPage'
 import DeveloperDashboardPage from './pages/developer/DeveloperDashboardPage'
 import DashboardPage from './pages/DashboardPage'
 import JobUpdatesPage from './pages/JobUpdatesPage'
@@ -342,6 +343,7 @@ function App() {
           <Route path="/admin/jobs" element={<AdminJobRecommendationsPage />} />
           <Route path="/admin/top-resumes" element={<AdminTopPlayerResumesPage />} />
           <Route path="/admin/lab-research" element={<AdminLabResearchPage />} />
+          <Route path="/admin/lab-research/projects/:projectId/players/:userId" element={<AdminLabResearchPlayerPage />} />
           <Route path="/developer" element={<DeveloperDashboardPage />} />
           <Route path="*" element={<NotFoundPage variant="admin" />} />
         </Routes>
