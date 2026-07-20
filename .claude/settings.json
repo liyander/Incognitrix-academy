@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-Service | Where-Object { $_.Name -match 'mysql|mariadb' } | Format-Table Name, Status; Get-NetTCPConnection -State Listen | Where-Object { $_.LocalPort -in 3306,4000,5173 } | Format-Table LocalAddress, LocalPort, OwningProcess)",
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "Bash(mkdir -p \"C:/Users/Liyander/AppData/Local/Temp/claude/c--Users-Liyander-Downloads-Incognitrix-Incognitrix-Academy/7de21e82-15ac-4adc-81df-b8e0d60690cd/scratchpad\")",
+      "Bash(node capture-test.js)"
+    ]
+  }
+}

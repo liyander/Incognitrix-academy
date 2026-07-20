@@ -226,6 +226,28 @@ __lab_namespace = {}
   return results
 }
 
+// Only true resource-loading elements can taint the preview canvas or reach
+// the network on their own (an <a href="https://...">, by contrast, is inert
+// until clicked, so it is intentionally not flagged here).
+const RESOURCE_LOADING_TAGS = new Set(['img', 'script', 'iframe', 'source', 'video', 'audio', 'embed', 'link', 'object'])
+const OPENING_TAG_PATTERN = /<([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)>/g
+const EXTERNAL_ATTR_PATTERN = /\b(?:src|href|poster)\s*=\s*["']\s*(?:https?:)?\/\/[^"'>]+["']/i
+const EXTERNAL_CSS_PATTERN = /url\(\s*["']?\s*(?:https?:)?\/\/[^)"']+["']?\s*\)|@import\s+(?:url\(\s*)?["']?\s*(?:https?:)?\/\/[^)"';]+/gi
+
+export function findExternalResourceReferences(html) {
+  const text = String(html || '')
+  const refs = []
+  for (const match of text.matchAll(OPENING_TAG_PATTERN)) {
+    if (!RESOURCE_LOADING_TAGS.has(match[1].toLowerCase())) continue
+    const attrMatch = EXTERNAL_ATTR_PATTERN.exec(match[2])
+    if (attrMatch) refs.push(match[0].trim().slice(0, 200))
+  }
+  for (const match of text.matchAll(EXTERNAL_CSS_PATTERN)) {
+    refs.push(match[0].trim())
+  }
+  return refs.slice(0, 5)
+}
+
 // Evaluates UI challenge checks inside a rendered same-origin iframe.
 // Each check is a boolean JavaScript expression executed in the iframe's
 // global scope, so `document` refers to the player's rendered page.
@@ -339,7 +361,13 @@ async function captureWithForeignObject(doc) {
     context.fillStyle = '#ffffff'
     context.fillRect(0, 0, width, height)
     context.drawImage(image, 0, 0)
-    return scaleCanvasToJpeg(canvas)
+    try {
+      return scaleCanvasToJpeg(canvas)
+    } catch {
+      // Chromium taints the canvas after drawing a foreignObject SVG; this
+      // fallback only helps in browsers that allow the export (e.g. Firefox).
+      throw new Error('The browser blocked exporting the rasterized page.')
+    }
   } finally {
     URL.revokeObjectURL(blobUrl)
   }

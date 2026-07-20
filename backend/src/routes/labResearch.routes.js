@@ -59,6 +59,29 @@ function extractJsonObject(value) {
   }
 }
 
+// Mirrors the frontend check (src/utils/codeRunner.js): only true
+// resource-loading elements can taint the player's screenshot capture or
+// reach the network on their own, so only those are rejected. A plain
+// <a href="https://...">, by contrast, is inert until clicked.
+const RESOURCE_LOADING_TAGS = new Set(['img', 'script', 'iframe', 'source', 'video', 'audio', 'embed', 'link', 'object'])
+const OPENING_TAG_PATTERN = /<([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)>/g
+const EXTERNAL_ATTR_PATTERN = /\b(?:src|href|poster)\s*=\s*["']\s*(?:https?:)?\/\/[^"'>]+["']/i
+const EXTERNAL_CSS_PATTERN = /url\(\s*["']?\s*(?:https?:)?\/\/[^)"']+["']?\s*\)|@import\s+(?:url\(\s*)?["']?\s*(?:https?:)?\/\/[^)"';]+/gi
+
+function findExternalResourceReferences(html) {
+  const text = String(html || '')
+  const refs = []
+  for (const match of text.matchAll(OPENING_TAG_PATTERN)) {
+    if (!RESOURCE_LOADING_TAGS.has(match[1].toLowerCase())) continue
+    const attrMatch = EXTERNAL_ATTR_PATTERN.exec(match[2])
+    if (attrMatch) refs.push(match[0].trim())
+  }
+  for (const match of text.matchAll(EXTERNAL_CSS_PATTERN)) {
+    refs.push(match[0].trim())
+  }
+  return refs
+}
+
 function clampQuestionCount(value) {
   const count = Number(value)
   return Number.isInteger(count) ? Math.max(3, Math.min(15, count)) : 5
@@ -1464,6 +1487,12 @@ router.post('/code/:challengeId/submit', async (req, res, next) => {
     const screenshot = typeof req.body?.screenshot === 'string' && req.body.screenshot.startsWith('data:image/')
       ? req.body.screenshot.slice(0, 4 * 1024 * 1024)
       : null
+
+    if (kind === 'ui' && findExternalResourceReferences(code).length) {
+      return res.status(400).json({
+        message: 'The page must be fully self-contained: remove references to external resources (http/https URLs in src, href, or CSS url()) and inline images as data URIs instead.',
+      })
+    }
 
     let evaluation
     if (kind === 'ui') {

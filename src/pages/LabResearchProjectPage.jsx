@@ -10,6 +10,7 @@ import {
 } from '../services/labResearch'
 import {
   captureFrameScreenshot,
+  findExternalResourceReferences,
   isRunnableInBrowser,
   runCodeAgainstTests,
   runUiChecksInFrame,
@@ -249,6 +250,12 @@ function LabResearchProjectPage() {
   }
 
   const runUiChallenge = async () => {
+    const externalRefs = findExternalResourceReferences(code)
+    if (externalRefs.length) {
+      throw new Error(
+        `Your page must be fully self-contained: remove the external resource reference(s) — e.g. ${externalRefs[0]} — and inline images as data URIs instead. External resources cannot be captured for grading.`,
+      )
+    }
     setRunStatus('Rendering your page...')
     await renderPreview(code)
     setRunStatus('Verifying UI requirements...')
