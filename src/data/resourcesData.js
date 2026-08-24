@@ -1,28 +1,32 @@
 import { apiFetch } from '../services/api'
 
-export const CVES_STORAGE_KEY = 'cvesData'
-export const CVES_UPDATED_EVENT = 'cvesDataUpdated'
+// Storage keys keep their original names so existing browsers keep their cache.
+export const RESOURCES_STORAGE_KEY = 'cvesData'
+export const RESOURCES_UPDATED_EVENT = 'cvesDataUpdated'
 
-export const defaultCves = [
+export const defaultResources = [
   {
     id: 1,
-    cve_id: 'CVE-2021-44228',
-    short_description: 'Log4Shell Vulnerability in Apache Log4j.',
-    found_year: 2021,
-    credit: 'Chen Zhaojun of Alibaba Cloud Security Team',
-    vulnerability_report: 'Apache Log4j2 <=2.14.1 JNDI features used in configuration, log messages, and parameters do not protect against attacker controlled LDAP and other JNDI related endpoints. An attacker who can control log messages or log message parameters can execute arbitrary code loaded from LDAP servers when message lookup substitution is enabled.',
-    method_followed: 'Identified during a routine security audit of Java-based web application architectures using JNDI lookup mechanisms.',
-    references_text: 'https://nvd.nist.gov/vuln/detail/CVE-2021-44228\nhttps://logging.apache.org/log4j/2.x/security.html',
+    cve_id: 'GUIDE-001',
+    short_description: 'How to structure a study plan that you actually finish.',
+    found_year: 2026,
+    credit: 'Minerva Learning Team',
+    vulnerability_report:
+      'Most learners stall because their plan is a wish list rather than a schedule. This guide walks through sizing a goal against the hours you genuinely have each week, breaking a path into weekly modules, and building a review loop so earlier material stays fresh. It closes with three sample plans for five, ten and twenty hours a week.',
+    method_followed:
+      'Compiled from completion data across the platform and interviews with learners who finished a full path.',
+    references_text:
+      'https://en.wikipedia.org/wiki/Spaced_repetition\nhttps://en.wikipedia.org/wiki/Deliberate_practice',
     created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
+    updated_at: new Date().toISOString(),
+  },
 ]
 
 let fallbackMemoryCves = null;
 
-export function getCvesData() {
+export function getResourcesData() {
   if (fallbackMemoryCves) return fallbackMemoryCves;
-  const stored = localStorage.getItem(CVES_STORAGE_KEY)
+  const stored = localStorage.getItem(RESOURCES_STORAGE_KEY)
   if (stored) {
     try {
       const parsed = JSON.parse(stored)
@@ -30,85 +34,85 @@ export function getCvesData() {
       return parsed;
     } catch (e) {
       console.error('Error parsing cvesData:', e)
-      fallbackMemoryCves = defaultCves;
+      fallbackMemoryCves = defaultResources;
       return fallbackMemoryCves;
     }
   }
-  fallbackMemoryCves = defaultCves;
+  fallbackMemoryCves = defaultResources;
   return fallbackMemoryCves;
 }
 
-export function emitCvesUpdated() {
+export function emitResourcesUpdated() {
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event(CVES_UPDATED_EVENT))
+    window.dispatchEvent(new Event(RESOURCES_UPDATED_EVENT))
   }
 }
 
-export function subscribeCvesData(listener) {
+export function subscribeResourcesData(listener) {
   if (typeof window === 'undefined') {
     return () => {}
   }
   const onDataUpdate = () => listener()
   const onStorage = (event) => {
-    if (event.key === CVES_STORAGE_KEY) {
+    if (event.key === RESOURCES_STORAGE_KEY) {
       listener()
     }
   }
-  window.addEventListener(CVES_UPDATED_EVENT, onDataUpdate)
+  window.addEventListener(RESOURCES_UPDATED_EVENT, onDataUpdate)
   window.addEventListener('storage', onStorage)
   return () => {
-    window.removeEventListener(CVES_UPDATED_EVENT, onDataUpdate)
+    window.removeEventListener(RESOURCES_UPDATED_EVENT, onDataUpdate)
     window.removeEventListener('storage', onStorage)
   }
 }
 
-export function setCvesData(cves) {
+export function setResourcesData(cves) {
   fallbackMemoryCves = cves;
   try {
-    localStorage.setItem(CVES_STORAGE_KEY, JSON.stringify(cves))
+    localStorage.setItem(RESOURCES_STORAGE_KEY, JSON.stringify(cves))
   } catch (error) {
     console.warn('localStorage quota exceeded for cvesData. Retaining in memory only.', error)
   }
-  emitCvesUpdated()
+  emitResourcesUpdated()
 }
 
-export function getCveById(id) {
-  const cves = getCvesData()
+export function getResourceById(id) {
+  const cves = getResourcesData()
   return cves.find((cve) => String(cve.id) === String(id) || String(cve.cve_id) === String(id)) || null
 }
 
-export function addCve(cve) {
-  const cves = getCvesData()
+export function addResource(cve) {
+  const cves = getResourcesData()
   const newCve = {
     ...cve,
     id: `local-${Date.now()}` // Temporary until backend syncs real ID
   }
   cves.unshift(newCve)
-  setCvesData(cves)
+  setResourcesData(cves)
 
   void apiFetch('/cves', {
     method: 'POST',
     body: JSON.stringify(cve)
   }).then(saved => {
     // Replace temp local ID if needed, or simply let the next fetch pull it
-    const list = getCvesData()
+    const list = getResourcesData()
     const index = list.findIndex(c => c.id === newCve.id)
     if (index !== -1) {
       list[index] = { ...list[index], ...saved }
-      setCvesData(list)
+      setResourcesData(list)
     }
   }).catch((error) => console.error('Failed to sync cve create:', error))
   
   return newCve
 }
 
-export function updateCve(id, updates) {
-  const cves = getCvesData()
+export function updateResource(id, updates) {
+  const cves = getResourcesData()
   const index = cves.findIndex((cve) => String(cve.id) === String(id) || String(cve.cve_id) === String(id))
   
   if (index !== -1) {
     cves[index] = { ...cves[index], ...updates, updated_at: new Date().toISOString() }
-    setCvesData(cves)
+    setResourcesData(cves)
     
     // If it's not a local temporary ID, push to API
     if (!String(cves[index].id).startsWith('local-')) {
@@ -122,13 +126,13 @@ export function updateCve(id, updates) {
   return null
 }
 
-export function deleteCve(id) {
-  let cves = getCvesData()
+export function deleteResource(id) {
+  let cves = getResourcesData()
   const originalLength = cves.length
   cves = cves.filter((cve) => String(cve.id) !== String(id) && String(cve.cve_id) !== String(id))
   
   if (cves.length < originalLength) {
-    setCvesData(cves)
+    setResourcesData(cves)
     if (!String(id).startsWith('local-')) {
       void apiFetch(`/cves/${id}`, {
         method: 'DELETE'
@@ -139,8 +143,8 @@ export function deleteCve(id) {
   return false
 }
 
-export function hydrateCvesData(cvesFromServer) {
+export function hydrateResourcesData(cvesFromServer) {
   if (Array.isArray(cvesFromServer) && cvesFromServer.length > 0) {
-    setCvesData(cvesFromServer)
+    setResourcesData(cvesFromServer)
   }
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../services/api'
 
-function ScoreboardPage() {
+function LeaderboardPage() {
   const [rows, setRows] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -37,9 +37,9 @@ function ScoreboardPage() {
   }, [])
 
   return (
-    <main className="bg-surface min-h-screen p-8 lg:p-12 mt-16 md:mt-20">
+    <main className="rounded-2xl bg-surface min-h-screen p-8 lg:p-12 mt-16 md:mt-20">
       <div className="mb-10">
-        <span className="font-label text-xs tracking-[0.3em] text-primary font-bold uppercase">
+        <span className="font-label text-xs tracking-normal text-primary font-bold">
           Operator Rankings
         </span>
         <h1 className="text-5xl font-black tracking-tight text-on-background font-headline mt-2">
@@ -48,46 +48,46 @@ function ScoreboardPage() {
       </div>
 
       <section className="bg-surface-container-lowest border border-outline-variant/40 overflow-hidden">
-        <div className="grid grid-cols-[5rem_minmax(12rem,1fr)_8rem_8rem_8rem_8rem] gap-4 px-6 py-4 bg-surface-container-low font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+        <div className="rounded-2xl grid grid-cols-[5rem_minmax(12rem,1fr)_8rem_8rem_8rem_8rem] gap-4 px-6 py-4 bg-surface-container-low font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
           <span>Rank</span>
-          <span>Operator</span>
+          <span>Student</span>
           <span>XP</span>
-          <span>Rooms</span>
+          <span>Courses</span>
           <span>Technical</span>
           <span>Grammar</span>
         </div>
 
         {isLoading ? (
-          <div className="p-8 text-on-surface-variant font-body">Loading scoreboard...</div>
+          <div className="p-8 text-on-surface-variant font-body">Loading leaderboard...</div>
         ) : error ? (
           <div className="p-8 text-error font-body">{error}</div>
         ) : rows.length ? (
           rows.map((row) => (
             <div
-              className="grid grid-cols-[5rem_minmax(12rem,1fr)_8rem_8rem_8rem_8rem] gap-4 px-6 py-5 border-t border-outline-variant/30 items-center"
+              className="rounded-2xl grid grid-cols-[5rem_minmax(12rem,1fr)_8rem_8rem_8rem_8rem] gap-4 px-6 py-5 border-t border-outline-variant/30 items-center"
               key={row.userId}
             >
-              <span className="font-space text-2xl font-bold text-primary">#{row.rank}</span>
+              <span className="font-headline text-2xl font-bold text-primary">#{row.rank}</span>
               <div>
-                <p className="font-headline text-sm font-bold uppercase text-on-background">
+                <p className="font-headline text-sm font-bold text-on-background">
                   {row.username}
                 </p>
                 <p className="text-xs text-on-surface-variant">
                   Last clear: {row.lastCompletedAt ? new Date(row.lastCompletedAt).toLocaleDateString() : 'N/A'}
                 </p>
               </div>
-              <span className="font-space font-bold text-on-background">{row.xp}</span>
-              <span className="font-space font-bold text-on-background">{row.completedRooms}</span>
-              <span className="font-space font-bold text-primary">{row.averageTechnicalScore}</span>
-              <span className="font-space font-bold text-secondary">{row.averageGrammarScore}</span>
+              <span className="font-headline font-bold text-on-background">{row.xp}</span>
+              <span className="font-headline font-bold text-on-background">{row.completedRooms}</span>
+              <span className="font-headline font-bold text-primary">{row.averageTechnicalScore}</span>
+              <span className="font-headline font-bold text-secondary">{row.averageGrammarScore}</span>
             </div>
           ))
         ) : (
-          <div className="p-8 text-on-surface-variant font-body">No completed rooms yet.</div>
+          <div className="p-8 text-on-surface-variant font-body">No completed courses yet.</div>
         )}
       </section>
     </main>
   )
 }
 
-export default ScoreboardPage
+export default LeaderboardPage

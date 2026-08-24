@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { getRoomsData } from '../../data/roomsData'
+import { getCoursesData } from '../../data/coursesData'
 import {
   addCareerPath,
   getCareerPathById,
@@ -20,7 +20,7 @@ function AdminCareerPathEditorPage() {
   const isNewPath = pathId === 'new' || location.pathname === '/admin/career-paths/new'
 
   const path = isNewPath ? null : getCareerPathById(pathId)
-  const allRooms = getRoomsData()
+  const allRooms = getCoursesData()
 
   const [formData, setFormData] = useState(
     path || {
@@ -58,11 +58,11 @@ function AdminCareerPathEditorPage() {
   })
   if (!isNewPath && !path) {
     return (
-      <main className="min-h-screen bg-surface px-6 md:px-10 py-10 flex items-center justify-center">
+      <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10 flex items-center justify-center">
         <div className="text-center">
           <p className="text-on-surface-variant mb-4">Career path not found.</p>
           <button
-            className="bg-secondary text-on-secondary px-4 py-2 font-headline font-bold"
+            className="rounded-lg bg-secondary text-on-secondary px-4 py-2 font-headline font-bold"
             onClick={() => navigate('/admin/career-paths')}
             type="button"
           >
@@ -366,9 +366,9 @@ function AdminCareerPathEditorPage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
+    <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10">
       <section className="max-w-6xl mx-auto">
-        <header className="bg-surface-container-lowest border-l-4 border-secondary p-8 md:p-10 mb-8">
+        <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-8 md:p-10 mb-8">
           <div className="flex items-center gap-4 mb-4">
             <button
               className="text-secondary hover:text-on-surface transition-colors"
@@ -377,16 +377,16 @@ function AdminCareerPathEditorPage() {
             >
               <span className="material-symbols-outlined">arrow_back</span>
             </button>
-            <span className="font-headline text-[10px] tracking-[0.25em] uppercase text-secondary font-bold">
+            <span className="font-headline text-[10px] tracking-normal text-secondary font-bold">
               Path Configuration
             </span>
           </div>
-          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight uppercase">
+          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight">
             {isNewPath ? 'Create Career Path' : `Edit: ${formData.title || 'Untitled Path'}`}
           </h1>
           <div className="mt-6 flex gap-3">
             <button
-              className={`px-5 py-2.5 font-headline text-xs font-bold uppercase tracking-widest transition-all ${
+              className={`px-5 py-2.5 font-headline text-xs font-bold tracking-normal transition-all ${
                 saved
                   ? 'bg-emerald-600 text-white'
                   : 'bg-secondary text-on-secondary hover:bg-secondary-darker'
@@ -404,7 +404,7 @@ function AdminCareerPathEditorPage() {
               )}
             </button>
             <button
-              className="bg-surface-container-high text-on-surface px-5 py-2.5 font-headline text-xs font-bold uppercase tracking-widest"
+              className="rounded-lg bg-surface-container-high text-on-surface px-5 py-2.5 font-headline text-xs font-bold tracking-normal"
               onClick={() => navigate('/admin/career-paths')}
               type="button"
             >
@@ -412,7 +412,7 @@ function AdminCareerPathEditorPage() {
             </button>
           </div>
           {errorMessage ? (
-            <p className="mt-4 text-sm text-red-600 font-headline tracking-wide uppercase">
+            <p className="mt-4 text-sm text-error font-headline tracking-wide">
               {errorMessage}
             </p>
           ) : null}
@@ -422,7 +422,7 @@ function AdminCareerPathEditorPage() {
         <div className="flex gap-0 mb-8 border-b border-outline-variant/30 overflow-x-auto">
           {['basic', 'modules', 'resources'].map((tab) => (
             <button
-              className={`px-6 py-3 font-headline text-xs font-bold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${
+              className={`rounded-xl px-6 py-3 font-headline text-xs font-bold tracking-normal transition-all border-b-2 whitespace-nowrap ${
                 activeTab === tab
                   ? 'border-secondary text-secondary'
                   : 'border-transparent text-on-surface-variant hover:text-on-surface'
@@ -439,18 +439,18 @@ function AdminCareerPathEditorPage() {
         {/* Basic Information Tab */}
         {activeTab === 'basic' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <section className="bg-surface-container-lowest p-8">
-              <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-6">
+            <section className="rounded-2xl bg-surface-container-lowest p-8">
+              <h2 className="font-headline text-xl font-bold tracking-tight mb-6">
                 Path Details
               </h2>
 
               <div className="space-y-6">
                 <div>
-                  <label className="block font-headline text-xs uppercase tracking-widest font-bold mb-2">
+                  <label className="block font-headline text-xs tracking-normal font-bold mb-2">
                     Path Title
                   </label>
                   <input
-                    className="w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                    className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                     name="title"
                     onChange={handleInputChange}
                     type="text"
@@ -459,11 +459,11 @@ function AdminCareerPathEditorPage() {
                 </div>
 
                 <div>
-                  <label className="block font-headline text-xs uppercase tracking-widest font-bold mb-2">
+                  <label className="block font-headline text-xs tracking-normal font-bold mb-2">
                     Description
                   </label>
                   <textarea
-                    className="w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                    className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                     name="description"
                     onChange={handleInputChange}
                     rows="4"
@@ -472,11 +472,11 @@ function AdminCareerPathEditorPage() {
                 </div>
 
                 <div>
-                  <label className="block font-headline text-xs uppercase tracking-widest font-bold mb-2">
+                  <label className="block font-headline text-xs tracking-normal font-bold mb-2">
                     Slug
                   </label>
                   <input
-                    className="w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                    className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                     name="slug"
                     onChange={handleInputChange}
                     placeholder="auto-generated-from-title"
@@ -486,11 +486,11 @@ function AdminCareerPathEditorPage() {
                 </div>
 
                 <div>
-                  <label className="block font-headline text-xs uppercase tracking-widest font-bold mb-2">
+                  <label className="block font-headline text-xs tracking-normal font-bold mb-2">
                     Learning Path Level
                   </label>
                   <select
-                    className="w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                    className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                     name="learningPathLevel"
                     onChange={handleInputChange}
                     value={formData.learningPathLevel || 'Basic'}
@@ -503,11 +503,11 @@ function AdminCareerPathEditorPage() {
                 </div>
 
                 <div>
-                  <label className="block font-headline text-xs uppercase tracking-widest font-bold mb-2">
+                  <label className="block font-headline text-xs tracking-normal font-bold mb-2">
                     Difficulty Level
                   </label>
                   <select
-                    className="w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                    className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                     name="difficulty"
                     onChange={handleInputChange}
                     value={formData.difficulty || formData.learningPathLevel || ''}
@@ -521,11 +521,11 @@ function AdminCareerPathEditorPage() {
                 </div>
 
                 <div>
-                  <label className="block font-headline text-xs uppercase tracking-widest font-bold mb-2">
+                  <label className="block font-headline text-xs tracking-normal font-bold mb-2">
                     Estimated Hours
                   </label>
                   <input
-                    className="w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                    className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                     name="estimatedHours"
                     onChange={handleInputChange}
                     type="number"
@@ -534,11 +534,11 @@ function AdminCareerPathEditorPage() {
                 </div>
 
                 <div>
-                  <label className="block font-headline text-xs uppercase tracking-widest font-bold mb-2">
+                  <label className="block font-headline text-xs tracking-normal font-bold mb-2">
                     Enrolled Count
                   </label>
                   <input
-                    className="w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                    className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                     name="enrolledCount"
                     onChange={handleInputChange}
                     type="number"
@@ -547,11 +547,11 @@ function AdminCareerPathEditorPage() {
                 </div>
 
                 <div>
-                  <label className="block font-headline text-xs uppercase tracking-widest font-bold mb-2">
+                  <label className="block font-headline text-xs tracking-normal font-bold mb-2">
                     Mastery % (for display progress)
                   </label>
                   <input
-                    className="w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                    className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                     name="mastery"
                     onChange={handleInputChange}
                     type="number"
@@ -563,8 +563,8 @@ function AdminCareerPathEditorPage() {
               </div>
             </section>
 
-            <section className="bg-surface-container-lowest p-8">
-              <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-6">
+            <section className="rounded-2xl bg-surface-container-lowest p-8">
+              <h2 className="font-headline text-xl font-bold tracking-tight mb-6">
                 Preview
               </h2>
               <div className="bg-surface-container-highest p-6 rounded">
@@ -572,11 +572,11 @@ function AdminCareerPathEditorPage() {
                   <span className="material-symbols-outlined text-secondary" style={{ fontSize: '32px' }}>
                     {formData.icon || 'folder'}
                   </span>
-                  <span className="bg-secondary-container text-on-secondary-container px-2 py-1 font-label text-[10px] font-bold uppercase">
+                  <span className="rounded-full bg-secondary-container text-on-secondary-container px-2 py-1 font-label text-[10px] font-bold">
                     {formData.learningPathLevel || formData.difficulty}
                   </span>
                 </div>
-                <h3 className="font-headline font-black text-lg mb-2 uppercase">{formData.title}</h3>
+                <h3 className="font-headline font-black text-lg mb-2">{formData.title}</h3>
                 <p className="text-sm text-on-surface-variant mb-6">{formData.description}</p>
                 <div className="space-y-2 text-xs text-on-surface-variant">
                   <div className="flex items-center gap-2">
@@ -590,7 +590,7 @@ function AdminCareerPathEditorPage() {
                   <div className="flex items-center gap-2 mt-4">
                     <span className="text-xs font-bold">Mastery: {formData.mastery}%</span>
                   </div>
-                  <div className="w-full h-1 bg-surface-container mt-2">
+                  <div className="rounded-xl w-full h-1 bg-surface-container mt-2">
                     <div
                       className="h-full bg-secondary transition-all"
                       style={{ width: `${formData.mastery}%` }}
@@ -600,17 +600,17 @@ function AdminCareerPathEditorPage() {
               </div>
             </section>
 
-            <section className="bg-surface-container-lowest p-8 lg:col-span-2">
-              <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-6">
+            <section className="rounded-2xl bg-surface-container-lowest p-8 lg:col-span-2">
+              <h2 className="font-headline text-xl font-bold tracking-tight mb-6">
                 Certificate Artwork
               </h2>
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-6 items-start">
                 <div className="space-y-3">
-                  <label className="block font-headline text-xs uppercase tracking-widest font-bold mb-2">
+                  <label className="block font-headline text-xs tracking-normal font-bold mb-2">
                     Select Image For Certificate
                   </label>
                   <input
-                    className="w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                    className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                     onChange={handleCertificateImageUpload}
                     type="file"
                     accept="image/*"
@@ -620,7 +620,7 @@ function AdminCareerPathEditorPage() {
                   </p>
                   {formData.certificateImageData ? (
                     <button
-                      className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold uppercase tracking-widest"
+                      className="rounded-lg px-4 py-2 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold tracking-normal"
                       onClick={handleClearCertificateImage}
                       type="button"
                     >
@@ -629,7 +629,7 @@ function AdminCareerPathEditorPage() {
                   ) : null}
                 </div>
 
-                <div className="bg-surface-container-highest p-3 border border-outline-variant/30 min-h-56 flex items-center justify-center overflow-hidden">
+                <div className="rounded-xl bg-surface-container-highest p-3 border border-outline-variant/30 min-h-56 flex items-center justify-center overflow-hidden">
                   {certificateImagePreview ? (
                     <img
                       alt="Certificate artwork preview"
@@ -637,7 +637,7 @@ function AdminCareerPathEditorPage() {
                       src={certificateImagePreview}
                     />
                   ) : (
-                    <div className="text-center text-xs text-on-surface-variant uppercase tracking-widest">
+                    <div className="text-center text-xs text-on-surface-variant tracking-normal">
                       No artwork selected yet
                     </div>
                   )}
@@ -651,28 +651,28 @@ function AdminCareerPathEditorPage() {
         {activeTab === 'modules' && (
           <div className="space-y-8">
             {/* Add New Module */}
-            <section className="bg-surface-container-lowest p-8">
-              <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-6">
+            <section className="rounded-2xl bg-surface-container-lowest p-8">
+              <h2 className="font-headline text-xl font-bold tracking-tight mb-6">
                 Add New Module
               </h2>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <input
-                    className="bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                    className="rounded-xl bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                     onChange={(e) => setNewModuleForm({ ...newModuleForm, phase: e.target.value })}
                     placeholder="Phase (e.g., Module 01)"
                     type="text"
                     value={newModuleForm.phase}
                   />
                   <input
-                    className="bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                    className="rounded-xl bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                     onChange={(e) => setNewModuleForm({ ...newModuleForm, title: e.target.value })}
                     placeholder="Module Title"
                     type="text"
                     value={newModuleForm.title}
                   />
                   <button
-                    className="bg-secondary text-on-secondary px-4 py-2 font-headline text-xs font-bold uppercase hover:bg-secondary-darker transition-all"
+                    className="rounded-lg bg-secondary text-on-secondary px-4 py-2 font-headline text-xs font-bold hover:bg-secondary-darker transition-all"
                     onClick={handleAddModule}
                     type="button"
                   >
@@ -680,7 +680,7 @@ function AdminCareerPathEditorPage() {
                   </button>
                 </div>
                 <input
-                  className="w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                  className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                   onChange={(e) =>
                     setNewModuleForm({ ...newModuleForm, description: e.target.value })
                   }
@@ -688,8 +688,8 @@ function AdminCareerPathEditorPage() {
                   type="text"
                   value={newModuleForm.description}
                 />
-                <div className="bg-surface-container-highest border-l-2 border-l-secondary p-4">
-                  <label className="block font-headline text-xs uppercase tracking-widest font-bold mb-2">
+                <div className="rounded-2xl bg-surface-container-highest border-l-2 border-l-secondary p-4">
+                  <label className="block font-headline text-xs tracking-normal font-bold mb-2">
                     Module Image
                   </label>
                   <div className="flex items-center gap-4">
@@ -711,26 +711,26 @@ function AdminCareerPathEditorPage() {
             </section>
 
             {/* Existing Modules */}
-            <section className="bg-surface-container-lowest p-8">
-              <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-6">
+            <section className="rounded-2xl bg-surface-container-lowest p-8">
+              <h2 className="font-headline text-xl font-bold tracking-tight mb-6">
                 Current Modules ({formData.modules?.length || 0})
               </h2>
               {formData.modules && formData.modules.length > 0 ? (
                 <div className="space-y-6">
                   {formData.modules.map((module) => (
-                    <div key={module.id} className="bg-surface-container-high p-6 border-l-4 border-secondary/50">
+                    <div key={module.id} className="rounded-2xl bg-surface-container-high p-6 border-l-4 border-secondary/50">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                             <input
-                              className="w-full bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
+                              className="rounded-lg w-full bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
                               onChange={(e) => handleModuleDraftChange(module.id, 'phase', e.target.value)}
                               placeholder="Phase"
                               type="text"
                               value={module.phase || ''}
                             />
                             <input
-                              className="w-full bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
+                              className="rounded-lg w-full bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
                               onChange={(e) => handleModuleDraftChange(module.id, 'title', e.target.value)}
                               placeholder="Module Title"
                               type="text"
@@ -738,7 +738,7 @@ function AdminCareerPathEditorPage() {
                             />
                           </div>
                           <textarea
-                            className="w-full bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
+                            className="rounded-lg w-full bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
                             onChange={(e) => handleModuleDraftChange(module.id, 'description', e.target.value)}
                             placeholder="Module Description"
                             rows="2"
@@ -747,14 +747,14 @@ function AdminCareerPathEditorPage() {
                         </div>
                         <div className="flex flex-col gap-2 ml-4">
                           <button
-                            className="px-3 py-2 bg-secondary text-on-secondary font-headline text-[10px] font-bold uppercase tracking-widest"
+                            className="rounded-lg px-3 py-2 bg-secondary text-on-secondary font-headline text-[10px] font-bold tracking-normal"
                             onClick={() => handleSaveModule(module.id)}
                             type="button"
                           >
                             {modulesSavedId === module.id ? 'Saved' : 'Save'}
                           </button>
                           <button
-                            className="text-on-surface-variant hover:text-red-500 transition-colors"
+                            className="text-on-surface-variant hover:text-error transition-colors"
                             onClick={() => handleDeleteModule(module.id)}
                             type="button"
                           >
@@ -763,8 +763,8 @@ function AdminCareerPathEditorPage() {
                         </div>
                       </div>
 
-                      <div className="bg-surface-container-lowest border-l-2 border-l-secondary p-4 mb-4">
-                        <label className="block font-headline text-xs uppercase tracking-widest font-bold mb-2">
+                      <div className="rounded-2xl bg-surface-container-lowest border-l-2 border-l-secondary p-4 mb-4">
+                        <label className="block font-headline text-xs tracking-normal font-bold mb-2">
                           Module Image
                         </label>
                         <div className="flex items-center gap-4">
@@ -776,7 +776,7 @@ function AdminCareerPathEditorPage() {
                           />
                           {module.imageData ? (
                             <button
-                              className="px-3 py-2 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold uppercase tracking-widest"
+                              className="rounded-lg px-3 py-2 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold tracking-normal"
                               onClick={() => handleModuleDraftChange(module.id, 'imageData', '')}
                               type="button"
                             >
@@ -794,7 +794,7 @@ function AdminCareerPathEditorPage() {
 
                       {/* Room Assignment */}
                       <div className="mt-6 pt-6 border-t border-outline-variant/20">
-                        <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">
+                        <p className="text-xs font-bold tracking-normal text-on-surface-variant mb-3">
                           Assigned Rooms
                         </p>
                         <div className="space-y-2 mb-4">
@@ -804,11 +804,11 @@ function AdminCareerPathEditorPage() {
                               return (
                                 <div
                                   key={roomId}
-                                  className="flex justify-between items-center bg-surface-container-lowest p-3"
+                                  className="rounded-xl flex justify-between items-center bg-surface-container-lowest p-3"
                                 >
                                   <span className="text-sm">{room?.title || roomId}</span>
                                   <button
-                                    className="text-on-surface-variant hover:text-red-500 transition-colors"
+                                    className="text-on-surface-variant hover:text-error transition-colors"
                                     onClick={() => handleRemoveRoomFromModule(module.id, roomId)}
                                     type="button"
                                   >
@@ -818,7 +818,7 @@ function AdminCareerPathEditorPage() {
                               )
                             })
                           ) : (
-                            <p className="text-xs text-on-surface-variant italic">No rooms assigned yet.</p>
+                            <p className="text-xs text-on-surface-variant italic">No courses assigned yet.</p>
                           )}
                         </div>
 
@@ -843,19 +843,19 @@ function AdminCareerPathEditorPage() {
                           return (
                             <div className="space-y-2">
                               <input
-                                className="w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                                className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                                 onChange={(event) =>
                                   setRoomSearchByModule((prev) => ({
                                     ...prev,
                                     [module.id]: event.target.value,
                                   }))
                                 }
-                                placeholder="Search rooms by title, slug, category, or difficulty..."
+                                placeholder="Search courses by title, slug, category, or difficulty..."
                                 type="search"
                                 value={roomSearch}
                               />
                               <select
-                                className="w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                                className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                                 disabled={!availableRooms.length}
                                 onChange={(e) => {
                                   if (e.target.value) {
@@ -894,28 +894,28 @@ function AdminCareerPathEditorPage() {
         {activeTab === 'resources' && (
           <div className="space-y-8">
             {/* Add New Resource */}
-            <section className="bg-surface-container-lowest p-8">
-              <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-6">
+            <section className="rounded-2xl bg-surface-container-lowest p-8">
+              <h2 className="font-headline text-xl font-bold tracking-tight mb-6">
                 Add New Resource
               </h2>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <input
-                    className="bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                    className="rounded-xl bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                     onChange={(e) => setNewResourceForm({ ...newResourceForm, title: e.target.value })}
                     placeholder="Resource Title"
                     type="text"
                     value={newResourceForm.title}
                   />
                   <input
-                    className="bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                    className="rounded-xl bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                     onChange={(e) => setNewResourceForm({ ...newResourceForm, url: e.target.value })}
                     placeholder="Resource URL"
                     type="text"
                     value={newResourceForm.url}
                   />
                   <select
-                    className="bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                    className="rounded-xl bg-surface-container-highest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                     onChange={(e) => setNewResourceForm({ ...newResourceForm, type: e.target.value })}
                     value={newResourceForm.type}
                   >
@@ -926,7 +926,7 @@ function AdminCareerPathEditorPage() {
                   </select>
                 </div>
                 <button
-                  className="bg-secondary text-on-secondary px-4 py-2 font-headline text-xs font-bold uppercase hover:bg-secondary-darker transition-all"
+                  className="rounded-lg bg-secondary text-on-secondary px-4 py-2 font-headline text-xs font-bold hover:bg-secondary-darker transition-all"
                   onClick={handleAddResource}
                   type="button"
                 >
@@ -936,8 +936,8 @@ function AdminCareerPathEditorPage() {
             </section>
 
             {/* Existing Resources */}
-            <section className="bg-surface-container-lowest p-8">
-              <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-6">
+            <section className="rounded-2xl bg-surface-container-lowest p-8">
+              <h2 className="font-headline text-xl font-bold tracking-tight mb-6">
                 Current Resources ({formData.resources?.length || 0})
               </h2>
               {formData.resources && formData.resources.length > 0 ? (
@@ -945,25 +945,25 @@ function AdminCareerPathEditorPage() {
                   {formData.resources.map((resource) => (
                     <div
                       key={resource.id}
-                      className="bg-surface-container-high p-4 border-l-2 border-secondary/50"
+                      className="rounded-2xl bg-surface-container-high p-4 border-l-2 border-secondary/50"
                     >
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <input
-                          className="bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
+                          className="rounded-lg bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
                           onChange={(e) => handleResourceDraftChange(resource.id, 'title', e.target.value)}
                           placeholder="Resource Title"
                           type="text"
                           value={resource.title || ''}
                         />
                         <input
-                          className="bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
+                          className="rounded-lg bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
                           onChange={(e) => handleResourceDraftChange(resource.id, 'url', e.target.value)}
                           placeholder="Resource URL"
                           type="text"
                           value={resource.url || ''}
                         />
                         <select
-                          className="bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
+                          className="rounded-lg bg-surface-container-lowest border-l-2 border-l-secondary focus:ring-0 font-body text-sm py-2 px-3 outline-none"
                           onChange={(e) => handleResourceDraftChange(resource.id, 'type', e.target.value)}
                           value={resource.type || 'Reference'}
                         >
@@ -989,14 +989,14 @@ function AdminCareerPathEditorPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <button
-                            className="px-3 py-2 bg-secondary text-on-secondary font-headline text-[10px] font-bold uppercase tracking-widest"
+                            className="rounded-lg px-3 py-2 bg-secondary text-on-secondary font-headline text-[10px] font-bold tracking-normal"
                             onClick={() => handleSaveResource(resource.id)}
                             type="button"
                           >
                             {resourcesSavedId === resource.id ? 'Saved' : 'Save'}
                           </button>
                           <button
-                            className="text-on-surface-variant hover:text-red-500 transition-colors"
+                            className="text-on-surface-variant hover:text-error transition-colors"
                             onClick={() => handleDeleteResource(resource.id)}
                             type="button"
                           >

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getCareerPathsData, hydrateCareerPathsData } from '../data/careerPathsData'
-import { getRoomsData, hydrateRoomsData } from '../data/roomsData'
+import { getCoursesData, hydrateCoursesData } from '../data/coursesData'
 import {
   getLabProgressEvents,
   getLabProgressMap,
@@ -15,22 +15,22 @@ function getRoomStatus(progress) {
   return 'queued'
 }
 
-const INTRO_TO_CYBERSECURITY_PATTERN = /(?:introduction|intro)[-_\s]+to[-_\s]+cyber[-_\s]*security|cyber[-_\s]*security[-_\s]+(?:introduction|intro)|cyber[-_\s]*security[-_\s]+101/
+const INTRO_PATH_PATTERN = /(?:introduction|intro|getting[-_\s]+started)[-_\s]*(?:to)?[-_\s]*(?:programming|coding|development|design|data)?|foundations?[-_\s]+101/
 
-function isCybersecurityIntroRoom(room) {
+function isIntroCourse(room) {
   const text = `${room?.title || ''} ${room?.slug || ''} ${room?.id || ''}`.toLowerCase()
-  return INTRO_TO_CYBERSECURITY_PATTERN.test(text)
+  return INTRO_PATH_PATTERN.test(text)
 }
 
-function isCybersecurityIntroPath(path) {
+function isIntroPath(path) {
   const text = `${path?.title || ''} ${path?.slug || ''} ${path?.id || ''}`.toLowerCase()
-  return INTRO_TO_CYBERSECURITY_PATTERN.test(text)
+  return INTRO_PATH_PATTERN.test(text)
 }
 
-function isCybersecurityIntroModule(module) {
+function isIntroModule(module) {
   const text = `${module?.title || ''} ${module?.phase || ''} ${module?.id || ''}`.toLowerCase()
-  const moduleTitleMatches = INTRO_TO_CYBERSECURITY_PATTERN.test(text)
-  const moduleOnlyContainsIntro = (module?.rooms || []).length > 0 && (module.rooms || []).every(isCybersecurityIntroRoom)
+  const moduleTitleMatches = INTRO_PATH_PATTERN.test(text)
+  const moduleOnlyContainsIntro = (module?.rooms || []).length > 0 && (module.rooms || []).every(isIntroCourse)
   return moduleTitleMatches || moduleOnlyContainsIntro
 }
 
@@ -122,7 +122,7 @@ function buildFallbackModules(rooms) {
 
 function RoadmapPage() {
   const [paths, setPaths] = useState(() => getCareerPathsData())
-  const [rooms, setRooms] = useState(() => getRoomsData())
+  const [rooms, setRooms] = useState(() => getCoursesData())
   const [progressMap, setProgressMap] = useState(() => getLabProgressMap())
   const [isLoading, setIsLoading] = useState(true)
   const [roadmapZoom, setRoadmapZoom] = useState(1)
@@ -144,7 +144,7 @@ function RoadmapPage() {
         const nextRooms = Array.isArray(roomsResponse) ? roomsResponse : []
 
         hydrateCareerPathsData(nextPaths)
-        hydrateRoomsData(nextRooms)
+        hydrateCoursesData(nextRooms)
 
         if (!cancelled) {
           setPaths(nextPaths)
@@ -153,7 +153,7 @@ function RoadmapPage() {
       } catch {
         if (!cancelled) {
           setPaths(getCareerPathsData())
-          setRooms(getRoomsData())
+          setRooms(getCoursesData())
         }
       } finally {
         if (!cancelled) {
@@ -195,7 +195,7 @@ function RoadmapPage() {
       ? paths
       : [{
           id: 'all-rooms',
-          title: 'MISSION CATALOG',
+          title: 'Course Catalogue',
           description: 'A generated roadmap from all available academy rooms.',
           modules: buildFallbackModules(rooms),
         }]
@@ -240,9 +240,9 @@ function RoadmapPage() {
   const completedRooms = allRooms.filter((room) => progressMap[room.id]?.completedAt).length
   const inProgressRooms = allRooms.filter((room) => progressMap[room.id]?.startedAt && !progressMap[room.id]?.completedAt).length
   const nextRoom = allRooms.find((room) => getRoomStatus(progressMap[room.id]) !== 'completed')
-  const foundationPath = roadmap.find(isCybersecurityIntroPath)
+  const foundationPath = roadmap.find(isIntroPath)
   const foundationPathRooms = foundationPath?.modules?.flatMap((module) => module.rooms) || []
-  const foundationRoom = foundationPathRooms.find(isCybersecurityIntroRoom) || allRooms.find(isCybersecurityIntroRoom)
+  const foundationRoom = foundationPathRooms.find(isIntroCourse) || allRooms.find(isIntroCourse)
   const foundationTargetRoom = foundationRoom
     || allRooms.find((room) => /foundation|basic|intro/i.test(room.title || room.category || ''))
     || allRooms[0]
@@ -258,13 +258,13 @@ function RoadmapPage() {
     ? {
         id: 'foundation-entry',
         slug: foundationTargetRoom.slug || foundationTargetRoom.id,
-        title: 'Introduction to Cybersecurity',
+        title: 'Getting Started',
         description: foundationRoom?.description || 'Begin here before branching into academy specializations, practical labs, and role-based paths.',
         pathCompletion: getRoomStatus(progressMap[foundationTargetRoom.id]) === 'completed' ? 100 : 0,
       }
     : null)
   const columns = branchPaths.map((path, index) => {
-    const modulesForPath = path.modules.filter((module) => !isCybersecurityIntroModule(module))
+    const modulesForPath = path.modules.filter((module) => !isIntroModule(module))
 
     return {
       ...path,
@@ -369,7 +369,7 @@ function RoadmapPage() {
   const renderLinkedPathBranch = (linkedPath, tone, keyPrefix) => {
     if (!linkedPath) return null
 
-    const childModules = (linkedPath.modules || []).filter((module) => !isCybersecurityIntroModule(module))
+    const childModules = (linkedPath.modules || []).filter((module) => !isIntroModule(module))
     const lineClass = tone?.line || 'bg-secondary/70'
     const borderClass = tone?.border || 'border-secondary/50'
     const panelClass = tone?.panel || 'from-secondary/30 to-surface-container-high'
@@ -395,10 +395,10 @@ function RoadmapPage() {
               </span>
             </span>
             <div className="min-w-0 flex-1">
-              <p className="font-headline text-[9px] font-bold uppercase tracking-[0.24em] text-secondary">
+              <p className="font-headline text-[9px] font-bold tracking-normal text-secondary">
                 Linked Sub-Path
               </p>
-              <h4 className="mt-1 line-clamp-2 font-headline text-[11px] font-black uppercase tracking-wide text-on-background">
+              <h4 className="mt-1 line-clamp-2 font-headline text-[11px] font-black tracking-wide text-on-background">
                 {linkedPath.title}
               </h4>
               <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-on-surface-variant">
@@ -406,27 +406,27 @@ function RoadmapPage() {
               </p>
             </div>
             <div className="shrink-0 text-right">
-              <span className={`font-space text-sm font-black ${textClass}`}>
+              <span className={`font-headline text-sm font-black ${textClass}`}>
                 {linkedPath.pathCompletion || 0}%
               </span>
-              <p className="font-headline text-[8px] font-bold uppercase tracking-widest text-on-surface-variant">
+              <p className="font-headline text-[8px] font-bold tracking-normal text-on-surface-variant">
                 Complete
               </p>
             </div>
           </div>
           {childModules.length ? (
             <div className="mt-3 border-t border-outline-variant/50 pt-3">
-              <p className="font-headline text-[8px] font-bold uppercase tracking-widest text-on-surface-variant">
+              <p className="font-headline text-[8px] font-bold tracking-normal text-on-surface-variant">
                 Submodules
               </p>
               <div className="mt-2 space-y-1.5">
                 {childModules.slice(0, 4).map((childModule, childIndex) => (
                   <div
-                    className="flex items-center gap-2 bg-surface-container-high/70 px-2 py-1.5 text-[10px] text-on-surface-variant"
+                    className="rounded-full flex items-center gap-2 bg-surface-container-high/70 px-2 py-1.5 text-[10px] text-on-surface-variant"
                     key={`${keyPrefix}-${linkedPath.id}-${childModule.id}`}
                   >
                     <span className={`h-1.5 w-1.5 shrink-0 ${lineClass}`}></span>
-                    <span className="min-w-0 flex-1 truncate font-headline font-bold uppercase tracking-wide">
+                    <span className="min-w-0 flex-1 truncate font-headline font-bold tracking-wide">
                       {childModule.phase || `Module ${String(childIndex + 1).padStart(2, '0')}`} - {childModule.title}
                     </span>
                   </div>
@@ -445,7 +445,7 @@ function RoadmapPage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface pt-32 md:pt-36 text-on-surface">
+    <main className="rounded-xl min-h-screen bg-surface pt-32 md:pt-36 text-on-surface">
       <section className="relative overflow-hidden px-4 py-10 sm:px-8 lg:px-12">
         <div
           className="absolute inset-0 opacity-[0.22]"
@@ -459,11 +459,11 @@ function RoadmapPage() {
 
         <div className="relative mx-auto max-w-[104rem]">
           <header className="mx-auto max-w-5xl text-center">
-            <p className="font-headline text-xs font-bold uppercase tracking-[0.35em] text-primary">
+            <p className="font-headline text-xs font-bold tracking-normal text-primary">
               Operator Progression Matrix
             </p>
-            <h1 className="mt-4 font-headline text-4xl font-black uppercase tracking-tight text-on-background sm:text-5xl lg:text-6xl">
-              Incognitrix Roadmap
+            <h1 className="mt-4 font-headline text-4xl font-black tracking-tight text-on-background sm:text-5xl lg:text-6xl">
+              Minerva Roadmap
             </h1>
             <p className="mx-auto mt-5 max-w-3xl text-base font-medium leading-relaxed text-on-surface-variant sm:text-lg">
               A live mission route built from academy rooms, career paths, Docker/practical labs, and your completion state.
@@ -471,14 +471,14 @@ function RoadmapPage() {
           </header>
 
           {isLoading ? (
-            <div className="mx-auto mt-16 max-w-lg border border-outline-variant/50 bg-surface-container-lowest p-6 text-center font-headline text-xs uppercase tracking-widest text-on-surface-variant">
+            <div className="rounded-2xl mx-auto mt-16 max-w-lg border border-outline-variant/50 bg-surface-container-lowest p-6 text-center font-headline text-xs tracking-normal text-on-surface-variant">
               Building roadmap...
             </div>
           ) : (
             <div className="relative mx-auto mt-12 max-w-[96rem]">
               <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
                 <button
-                  className="inline-flex items-center gap-2 border border-outline-variant bg-surface-container-lowest px-4 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface hover:border-secondary disabled:opacity-40"
+                  className="rounded-lg inline-flex items-center gap-2 border border-outline-variant bg-surface-container-lowest px-4 py-2 font-headline text-[10px] font-bold tracking-normal text-on-surface hover:border-secondary disabled:opacity-40"
                   disabled={roadmapZoom <= 0.7}
                   onClick={() => setRoadmapZoom((current) => Math.max(0.7, Number((current - 0.1).toFixed(2))))}
                   type="button"
@@ -487,7 +487,7 @@ function RoadmapPage() {
                   Shrink
                 </button>
                 <button
-                  className="inline-flex items-center gap-2 border border-secondary bg-secondary/10 px-4 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-secondary"
+                  className="rounded-lg inline-flex items-center gap-2 border border-secondary bg-secondary/10 px-4 py-2 font-headline text-[10px] font-bold tracking-normal text-secondary"
                   onClick={() => setRoadmapZoom(1)}
                   type="button"
                 >
@@ -495,7 +495,7 @@ function RoadmapPage() {
                   {Math.round(roadmapZoom * 100)}%
                 </button>
                 <button
-                  className="inline-flex items-center gap-2 border border-outline-variant bg-surface-container-lowest px-4 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface hover:border-secondary disabled:opacity-40"
+                  className="rounded-lg inline-flex items-center gap-2 border border-outline-variant bg-surface-container-lowest px-4 py-2 font-headline text-[10px] font-bold tracking-normal text-on-surface hover:border-secondary disabled:opacity-40"
                   disabled={roadmapZoom >= 1.3}
                   onClick={() => setRoadmapZoom((current) => Math.min(1.3, Number((current + 0.1).toFixed(2))))}
                   type="button"
@@ -514,22 +514,22 @@ function RoadmapPage() {
                 ref={roadmapViewportRef}
               >
               <div className="mx-auto" style={{ width: branchGridWidth }}>
-              <div className="mx-auto hidden h-10 w-[3px] bg-secondary/65 shadow-[0_0_18px_rgba(102,217,239,0.25)] lg:block"></div>
+              <div className="rounded-xl mx-auto hidden h-10 w-[3px] bg-secondary/65 shadow-[0_0_18px_rgba(102,217,239,0.25)] lg:block"></div>
               {foundationEntry ? (
                 <Link
-                  className="group relative z-10 mx-auto flex max-w-2xl border border-secondary/70 bg-surface-container-lowest p-5 shadow-[0_0_34px_rgba(102,217,239,0.12)] transition-transform hover:-translate-y-0.5"
-                  to={foundationPath ? `/learn/path/${foundationPath.slug || foundationPath.id}` : `/learn/lab/${foundationTargetRoom.slug || foundationTargetRoom.id}`}
+                  className="rounded-2xl group relative z-10 mx-auto flex max-w-2xl border border-secondary/70 bg-surface-container-lowest p-5 shadow-[0_0_34px_rgba(102,217,239,0.12)] transition-transform hover:-translate-y-0.5"
+                  to={foundationPath ? `/learn/path/${foundationPath.slug || foundationPath.id}` : `/learn/course/${foundationTargetRoom.slug || foundationTargetRoom.id}`}
                 >
-                  <div className="grid h-20 w-20 shrink-0 place-items-center bg-secondary/20 text-secondary">
+                  <div className="rounded-xl grid h-20 w-20 shrink-0 place-items-center bg-secondary/20 text-secondary">
                     <span className="material-symbols-outlined text-4xl">
                       shield
                     </span>
                   </div>
                   <div className="min-w-0 flex-1 px-5">
-                    <p className="font-headline text-[10px] font-bold uppercase tracking-[0.28em] text-secondary">
+                    <p className="font-headline text-[10px] font-bold tracking-normal text-secondary">
                       Foundation Entry
                     </p>
-                    <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                    <h2 className="mt-2 font-headline text-2xl font-black tracking-tight text-on-background">
                       {foundationEntry.title}
                     </h2>
                     <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-on-surface-variant">
@@ -537,10 +537,10 @@ function RoadmapPage() {
                     </p>
                   </div>
                   <div className="hidden min-w-24 flex-col items-end justify-center sm:flex">
-                    <span className="font-space text-3xl font-black text-secondary">
+                    <span className="font-headline text-3xl font-black text-secondary">
                       {foundationEntry.pathCompletion || 0}%
                     </span>
-                    <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                    <span className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">
                       Complete
                     </span>
                   </div>
@@ -548,7 +548,7 @@ function RoadmapPage() {
               ) : null}
               {foundationFlowModules.length ? (
                 <div className="mx-auto max-w-2xl">
-                  <div className="mx-auto hidden h-8 w-[5px] bg-secondary shadow-[0_0_18px_rgba(102,217,239,0.28)] lg:block"></div>
+                  <div className="rounded-xl mx-auto hidden h-8 w-[5px] bg-secondary shadow-[0_0_18px_rgba(102,217,239,0.28)] lg:block"></div>
                   <div className="space-y-0">
                     {foundationFlowModules.map((module, moduleIndex) => {
                       const firstRoom = module.rooms?.[0]
@@ -559,16 +559,16 @@ function RoadmapPage() {
                           ? `/learn/path/${linkedPath.slug || linkedPath.id}`
                           : `/learn/path/${foundationPath.slug || foundationPath.id}/module/${module.id}`
                         : firstRoom
-                          ? `/learn/lab/${firstRoom.slug || firstRoom.id}`
+                          ? `/learn/course/${firstRoom.slug || firstRoom.id}`
                           : `/learn/path/${foundationPath.slug || foundationPath.id}`
 
                       return (
                         <div className={`relative ${linkedPath ? 'lg:min-h-[15rem]' : ''}`} key={`foundation-${module.id}`}>
                           {moduleIndex > 0 ? (
-                            <div className="mx-auto hidden h-4 w-[3px] bg-secondary/70 lg:block"></div>
+                            <div className="rounded-xl mx-auto hidden h-4 w-[3px] bg-secondary/70 lg:block"></div>
                           ) : null}
                           <Link
-                            className={`group relative z-10 flex min-h-24 overflow-hidden border bg-surface-container-lowest shadow-lg transition-transform hover:-translate-y-0.5 ${
+                            className={`rounded-xl group relative z-10 flex min-h-24 overflow-hidden border bg-surface-container-lowest shadow-lg transition-transform hover:-translate-y-0.5 ${
                               isActive
                                 ? 'border-secondary shadow-[0_0_30px_rgba(102,217,239,0.14)]'
                                 : module.completion === 100
@@ -578,7 +578,7 @@ function RoadmapPage() {
                             to={moduleTarget}
                           >
                             {isActive ? (
-                              <span className="absolute left-0 top-0 z-20 bg-secondary px-3 py-1 font-headline text-[9px] font-bold uppercase tracking-widest text-on-secondary">
+                              <span className="rounded-full absolute left-0 top-0 z-20 bg-secondary px-3 py-1 font-headline text-[9px] font-bold tracking-normal text-on-secondary">
                                 Next
                               </span>
                             ) : null}
@@ -588,14 +588,14 @@ function RoadmapPage() {
                               </span>
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col justify-center p-4 pr-14">
-                              <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-primary">
+                              <p className="font-headline text-[9px] font-bold tracking-normal text-primary">
                                 {module.phase || `Module ${String(moduleIndex + 1).padStart(2, '0')}`} / {module.rooms.length} rooms
                               </p>
-                              <h4 className="mt-1 line-clamp-2 font-headline text-sm font-black uppercase tracking-wide text-on-background">
+                              <h4 className="mt-1 line-clamp-2 font-headline text-sm font-black tracking-wide text-on-background">
                                 {module.title}
                               </h4>
                               {linkedPath ? (
-                                <p className="mt-2 line-clamp-1 font-headline text-[9px] font-bold uppercase tracking-widest text-secondary">
+                                <p className="mt-2 line-clamp-1 font-headline text-[9px] font-bold tracking-normal text-secondary">
                                   Links to {linkedPath.title}
                                 </p>
                               ) : null}
@@ -612,7 +612,7 @@ function RoadmapPage() {
                             ) : null}
                           </Link>
                           {linkedPath ? renderLinkedPathBranch(linkedPath, null, `foundation-link-${module.id}`) : null}
-                          <div className="mx-auto hidden h-4 w-[3px] bg-secondary/70 lg:block"></div>
+                          <div className="rounded-xl mx-auto hidden h-4 w-[3px] bg-secondary/70 lg:block"></div>
                         </div>
                       )
                     })}
@@ -641,18 +641,18 @@ function RoadmapPage() {
                 {columns.map((column) => (
                   <section className="relative pt-10" key={column.id || column.title}>
                     <div className={`absolute left-1/2 top-0 hidden h-full w-[3px] -translate-x-1/2 ${column.tone.line} lg:block`}></div>
-                    <div className="absolute left-1/2 top-0 hidden h-10 w-[5px] -translate-x-1/2 bg-secondary shadow-[0_0_16px_rgba(102,217,239,0.22)] lg:block"></div>
-                    <div className="relative z-10 mx-auto min-h-40 border border-outline-variant/60 bg-surface-container-lowest p-5 text-center shadow-xl">
-                      <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-primary">
+                    <div className="rounded-xl absolute left-1/2 top-0 hidden h-10 w-[5px] -translate-x-1/2 bg-secondary shadow-[0_0_16px_rgba(102,217,239,0.22)] lg:block"></div>
+                    <div className="rounded-2xl relative z-10 mx-auto min-h-40 border border-outline-variant/60 bg-surface-container-lowest p-5 text-center shadow-xl">
+                      <p className="font-headline text-[10px] font-bold tracking-normal text-primary">
                         Specialization
                       </p>
-                      <h3 className="mt-2 font-headline text-xl font-black uppercase tracking-tight text-on-background">
+                      <h3 className="mt-2 font-headline text-xl font-black tracking-tight text-on-background">
                         {column.title}
                       </h3>
                       <p className="mx-auto mt-2 line-clamp-3 max-w-xs text-sm leading-relaxed text-on-surface-variant">
                         {column.description || `${column.completedRooms}/${column.totalRooms} rooms completed in this specialization.`}
                       </p>
-                      <div className="mt-4 h-1.5 bg-surface-container-high">
+                      <div className="rounded-xl mt-4 h-1.5 bg-surface-container-high">
                         <div className="h-full bg-secondary" style={{ width: `${column.pathCompletion}%` }}></div>
                       </div>
                     </div>
@@ -670,7 +670,7 @@ function RoadmapPage() {
                             ? `/learn/path/${linkedPath.slug || linkedPath.id}`
                             : `/learn/path/${column.slug || column.id}/module/${module.id}`
                           : firstRoom
-                            ? `/learn/lab/${firstRoom.slug || firstRoom.id}`
+                            ? `/learn/course/${firstRoom.slug || firstRoom.id}`
                             : `/learn/path/${column.slug || column.id}`
 
                         return (
@@ -679,7 +679,7 @@ function RoadmapPage() {
                               <div className={`mx-auto hidden h-4 w-[3px] ${column.tone.line} lg:block`}></div>
                             ) : null}
                             <Link
-                              className={`group relative z-10 flex min-h-28 overflow-hidden border bg-surface-container-lowest shadow-lg transition-transform hover:-translate-y-0.5 ${
+                              className={`rounded-xl group relative z-10 flex min-h-28 overflow-hidden border bg-surface-container-lowest shadow-lg transition-transform hover:-translate-y-0.5 ${
                                 isActive
                                   ? 'border-secondary shadow-[0_0_30px_rgba(102,217,239,0.14)]'
                                   : progress === 100
@@ -689,7 +689,7 @@ function RoadmapPage() {
                               to={moduleTarget}
                             >
                               {isActive ? (
-                                <span className="absolute left-0 top-0 z-20 bg-secondary px-3 py-1 font-headline text-[9px] font-bold uppercase tracking-widest text-on-secondary">
+                                <span className="rounded-full absolute left-0 top-0 z-20 bg-secondary px-3 py-1 font-headline text-[9px] font-bold tracking-normal text-on-secondary">
                                   Next
                                 </span>
                               ) : null}
@@ -699,26 +699,26 @@ function RoadmapPage() {
                                 </span>
                               </div>
                               <div className="flex min-w-0 flex-1 flex-col justify-center p-4 pr-16">
-                                <h4 className="line-clamp-2 font-headline text-sm font-black uppercase tracking-wide text-on-background">
+                                <h4 className="line-clamp-2 font-headline text-sm font-black tracking-wide text-on-background">
                                   {module.title}
                                 </h4>
                                 <div className="mt-3 flex flex-wrap items-center gap-2">
                                   <span className={`material-symbols-outlined text-base ${progress === 100 ? 'text-secondary' : column.tone.text}`}>
                                     {progress === 100 ? 'check_circle' : 'signal_cellular_alt'}
                                   </span>
-                                  <span className="bg-surface-container-high px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                                  <span className="rounded-full bg-surface-container-high px-3 py-1 font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">
                                     {module.phase || `Module ${String(moduleIndex + 1).padStart(2, '0')}`}
                                   </span>
-                                  <span className="max-w-full truncate bg-primary/10 px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
+                                  <span className="rounded-full max-w-full truncate bg-primary/10 px-3 py-1 font-headline text-[10px] font-bold tracking-normal text-primary">
                                     {module.rooms.length} rooms
                                   </span>
                                   {module.description ? (
-                                    <span className="max-w-full truncate bg-primary/10 px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
+                                    <span className="rounded-full max-w-full truncate bg-primary/10 px-3 py-1 font-headline text-[10px] font-bold tracking-normal text-primary">
                                       {module.description}
                                     </span>
                                   ) : null}
                                   {linkedPath ? (
-                                    <span className="max-w-full truncate bg-secondary/10 px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
+                                    <span className="rounded-full max-w-full truncate bg-secondary/10 px-3 py-1 font-headline text-[10px] font-bold tracking-normal text-secondary">
                                       Links to {linkedPath.title}
                                     </span>
                                   ) : null}
@@ -742,7 +742,7 @@ function RoadmapPage() {
                             </div>
                         )
                       }) : (
-                        <div className="border border-outline-variant/50 bg-surface-container-lowest p-5 text-center text-sm text-on-surface-variant">
+                        <div className="rounded-2xl border border-outline-variant/50 bg-surface-container-lowest p-5 text-center text-sm text-on-surface-variant">
                           Modules will appear here when this path is configured.
                         </div>
                       )}
@@ -751,16 +751,16 @@ function RoadmapPage() {
                 ))}
               </div>
               {columns.length === 0 ? (
-                <div className="border border-outline-variant/50 bg-surface-container-lowest p-8 text-center text-on-surface-variant">
+                <div className="rounded-2xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center text-on-surface-variant">
                   No rooms are available for a roadmap yet.
                 </div>
               ) : null}
-              <div className="mx-auto mt-10 hidden h-12 w-[3px] bg-secondary/65 shadow-[0_0_18px_rgba(102,217,239,0.18)] lg:block"></div>
-              <div className="mx-auto max-w-xl border border-outline-variant/50 bg-surface-container-lowest p-6 text-center shadow-xl">
-                <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-secondary">
+              <div className="rounded-xl mx-auto mt-10 hidden h-12 w-[3px] bg-secondary/65 shadow-[0_0_18px_rgba(102,217,239,0.18)] lg:block"></div>
+              <div className="rounded-2xl mx-auto max-w-xl border border-outline-variant/50 bg-surface-container-lowest p-6 text-center shadow-xl">
+                <p className="font-headline text-[10px] font-bold tracking-normal text-secondary">
                   Current Mission Focus
                 </p>
-                <h2 className="mt-2 font-headline text-xl font-black uppercase tracking-tight text-on-background">
+                <h2 className="mt-2 font-headline text-xl font-black tracking-tight text-on-background">
                   {nextRoom?.title || 'All Mapped Missions Cleared'}
                 </h2>
                 <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">
@@ -770,8 +770,8 @@ function RoadmapPage() {
                 </p>
                 {nextRoom ? (
                   <Link
-                    className="mt-5 inline-flex items-center justify-center gap-2 bg-primary px-5 py-3 font-headline text-xs font-black uppercase tracking-widest text-on-primary"
-                    to={`/learn/lab/${nextRoom.slug || nextRoom.id}`}
+                    className="rounded-xl mt-5 inline-flex items-center justify-center gap-2 bg-primary px-5 py-3 font-headline text-xs font-black tracking-normal text-on-primary"
+                    to={`/learn/course/${nextRoom.slug || nextRoom.id}`}
                   >
                     Enter Mission
                     <span className="material-symbols-outlined text-base">arrow_forward</span>
@@ -783,18 +783,18 @@ function RoadmapPage() {
             </div>
           )}
 
-          <div className="relative mx-auto mt-14 grid max-w-4xl gap-4 border border-outline-variant/40 bg-surface-container-lowest p-5 sm:grid-cols-3">
+          <div className="rounded-2xl relative mx-auto mt-14 grid max-w-4xl gap-4 border border-outline-variant/40 bg-surface-container-lowest p-5 sm:grid-cols-3">
             <div>
-              <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Cleared</p>
-              <p className="mt-1 font-space text-3xl font-black text-secondary">{completedRooms}</p>
+              <p className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">Cleared</p>
+              <p className="mt-1 font-headline text-3xl font-black text-secondary">{completedRooms}</p>
             </div>
             <div>
-              <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">In Progress</p>
-              <p className="mt-1 font-space text-3xl font-black text-primary">{inProgressRooms}</p>
+              <p className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">In Progress</p>
+              <p className="mt-1 font-headline text-3xl font-black text-primary">{inProgressRooms}</p>
             </div>
             <div>
-              <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Mapped Rooms</p>
-              <p className="mt-1 font-space text-3xl font-black text-on-background">{allRooms.length}</p>
+              <p className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">Mapped Courses</p>
+              <p className="mt-1 font-headline text-3xl font-black text-on-background">{allRooms.length}</p>
             </div>
           </div>
         </div>

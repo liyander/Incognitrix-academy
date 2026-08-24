@@ -32,9 +32,9 @@ function AdminInterviewQuestionsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
+    <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10">
       <section className="max-w-6xl mx-auto">
-        <header className="bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 mb-8">
+        <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 mb-8">
           <div className="mb-4 flex items-center gap-4">
             <button
               className="text-primary hover:text-on-surface transition-colors"
@@ -43,11 +43,11 @@ function AdminInterviewQuestionsPage() {
             >
               <span className="material-symbols-outlined">arrow_back</span>
             </button>
-            <span className="font-headline text-[10px] tracking-[0.25em] uppercase text-primary font-bold">
+            <span className="font-headline text-[10px] tracking-normal text-primary font-bold">
               Admin Interview Bank
             </span>
           </div>
-          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight uppercase">
+          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight">
             Interview Questions
           </h1>
           <p className="mt-4 max-w-2xl text-sm text-on-surface-variant">
@@ -56,13 +56,13 @@ function AdminInterviewQuestionsPage() {
         </header>
 
         <section className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_22rem] gap-8">
-          <div className="bg-surface-container-lowest p-6 md:p-8">
+          <div className="rounded-2xl bg-surface-container-lowest p-6 md:p-8">
             <label className="block">
-              <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
+              <span className="font-headline text-[10px] font-bold tracking-normal text-primary">
                 Custom Questions
               </span>
               <textarea
-                className="mt-3 min-h-[18rem] w-full bg-surface-container-highest border-l-2 border-l-primary py-4 px-5 outline-none font-body text-sm"
+                className="rounded-2xl mt-3 min-h-[18rem] w-full bg-surface-container-highest border-l-2 border-l-primary py-4 px-5 outline-none font-body text-sm"
                 onChange={(event) => setQuestionsText(event.target.value)}
                 placeholder={'Paste one question per line, or separate questions with blank lines.\n\nExample:\n1. How would you explain SQL injection risk to a developer?\n2. What evidence would you collect during a suspicious Linux process investigation?'}
                 value={questionsText}
@@ -70,14 +70,14 @@ function AdminInterviewQuestionsPage() {
             </label>
 
             {errorMessage ? (
-              <div className="mt-4 border-l-4 border-l-error bg-error/10 px-4 py-3 text-sm text-error">
+              <div className="rounded-xl mt-4 border-l-4 border-l-error bg-error/10 px-4 py-3 text-sm text-error">
                 {errorMessage}
               </div>
             ) : null}
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
               <button
-                className="bg-primary text-on-primary px-6 py-3 font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-60"
+                className="rounded-xl bg-primary text-on-primary px-6 py-3 font-headline text-xs font-bold tracking-normal disabled:opacity-60"
                 disabled={isSubmitting}
                 onClick={handleSubmit}
                 type="button"
@@ -85,7 +85,7 @@ function AdminInterviewQuestionsPage() {
                 {isSubmitting ? 'Analysing...' : 'Analyse And Insert'}
               </button>
               <button
-                className="border border-outline-variant px-6 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-surface hover:border-primary hover:text-primary"
+                className="rounded-xl border border-outline-variant px-6 py-3 font-headline text-xs font-bold tracking-normal text-on-surface hover:border-primary hover:text-primary"
                 onClick={() => {
                   setQuestionsText('')
                   setResults([])
@@ -98,11 +98,11 @@ function AdminInterviewQuestionsPage() {
             </div>
           </div>
 
-          <aside className="bg-surface-container-low p-6 border-l-2 border-l-secondary">
-            <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
+          <aside className="rounded-2xl bg-surface-container-low p-6 border-l-2 border-l-secondary">
+            <p className="font-headline text-[10px] font-bold tracking-normal text-secondary">
               Matching Rules
             </p>
-            <h2 className="mt-2 font-headline text-xl font-black uppercase tracking-tight">
+            <h2 className="mt-2 font-headline text-xl font-black tracking-tight">
               Room-Aware Placement
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-on-surface-variant">
@@ -115,17 +115,17 @@ function AdminInterviewQuestionsPage() {
         </section>
 
         {results.length ? (
-          <section className="mt-8 bg-surface-container-lowest p-6 md:p-8">
+          <section className="rounded-2xl mt-8 bg-surface-container-lowest p-6 md:p-8">
             <div className="mb-5 flex items-end justify-between gap-4">
               <div>
-                <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
+                <p className="font-headline text-[10px] font-bold tracking-normal text-primary">
                   Insertion Result
                 </p>
-                <h2 className="font-headline text-2xl font-black uppercase tracking-tight">
+                <h2 className="font-headline text-2xl font-black tracking-tight">
                   Matched Rooms
                 </h2>
               </div>
-              <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
+              <span className="font-headline text-[10px] font-bold tracking-normal text-secondary">
                 {results.filter((item) => item.inserted).length} Inserted
               </span>
             </div>
@@ -134,10 +134,10 @@ function AdminInterviewQuestionsPage() {
               <table className="w-full min-w-[900px] border-collapse">
                 <thead>
                   <tr className="bg-surface-container-high text-left">
-                    <th className="px-4 py-3 font-headline text-[10px] uppercase tracking-widest">Question</th>
-                    <th className="px-4 py-3 font-headline text-[10px] uppercase tracking-widest">Inserted Room</th>
-                    <th className="px-4 py-3 font-headline text-[10px] uppercase tracking-widest">Source</th>
-                    <th className="px-4 py-3 font-headline text-[10px] uppercase tracking-widest">Status</th>
+                    <th className="px-4 py-3 font-headline text-[10px] tracking-normal">Question</th>
+                    <th className="px-4 py-3 font-headline text-[10px] tracking-normal">Inserted Course</th>
+                    <th className="px-4 py-3 font-headline text-[10px] tracking-normal">Source</th>
+                    <th className="px-4 py-3 font-headline text-[10px] tracking-normal">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -148,19 +148,19 @@ function AdminInterviewQuestionsPage() {
                         <p className="mt-2 text-xs text-on-surface-variant">{item.reason}</p>
                       </td>
                       <td className="px-4 py-4 align-top">
-                        <p className="font-headline text-sm font-bold uppercase">{item.roomTitle}</p>
+                        <p className="font-headline text-sm font-bold">{item.roomTitle}</p>
                         <p className="mt-1 text-xs text-on-surface-variant">{item.roomId}</p>
                         <p className="mt-1 text-xs text-secondary">{item.category || 'Uncategorized'}</p>
                       </td>
                       <td className="px-4 py-4 align-top text-sm">
-                        <p>{item.company || 'General cybersecurity interview practice'}</p>
+                        <p>{item.company || 'General interview practice'}</p>
                         <p className="mt-1 text-xs text-on-surface-variant">{item.interview || 'Custom interview question'}</p>
-                        <span className="mt-2 inline-block bg-surface-container-high px-2 py-1 font-headline text-[9px] uppercase tracking-widest">
+                        <span className="rounded-full mt-2 inline-block bg-surface-container-high px-2 py-1 font-headline text-[9px] tracking-normal">
                           {item.matchedBy}
                         </span>
                       </td>
                       <td className="px-4 py-4 align-top">
-                        <span className={`inline-block px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest ${
+                        <span className={`inline-block px-3 py-1 font-headline text-[10px] font-bold tracking-normal ${
                           item.inserted ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'
                         }`}>
                           {item.inserted ? 'Inserted' : 'Duplicate'}

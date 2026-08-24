@@ -8,13 +8,13 @@ function NotFoundPage({ variant = 'operator', config = null }) {
   const operatorLinks = [
     { label: 'Dashboard', to: '/', icon: 'grid_view', enabled: config?.routes?.dashboard !== false },
     { label: 'Learning Paths', to: '/learn/paths', icon: 'school', enabled: config?.routes?.learningPaths !== false },
-    { label: 'Labs', to: '/learn', icon: 'science', enabled: config?.routes?.practiceLabs !== false },
-    { label: 'Scoreboard', to: '/scoreboard', icon: 'leaderboard', enabled: true },
+    { label: 'Courses', to: '/learn', icon: 'menu_book', enabled: config?.routes?.practiceLabs !== false },
+    { label: 'Leaderboard', to: '/leaderboard', icon: 'leaderboard', enabled: true },
   ].filter((item) => item.enabled)
 
   const adminLinks = [
     { label: 'Control Panel', to: '/admin', icon: 'admin_panel_settings' },
-    { label: 'Rooms', to: '/admin/rooms', icon: 'meeting_room' },
+    { label: 'Courses', to: '/admin/courses', icon: 'menu_book' },
     { label: 'Users', to: '/admin/registrations', icon: 'badge' },
     { label: 'Admin AI', to: '/admin/ai-control', icon: 'psychology' },
   ]
@@ -33,22 +33,21 @@ function NotFoundPage({ variant = 'operator', config = null }) {
         <div className="absolute inset-0 pointer-events-none opacity-[0.06]">
           <div className="h-full w-full bg-[linear-gradient(90deg,currentColor_1px,transparent_1px),linear-gradient(0deg,currentColor_1px,transparent_1px)] bg-[size:48px_48px]"></div>
         </div>
-        <div className="absolute left-0 top-0 h-full w-1 bg-primary"></div>
         <div className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
           <div>
-            <p className="font-headline text-[10px] font-bold uppercase tracking-[0.35em] text-primary">
-              Signal Lost
+            <p className="font-headline text-[10px] font-bold tracking-normal text-primary">
+              Page not found
             </p>
-            <h1 className="mt-5 font-headline text-7xl font-black uppercase leading-none tracking-tight md:text-8xl lg:text-9xl">
+            <h1 className="mt-5 font-headline text-7xl font-black leading-none tracking-tight md:text-8xl lg:text-9xl">
               404
             </h1>
-            <div className="mt-6 max-w-3xl border-l-4 border-primary bg-surface-container-lowest p-6 md:p-8">
-              <h2 className="font-headline text-2xl font-black uppercase tracking-tight md:text-4xl">
-                Mission route not found
+            <div className="rounded-2xl mt-6 max-w-3xl border-l-4 border-primary bg-surface-container-lowest p-6 md:p-8">
+              <h2 className="font-headline text-2xl font-black tracking-tight md:text-4xl">
+We couldn't find that page
               </h2>
               <p className="mt-4 text-base leading-relaxed text-on-surface-variant md:text-lg">
-                The requested path does not match an active Incognitrix Academy route. The endpoint may have moved,
-                been disabled, or never existed in this operation map.
+That address doesn't match any page on Minerva Academy. It may have moved, been turned
+                off, or never existed.
               </p>
               <p className="mt-4 break-all font-mono text-xs text-on-surface-variant">
                 Requested: {location.pathname}
@@ -56,31 +55,29 @@ function NotFoundPage({ variant = 'operator', config = null }) {
             </div>
           </div>
 
-          <aside className="bg-surface-container-lowest p-6 shadow-2xl md:p-8">
+          <aside className="rounded-2xl bg-surface-container-lowest p-6 shadow-2xl md:p-8">
             <div className="flex items-center gap-3 border-b border-outline-variant/30 pb-5">
               <span className="material-symbols-outlined text-primary">
-                {isAdmin ? 'admin_panel_settings' : isPublic ? 'public' : 'terminal'}
+                {isAdmin ? 'admin_panel_settings' : isPublic ? 'public' : 'explore'}
               </span>
               <div>
-                <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-primary">
-                  Recovery Options
+                <p className="font-headline text-[10px] font-bold tracking-normal text-primary">
+Try one of these
                 </p>
-                <h3 className="mt-1 font-headline text-xl font-black uppercase tracking-tight">
-                  Reconnect
-                </h3>
+                <h3 className="mt-1 font-headline text-xl font-extrabold">Popular pages</h3>
               </div>
             </div>
 
             <div className="mt-6 space-y-3">
               {links.map((link) => (
                 <Link
-                  className="group flex items-center justify-between gap-4 bg-surface-container-high px-4 py-4 text-on-surface transition-colors hover:bg-primary hover:text-on-primary"
+                  className="rounded-2xl group flex items-center justify-between gap-4 bg-surface-container-high px-4 py-4 text-on-surface transition-colors hover:bg-primary hover:text-on-primary"
                   key={link.to}
                   to={link.to}
                 >
                   <span className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-lg">{link.icon}</span>
-                    <span className="font-headline text-xs font-bold uppercase tracking-widest">
+                    <span className="font-headline text-xs font-bold tracking-normal">
                       {link.label}
                     </span>
                   </span>
@@ -91,13 +88,13 @@ function NotFoundPage({ variant = 'operator', config = null }) {
               ))}
             </div>
 
-            <div className="mt-8 bg-surface-container-high p-4">
-              <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-                Diagnostic
+            <div className="rounded-2xl mt-8 bg-surface-container-high p-4">
+              <p className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">
+Still stuck?
               </p>
               <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">
-                Use the navigation above to return to a valid mission area. If this link came from the admin panel,
-                verify the route is enabled and the content still exists.
+Use the links above to get back on track. If this link came from the admin panel, check
+                that the route is enabled and the content still exists.
               </p>
             </div>
           </aside>

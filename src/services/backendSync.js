@@ -1,7 +1,7 @@
 import { apiFetch } from './api'
 import { hydrateCareerPathsData } from '../data/careerPathsData'
-import { hydrateRoomsData } from '../data/roomsData'
-import { hydrateCvesData } from '../data/cvesData'
+import { hydrateCoursesData } from '../data/coursesData'
+import { hydrateResourcesData } from '../data/resourcesData'
 import { savePlatformConfig } from '../platformConfig'
 import { syncLabProgressFromBackend } from './labProgress'
 
@@ -14,9 +14,9 @@ export async function syncFrontendStateFromBackend(options = {}) {
     apiFetch('/cves'),
   ])
 
-  hydrateRoomsData(Array.isArray(rooms) ? rooms : [])
+  hydrateCoursesData(Array.isArray(rooms) ? rooms : [])
   hydrateCareerPathsData(Array.isArray(careerPaths) ? careerPaths : [])
-  hydrateCvesData(Array.isArray(cves) ? cves : [])
+  hydrateResourcesData(Array.isArray(cves) ? cves : [])
 
   if (persistPlatformConfig && (platformConfig?.routes || platformConfig?.features || platformConfig?.ai)) {
     savePlatformConfig(platformConfig)

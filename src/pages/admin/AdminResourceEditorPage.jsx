@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { getCveById, addCve, updateCve, deleteCve } from '../../data/cvesData'
+import { getResourceById, addResource, updateResource, deleteResource } from '../../data/resourcesData'
 
 import { ConfirmModal } from '../../components/ConfirmModal'
 
@@ -20,13 +20,13 @@ function createCveFormData(cve) {
   }
 }
 
-function AdminCveEditorPage() {
+function AdminResourceEditorPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { id } = useParams()
-  const isNewCve = id === 'new' || location.pathname === '/admin/cves/new'
+  const isNewCve = id === 'new' || location.pathname === '/admin/resources/new'
 
-  const cve = isNewCve ? null : getCveById(id)
+  const cve = isNewCve ? null : getResourceById(id)
   const [formData, setFormData] = useState(() => createCveFormData(cve))
   
   const [saved, setSaved] = useState(false)
@@ -37,7 +37,7 @@ function AdminCveEditorPage() {
   // Basic validation rules
   const handleSave = () => {
     if (!formData.cve_id?.trim()) {
-      setErrorMessage('CVE ID is required.')
+      setErrorMessage('Resource ID is required.')
       return
     }
 
@@ -49,16 +49,16 @@ function AdminCveEditorPage() {
     setErrorMessage('')
 
     if (isNewCve) {
-      addCve(formData)
+      addResource(formData)
     } else {
-      updateCve(id, formData)
+      updateResource(id, formData)
     }
 
     setSaved(true)
     setTimeout(() => {
       setSaved(false)
       if (isNewCve) {
-        navigate('/admin/cves')
+        navigate('/admin/resources')
       }
     }, 1200)
   }
@@ -68,9 +68,9 @@ function AdminCveEditorPage() {
   }
 
   const handleConfirmDelete = () => {
-    deleteCve(id)
+    deleteResource(id)
     setIsModalOpen(false)
-    navigate('/admin/cves')
+    navigate('/admin/resources')
   }
 
   const handleCancelDelete = () => {
@@ -109,17 +109,17 @@ function AdminCveEditorPage() {
 
   if (!isNewCve && !cve) {
     return (
-      <main className="min-h-screen bg-surface px-6 md:px-10 py-10 flex items-center justify-center">
+      <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-on-surface-variant font-headline tracking-widest uppercase mb-4">
-            CVE NOT FOUND.
+          <p className="text-on-surface-variant font-headline tracking-normal mb-4">
+            Resource NOT FOUND.
           </p>
           <button
-            className="bg-primary text-on-primary px-6 py-3 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-darker transition-colors"
-            onClick={() => navigate('/admin/cves')}
+            className="rounded-xl bg-primary text-on-primary px-6 py-3 font-headline text-xs font-bold tracking-normal hover:bg-primary-darker transition-colors"
+            onClick={() => navigate('/admin/resources')}
             type="button"
           >
-            Back to CVE Management
+            Back to Resource Management
           </button>
         </div>
       </main>
@@ -127,29 +127,29 @@ function AdminCveEditorPage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface px-6 md:px-10 py-10 mt-16 md:mt-0">
+    <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10 mt-16 md:mt-0">
       <section className="max-w-6xl mx-auto space-y-12">
-        <header className="bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10">
+        <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10">
           <div className="flex items-center gap-3 mb-6 border-b border-outline-variant/30 pb-4">
             <button
               className="text-primary hover:text-primary-darker transition-colors"
-              onClick={() => navigate('/admin/cves')}
+              onClick={() => navigate('/admin/resources')}
               type="button"
             >
               <span className="material-symbols-outlined text-[20px]">arrow_back</span>
             </button>
-            <span className="font-label text-[10px] font-bold uppercase tracking-widest text-primary">
-              Admin &raquo; CVE Configuration
+            <span className="font-label text-[10px] font-bold tracking-normal text-primary">
+              Admin &raquo; Resource Configuration
             </span>
           </div>
 
-          <h1 className="text-3xl md:text-4xl font-black font-headline tracking-tight uppercase text-on-background mb-4">
-            {isNewCve ? 'Create CVE Record' : `Edit: ${formData.cve_id || 'Unknown CVE'}`}
+          <h1 className="text-3xl md:text-4xl font-black font-headline tracking-tight text-on-background mb-4">
+            {isNewCve ? 'Create Resource' : `Edit: ${formData.cve_id || 'Unknown resource'}`}
           </h1>
 
           <div className="mt-8 flex flex-wrap gap-4">
             <button
-              className={`px-6 py-3 font-headline text-xs font-bold uppercase tracking-widest transition-colors flex items-center gap-2 ${
+              className={`px-6 py-3 font-headline text-xs font-bold tracking-normal transition-colors flex items-center gap-2 ${
                 saved ? 'bg-emerald-600 text-white' : 'bg-primary text-on-primary hover:bg-primary-darker'
               }`}
               onClick={handleSave}
@@ -163,14 +163,14 @@ function AdminCveEditorPage() {
               ) : (
                 <>
                   <span className="material-symbols-outlined text-[18px]">save</span>
-                  {isNewCve ? 'CREATE RECORD' : 'SAVE CHANGES'}
+                  {isNewCve ? 'Create record' : 'Save changes'}
                 </>
               )}
             </button>
 
             {!isNewCve && (
               <button
-                className="px-6 py-3 font-headline text-xs font-bold uppercase tracking-widest transition-colors bg-error text-white hover:bg-red-700 flex items-center gap-2 ml-auto"
+                className="rounded-xl px-6 py-3 font-headline text-xs font-bold tracking-normal transition-colors bg-error text-white hover:opacity-90 flex items-center gap-2 ml-auto"
                 onClick={handleDelete}
                 type="button"
               >
@@ -181,38 +181,38 @@ function AdminCveEditorPage() {
           </div>
 
           {errorMessage && (
-            <p className="font-label text-xs uppercase tracking-widest font-bold text-error mt-6 bg-error/10 px-4 py-2 border-l-2 border-error">
+            <p className="rounded-lg font-label text-xs tracking-normal font-bold text-error mt-6 bg-error/10 px-4 py-2 border-l-2 border-error">
               {errorMessage}
             </p>
           )}
         </header>
 
-        <section className="bg-surface-container-lowest p-8 border-l border-outline-variant/30 space-y-8">
-          <h2 className="font-headline text-xl font-bold uppercase tracking-tight text-on-surface mb-6">
+        <section className="rounded-2xl bg-surface-container-lowest p-8 border-l border-outline-variant/30 space-y-8">
+          <h2 className="font-headline text-xl font-bold tracking-tight text-on-surface mb-6">
             Basic Metadata
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-xs font-label uppercase tracking-widest text-on-surface-variant font-bold mb-2">
-                CVE Identifier
+              <label className="block text-xs font-label tracking-normal text-on-surface-variant font-bold mb-2">
+                Resource Identifier
               </label>
               <input
-                className="w-full bg-surface-container-highest border-l-2 border-l-primary border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none placeholder:text-on-surface-variant/50"
+                className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-primary border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none placeholder:text-on-surface-variant/50"
                 name="cve_id"
                 type="text"
-                placeholder="e.g. CVE-2023-XXXX"
+                placeholder="e.g. Resource-2023-XXXX"
                 value={formData.cve_id}
                 onChange={handleInputChange}
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-label uppercase tracking-widest text-on-surface-variant font-bold mb-2">
+              <label className="block text-xs font-label tracking-normal text-on-surface-variant font-bold mb-2">
                 Discovery Year
               </label>
               <input
-                className="w-full bg-surface-container-highest border-l-2 border-l-primary border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none placeholder:text-on-surface-variant/50"
+                className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-primary border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none placeholder:text-on-surface-variant/50"
                 name="found_year"
                 type="number"
                 placeholder="2024"
@@ -221,11 +221,11 @@ function AdminCveEditorPage() {
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-label uppercase tracking-widest text-on-surface-variant font-bold mb-2">
+              <label className="block text-xs font-label tracking-normal text-on-surface-variant font-bold mb-2">
                 Credit / Assignment
               </label>
               <input
-                className="w-full bg-surface-container-highest border-l-2 border-l-primary border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none placeholder:text-on-surface-variant/50"
+                className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-primary border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none placeholder:text-on-surface-variant/50"
                 name="credit"
                 type="text"
                 placeholder="Name of researcher or organization."
@@ -234,13 +234,13 @@ function AdminCveEditorPage() {
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-label uppercase tracking-widest text-on-surface-variant font-bold mb-2">
+              <label className="block text-xs font-label tracking-normal text-on-surface-variant font-bold mb-2">
                 Short Description
               </label>
               <textarea
-                className="w-full bg-surface-container-highest border-l-2 border-l-primary border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none min-h-[80px] resize-y placeholder:text-on-surface-variant/50"
+                className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-primary border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none min-h-[80px] resize-y placeholder:text-on-surface-variant/50"
                 name="short_description"
-                placeholder="A brief summary of the vulnerability impact..."
+                placeholder="A brief summary of the topic impact..."
                 value={formData.short_description}
                 onChange={handleInputChange}
                 required
@@ -249,32 +249,32 @@ function AdminCveEditorPage() {
           </div>
         </section>
 
-        <section className="bg-surface-container-lowest p-8 border-l border-outline-variant/30 space-y-8">
-          <h2 className="font-headline text-xl font-bold uppercase tracking-tight text-on-surface mb-6">
+        <section className="rounded-2xl bg-surface-container-lowest p-8 border-l border-outline-variant/30 space-y-8">
+          <h2 className="font-headline text-xl font-bold tracking-tight text-on-surface mb-6">
             Detailed Content
           </h2>
 
           <div>
-            <label className="block text-xs font-label uppercase tracking-widest text-on-surface-variant font-bold mb-2 flex items-center gap-2">
+            <label className="block text-xs font-label tracking-normal text-on-surface-variant font-bold mb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-[16px] text-primary">bug_report</span>
               Vulnerability Report
             </label>
             <textarea
-              className="w-full bg-surface-container-highest border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none min-h-[160px] resize-y placeholder:text-on-surface-variant/50 border-l border-l-primary/50 focus:border-l-primary transition-colors"
+              className="rounded-xl w-full bg-surface-container-highest border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none min-h-[160px] resize-y placeholder:text-on-surface-variant/50 border-l border-l-primary/50 focus:border-l-primary transition-colors"
               name="vulnerability_report"
-              placeholder="Provide a comprehensive technical description of the vulnerability..."
+              placeholder="Provide a comprehensive technical description of the topic..."
               value={formData.vulnerability_report}
               onChange={handleInputChange}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-label uppercase tracking-widest text-on-surface-variant font-bold mb-2 flex items-center gap-2">
+            <label className="block text-xs font-label tracking-normal text-on-surface-variant font-bold mb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-[16px] text-primary">search_insights</span>
               Discovery Method / Exploitation Path
             </label>
             <textarea
-              className="w-full bg-surface-container-highest border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none min-h-[160px] resize-y placeholder:text-on-surface-variant/50 border-l border-l-primary/50 focus:border-l-primary transition-colors"
+              className="rounded-xl w-full bg-surface-container-highest border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none min-h-[160px] resize-y placeholder:text-on-surface-variant/50 border-l border-l-primary/50 focus:border-l-primary transition-colors"
               name="method_followed"
               placeholder="Describe how the bug was discovered, steps to reproduce, or methods used..."
               value={formData.method_followed}
@@ -283,12 +283,12 @@ function AdminCveEditorPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-label uppercase tracking-widest text-on-surface-variant font-bold mb-2 flex items-center gap-2">
+            <label className="block text-xs font-label tracking-normal text-on-surface-variant font-bold mb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-[16px] text-primary">menu_book</span>
               References / Links
             </label>
             <textarea
-              className="w-full bg-surface-container-highest border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none min-h-[100px] resize-y placeholder:text-on-surface-variant/50 border-l border-l-primary/50 focus:border-l-primary transition-colors"
+              className="rounded-xl w-full bg-surface-container-highest border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none min-h-[100px] resize-y placeholder:text-on-surface-variant/50 border-l border-l-primary/50 focus:border-l-primary transition-colors"
               name="references_text"
               placeholder="Line-separated list of URLs or reference IDs (e.g. NIST NVD URL, GitHub Advisory...)"
               value={formData.references_text}
@@ -297,39 +297,39 @@ function AdminCveEditorPage() {
           </div>
         </section>
 
-        <section className="bg-surface-container-lowest p-8 border-l-4 border-primary space-y-8">
+        <section className="rounded-2xl bg-surface-container-lowest p-8 border-l-4 border-primary space-y-8">
           <div>
-            <p className="font-label text-[10px] font-bold uppercase tracking-widest text-primary mb-2">
+            <p className="font-label text-[10px] font-bold tracking-normal text-primary mb-2">
               Publication evidence
             </p>
-            <h2 className="font-headline text-xl font-bold uppercase tracking-tight text-on-surface">
+            <h2 className="font-headline text-xl font-bold tracking-tight text-on-surface">
               Published Page Proof
             </h2>
             <p className="font-body text-sm text-on-surface-variant mt-2">
-              Attach a screenshot of the official advisory, disclosure, or published CVE page.
+              Attach a screenshot of the official advisory, disclosure, or published Resource page.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
-              <label className="block text-xs font-label uppercase tracking-widest text-on-surface-variant font-bold mb-2">
+              <label className="block text-xs font-label tracking-normal text-on-surface-variant font-bold mb-2">
                 Publication title
               </label>
               <input
-                className="w-full bg-surface-container-highest border-l-2 border-l-primary border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-primary border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                 name="publication_title"
                 type="text"
-                placeholder="e.g. NVD vulnerability detail page"
+                placeholder="e.g. NVD topic detail page"
                 value={formData.publication_title}
                 onChange={handleInputChange}
               />
             </div>
             <div>
-              <label className="block text-xs font-label uppercase tracking-widest text-on-surface-variant font-bold mb-2">
+              <label className="block text-xs font-label tracking-normal text-on-surface-variant font-bold mb-2">
                 Published page URL
               </label>
               <input
-                className="w-full bg-surface-container-highest border-l-2 border-l-primary border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-primary border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                 name="publication_source_url"
                 type="url"
                 placeholder="https://..."
@@ -338,11 +338,11 @@ function AdminCveEditorPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-label uppercase tracking-widest text-on-surface-variant font-bold mb-2">
+              <label className="block text-xs font-label tracking-normal text-on-surface-variant font-bold mb-2">
                 Publication date
               </label>
               <input
-                className="w-full bg-surface-container-highest border-l-2 border-l-primary border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-primary border-transparent focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                 name="publication_date"
                 type="date"
                 value={formData.publication_date}
@@ -352,10 +352,10 @@ function AdminCveEditorPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-label uppercase tracking-widest text-on-surface-variant font-bold mb-2">
+            <label className="block text-xs font-label tracking-normal text-on-surface-variant font-bold mb-2">
               Published page screenshot
             </label>
-            <div className="border border-outline-variant/40 bg-surface p-4">
+            <div className="rounded-2xl border border-outline-variant/40 bg-surface p-4">
               {formData.publication_image_data ? (
                 <div className="space-y-4">
                   <img
@@ -364,13 +364,13 @@ function AdminCveEditorPage() {
                     className="w-full max-h-[480px] object-contain bg-black/20 border border-outline-variant/30"
                   />
                   <div className="flex flex-wrap gap-3">
-                    <label className="cursor-pointer bg-secondary-container px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-secondary-container hover:text-primary transition-colors">
+                    <label className="rounded-xl cursor-pointer bg-secondary-container px-4 py-3 font-headline text-[10px] font-bold tracking-normal text-on-secondary-container hover:text-primary transition-colors">
                       Replace image
                       <input className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={handlePublicationImage} />
                     </label>
                     <button
                       type="button"
-                      className="border border-error/60 px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-error hover:bg-error hover:text-white transition-colors"
+                      className="rounded-xl border border-error/60 px-4 py-3 font-headline text-[10px] font-bold tracking-normal text-error hover:bg-error hover:text-white transition-colors"
                       onClick={() => setFormData((prev) => ({ ...prev, publication_image_data: '' }))}
                     >
                       Remove image
@@ -380,7 +380,7 @@ function AdminCveEditorPage() {
               ) : (
                 <label className="min-h-40 cursor-pointer flex flex-col items-center justify-center gap-3 border border-dashed border-outline-variant p-8 text-center hover:border-primary transition-colors">
                   <span className="material-symbols-outlined text-4xl text-primary">add_photo_alternate</span>
-                  <span className="font-headline text-xs font-bold uppercase tracking-widest text-on-surface">Upload publication screenshot</span>
+                  <span className="font-headline text-xs font-bold tracking-normal text-on-surface">Upload publication screenshot</span>
                   <span className="font-body text-xs text-on-surface-variant">PNG, JPEG, or WebP up to 3 MB</span>
                   <input className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={handlePublicationImage} />
                 </label>
@@ -393,7 +393,7 @@ function AdminCveEditorPage() {
 
       <ConfirmModal
         isOpen={isModalOpen}
-        title="Delete CVE"
+        title="Delete Resource"
         message="Are you sure you want to delete this Vulnerability Record? This action cannot be reverted."
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
@@ -402,4 +402,4 @@ function AdminCveEditorPage() {
   )
 }
 
-export default AdminCveEditorPage
+export default AdminResourceEditorPage

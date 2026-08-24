@@ -325,7 +325,7 @@ function AdminRegistrationsManagementPage() {
       title: 'Reset Selected Users',
       eyebrow: 'Activity Reset',
       description:
-        'This clears room progress, notes, certificates, CTF registrations, reminder logs, and theoretical attempts. Login and profile details remain.',
+        'This clears course progress, notes, certificates, event registrations, reminder logs, and theoretical attempts. Login and profile details remain.',
       target: `${selectedUserIds.length} selected user(s)`,
       confirmLabel: 'Reset Users',
       onConfirm: runBulkReset,
@@ -380,11 +380,11 @@ function AdminRegistrationsManagementPage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface px-6 md:px-12 py-12">
+    <main className="rounded-xl min-h-screen bg-surface px-6 md:px-12 py-12">
       <section className="max-w-6xl mx-auto">
         <div className="mb-6">
           <button
-            className="px-5 py-3 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest"
+            className="rounded-xl px-5 py-3 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal"
             onClick={() => navigate('/admin')}
             type="button"
           >
@@ -392,11 +392,11 @@ function AdminRegistrationsManagementPage() {
           </button>
         </div>
 
-        <header className="bg-surface-container-lowest border-l-4 border-primary p-8 md:p-12 mb-10">
-          <p className="font-headline text-[10px] tracking-[0.25em] uppercase text-primary font-bold">
+        <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8 md:p-12 mb-10">
+          <p className="font-headline text-[10px] tracking-normal text-primary font-bold">
             Account Governance
           </p>
-          <h1 className="font-headline text-5xl md:text-6xl font-black tracking-tight mt-3 uppercase leading-none">
+          <h1 className="font-headline text-5xl md:text-6xl font-black tracking-tight mt-3 leading-none">
             Registration Numbers
           </h1>
           <p className="text-base text-on-surface-variant mt-5 max-w-3xl">
@@ -404,37 +404,37 @@ function AdminRegistrationsManagementPage() {
           </p>
 
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
-            <div className="bg-surface-container-high p-4 border-l-2 border-l-primary">
-              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Total</p>
+            <div className="rounded-2xl bg-surface-container-high p-4 border-l-2 border-l-primary">
+              <p className="text-[10px] tracking-normal text-on-surface-variant font-bold">Total</p>
               <p className="text-2xl font-headline font-black mt-1">{totalUsers}</p>
             </div>
-            <div className="bg-surface-container-high p-4 border-l-2 border-l-secondary">
-              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Active</p>
+            <div className="rounded-2xl bg-surface-container-high p-4 border-l-2 border-l-secondary">
+              <p className="text-[10px] tracking-normal text-on-surface-variant font-bold">Active</p>
               <p className="text-2xl font-headline font-black mt-1">{activeUsers}</p>
             </div>
-            <div className="bg-surface-container-high p-4 border-l-2 border-l-error">
-              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Disabled</p>
+            <div className="rounded-2xl bg-surface-container-high p-4 border-l-2 border-l-error">
+              <p className="text-[10px] tracking-normal text-on-surface-variant font-bold">Disabled</p>
               <p className="text-2xl font-headline font-black mt-1">{disabledUsers}</p>
             </div>
-            <div className="bg-surface-container-high p-4 border-l-2 border-l-primary">
-              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Admins</p>
+            <div className="rounded-2xl bg-surface-container-high p-4 border-l-2 border-l-primary">
+              <p className="text-[10px] tracking-normal text-on-surface-variant font-bold">Admins</p>
               <p className="text-2xl font-headline font-black mt-1">{adminUsers}</p>
             </div>
-            <div className="bg-surface-container-high p-4 border-l-2 border-l-secondary">
-              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Developers</p>
+            <div className="rounded-2xl bg-surface-container-high p-4 border-l-2 border-l-secondary">
+              <p className="text-[10px] tracking-normal text-on-surface-variant font-bold">Developers</p>
               <p className="text-2xl font-headline font-black mt-1">{developerUsers}</p>
             </div>
-            <div className="bg-surface-container-high p-4 border-l-2 border-l-secondary">
-              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Operators</p>
+            <div className="rounded-2xl bg-surface-container-high p-4 border-l-2 border-l-secondary">
+              <p className="text-[10px] tracking-normal text-on-surface-variant font-bold">Students</p>
               <p className="text-2xl font-headline font-black mt-1">{operatorUsers}</p>
             </div>
           </div>
 
           <div className="mt-8 max-w-2xl">
             <label className="block">
-              <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Search users</span>
+              <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Search users</span>
               <input
-                className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-4 px-5 text-base outline-none"
+                className="rounded-2xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-4 px-5 text-base outline-none"
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Type username, email, registration number, or role"
                 type="text"
@@ -446,22 +446,22 @@ function AdminRegistrationsManagementPage() {
 
         <section className="mb-6 grid grid-cols-1 xl:grid-cols-[1.4fr_1fr] gap-6">
           <form
-            className="bg-surface-container-lowest border-l-4 border-l-primary p-6"
+            className="rounded-2xl bg-surface-container-lowest border-l-4 border-l-primary p-6"
             onSubmit={(event) => {
               void createAdmin(event)
             }}
           >
-            <p className="font-label text-[10px] uppercase tracking-[0.25em] text-primary font-bold">
+            <p className="font-label text-[10px] tracking-normal text-primary font-bold">
               Direct Admin
             </p>
-            <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight">
+            <h2 className="mt-2 font-headline text-2xl font-black tracking-tight">
               Add Admin Account
             </h2>
             <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
               <label className="block">
-                <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Username</span>
+                <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Username</span>
                 <input
-                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 text-sm outline-none"
+                  className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 text-sm outline-none"
                   onChange={(event) => updateAdminForm('username', event.target.value)}
                   placeholder="admin_username"
                   required
@@ -470,9 +470,9 @@ function AdminRegistrationsManagementPage() {
                 />
               </label>
               <label className="block">
-                <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Password</span>
+                <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Password</span>
                 <input
-                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 text-sm outline-none"
+                  className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 text-sm outline-none"
                   minLength={8}
                   onChange={(event) => updateAdminForm('password', event.target.value)}
                   placeholder="Minimum 8 characters"
@@ -482,9 +482,9 @@ function AdminRegistrationsManagementPage() {
                 />
               </label>
               <label className="block">
-                <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Email</span>
+                <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Email</span>
                 <input
-                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 text-sm outline-none"
+                  className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 text-sm outline-none"
                   onChange={(event) => updateAdminForm('email', event.target.value)}
                   placeholder="admin@example.com"
                   type="email"
@@ -492,9 +492,9 @@ function AdminRegistrationsManagementPage() {
                 />
               </label>
               <label className="block">
-                <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Registration Number</span>
+                <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Registration Number</span>
                 <input
-                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 text-sm outline-none"
+                  className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 text-sm outline-none"
                   onChange={(event) => updateAdminForm('registrationNumber', event.target.value)}
                   placeholder="Optional"
                   type="text"
@@ -503,7 +503,7 @@ function AdminRegistrationsManagementPage() {
               </label>
             </div>
             <button
-              className="mt-5 px-5 py-3 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+              className="rounded-xl mt-5 px-5 py-3 bg-primary text-on-primary font-headline text-xs font-bold tracking-normal disabled:opacity-50"
               disabled={isAdminWorking}
               type="submit"
             >
@@ -511,25 +511,25 @@ function AdminRegistrationsManagementPage() {
             </button>
           </form>
 
-          <div className="bg-surface-container-lowest border-l-4 border-l-secondary p-6">
-            <p className="font-label text-[10px] uppercase tracking-[0.25em] text-secondary font-bold">
+          <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-l-secondary p-6">
+            <p className="font-label text-[10px] tracking-normal text-secondary font-bold">
               From Users
             </p>
-            <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight">
+            <h2 className="mt-2 font-headline text-2xl font-black tracking-tight">
               Manage Admin Privilege
             </h2>
             <p className="mt-4 text-sm text-on-surface-variant leading-relaxed">
               Select users from the list below, then promote operators or revoke admin privilege without changing profile data.
             </p>
             <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="bg-surface-container-high p-4">
-                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+              <div className="rounded-2xl bg-surface-container-high p-4">
+                <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
                   Promotable
                 </p>
                 <p className="mt-1 font-headline text-3xl font-black">{selectedPromotableIds.length}</p>
               </div>
-              <div className="bg-surface-container-high p-4">
-                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+              <div className="rounded-2xl bg-surface-container-high p-4">
+                <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
                   Revocable Admins
                 </p>
                 <p className="mt-1 font-headline text-3xl font-black">{selectedRevokableIds.length}</p>
@@ -537,7 +537,7 @@ function AdminRegistrationsManagementPage() {
             </div>
             <div className="mt-5 flex flex-col sm:flex-row gap-3">
               <button
-                className="px-5 py-3 bg-secondary text-on-secondary font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                className="rounded-xl px-5 py-3 bg-secondary text-on-secondary font-headline text-xs font-bold tracking-normal disabled:opacity-50"
                 disabled={!selectedPromotableIds.length || isAdminWorking}
                 onClick={() => {
                   void promoteSelectedAdmins()
@@ -547,7 +547,7 @@ function AdminRegistrationsManagementPage() {
                 {isAdminWorking ? 'Working...' : 'Promote Selected'}
               </button>
               <button
-                className="px-5 py-3 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                className="rounded-xl px-5 py-3 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal disabled:opacity-50"
                 disabled={!selectedRevokableIds.length || isAdminWorking}
                 onClick={() => {
                   void revokeSelectedAdmins()
@@ -560,7 +560,7 @@ function AdminRegistrationsManagementPage() {
           </div>
         </section>
 
-        <section className="mb-6 bg-surface-container-lowest border border-outline-variant/40 p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <section className="rounded-2xl mb-6 bg-surface-container-lowest border border-outline-variant/40 p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <label className="inline-flex items-center gap-3">
             <input
               checked={allVisibleSelected}
@@ -568,16 +568,16 @@ function AdminRegistrationsManagementPage() {
               onChange={toggleVisibleSelection}
               type="checkbox"
             />
-            <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+            <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
               Select visible users
             </span>
           </label>
           <div className="flex flex-wrap items-center gap-3">
-            <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+            <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
               {selectedUserIds.length} selected
             </span>
             <button
-              className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+              className="rounded-lg px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal disabled:opacity-50"
               disabled={!selectedUserIds.length || isBulkWorking}
               onClick={openBulkResetModal}
               type="button"
@@ -585,7 +585,7 @@ function AdminRegistrationsManagementPage() {
               Reset Selected
             </button>
             <button
-              className="px-4 py-2 bg-error text-on-error font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+              className="rounded-lg px-4 py-2 bg-error text-on-error font-headline text-xs font-bold tracking-normal disabled:opacity-50"
               disabled={!selectedUserIds.length || isBulkWorking}
               onClick={openBulkDeleteModal}
               type="button"
@@ -596,13 +596,13 @@ function AdminRegistrationsManagementPage() {
         </section>
 
         {error ? (
-          <div className="mb-6 bg-error/10 border-l-4 border-error p-4">
+          <div className="rounded-2xl mb-6 bg-error/10 border-l-4 border-error p-4">
             <p className="text-error font-headline text-sm font-bold">{error}</p>
           </div>
         ) : null}
 
         {success ? (
-          <div className="mb-6 bg-secondary/10 border-l-4 border-secondary p-4">
+          <div className="rounded-2xl mb-6 bg-secondary/10 border-l-4 border-secondary p-4">
             <p className="text-secondary font-headline text-sm font-bold">{success}</p>
           </div>
         ) : null}
@@ -612,7 +612,7 @@ function AdminRegistrationsManagementPage() {
         ) : (
           <div className="space-y-4">
             {visibleUsers.map((user) => (
-              <article key={user.id} className="bg-surface-container-lowest border-l-4 border-l-primary p-6 md:p-7">
+              <article key={user.id} className="rounded-2xl bg-surface-container-lowest border-l-4 border-l-primary p-6 md:p-7">
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                   <div className="flex items-start gap-4 min-w-0">
                     <input
@@ -637,7 +637,7 @@ function AdminRegistrationsManagementPage() {
                         Email: {user.email || 'N/A'}
                       </p>
                       <p className="text-sm text-on-surface-variant">
-                        Role: <span className="font-bold uppercase">{user.role || 'operator'}</span>
+                        Role: <span className="font-bold">{user.role || 'operator'}</span>
                       </p>
                       <p className="text-sm text-on-surface-variant">
                         Completed rooms:{' '}
@@ -650,20 +650,20 @@ function AdminRegistrationsManagementPage() {
 
                   <div className="flex flex-col md:items-end gap-3">
                     <div className="flex flex-wrap justify-start md:justify-end gap-2">
-                      <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold ${user.is_active ? 'bg-secondary/15 text-secondary' : 'bg-error/15 text-error'}`}>
+                      <span className={`px-3 py-1 text-[10px] tracking-normal font-bold ${user.is_active ? 'bg-secondary/15 text-secondary' : 'bg-error/15 text-error'}`}>
                         {user.is_active ? 'Active' : 'Disabled'}
                       </span>
-                      <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold ${user.role === 'admin' ? 'bg-primary/15 text-primary' : user.role === 'developer' ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                      <span className={`px-3 py-1 text-[10px] tracking-normal font-bold ${user.role === 'admin' ? 'bg-primary/15 text-primary' : user.role === 'developer' ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
                         {user.role === 'admin' ? 'Admin' : user.role === 'developer' ? 'Developer' : 'Operator'}
                       </span>
                       {isPermanentAdmin(user) ? (
-                        <span className="px-3 py-1 text-[10px] uppercase tracking-widest font-bold bg-secondary/15 text-secondary">
+                        <span className="rounded-full px-3 py-1 text-[10px] tracking-normal font-bold bg-secondary/15 text-secondary">
                           Permanent
                         </span>
                       ) : null}
                     </div>
                     <button
-                      className="px-4 py-2 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest"
+                      className="rounded-lg px-4 py-2 bg-primary text-on-primary font-headline text-xs font-bold tracking-normal"
                       onClick={() => navigate(`/admin/registrations/${user.id}`)}
                       type="button"
                     >
@@ -672,7 +672,7 @@ function AdminRegistrationsManagementPage() {
                     <div className="flex flex-wrap justify-start md:justify-end gap-2">
                       {user.role !== 'admin' ? (
                         <button
-                          className="px-3 py-2 bg-secondary text-on-secondary font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-50"
+                          className="rounded-lg px-3 py-2 bg-secondary text-on-secondary font-headline text-[10px] font-bold tracking-normal disabled:opacity-50"
                           disabled={isAdminWorking}
                           onClick={() => {
                             void promoteSingleAdmin(user)
@@ -683,7 +683,7 @@ function AdminRegistrationsManagementPage() {
                         </button>
                       ) : (
                         <button
-                          className="px-3 py-2 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-50"
+                          className="rounded-lg px-3 py-2 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold tracking-normal disabled:opacity-50"
                           disabled={isAdminWorking || isPermanentAdmin(user)}
                           onClick={() => {
                             void revokeSingleAdmin(user)
@@ -694,7 +694,7 @@ function AdminRegistrationsManagementPage() {
                         </button>
                       )}
                       <button
-                        className="px-3 py-2 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-50"
+                        className="rounded-lg px-3 py-2 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold tracking-normal disabled:opacity-50"
                         disabled={isBulkWorking}
                         onClick={() => {
                           openSingleResetModal(user)
@@ -704,7 +704,7 @@ function AdminRegistrationsManagementPage() {
                         Reset
                       </button>
                       <button
-                        className="px-3 py-2 bg-error text-on-error font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-50"
+                        className="rounded-lg px-3 py-2 bg-error text-on-error font-headline text-[10px] font-bold tracking-normal disabled:opacity-50"
                         disabled={isBulkWorking || isPermanentAdmin(user)}
                         onClick={() => {
                           openSingleDeleteModal(user)
@@ -720,11 +720,11 @@ function AdminRegistrationsManagementPage() {
             ))}
 
             {!visibleUsers.length ? (
-              <div className="bg-surface-container-lowest p-8 text-base text-on-surface-variant">
+              <div className="rounded-2xl bg-surface-container-lowest p-8 text-base text-on-surface-variant">
                 <p>No users match your search.</p>
                 {search ? (
                   <button
-                    className="mt-4 px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest"
+                    className="rounded-lg mt-4 px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal"
                     onClick={() => setSearch('')}
                     type="button"
                   >
@@ -743,15 +743,15 @@ function AdminRegistrationsManagementPage() {
             <div className="p-7">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className={`font-label text-[10px] uppercase tracking-[0.25em] font-bold ${actionModal.tone === 'danger' ? 'text-error' : 'text-primary'}`}>
+                  <p className={`font-label text-[10px] tracking-normal font-bold ${actionModal.tone === 'danger' ? 'text-error' : 'text-primary'}`}>
                     {actionModal.eyebrow}
                   </p>
-                  <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                  <h2 className="mt-2 font-headline text-2xl font-black tracking-tight text-on-background">
                     {actionModal.title}
                   </h2>
                 </div>
                 <button
-                  className="inline-flex h-10 w-10 items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
+                  className="rounded-xl inline-flex h-10 w-10 items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
                   onClick={() => setActionModal(null)}
                   type="button"
                   aria-label="Close action modal"
@@ -761,8 +761,8 @@ function AdminRegistrationsManagementPage() {
                 </button>
               </div>
 
-              <div className="mt-6 bg-surface-container-high p-4 border-l-2 border-l-primary">
-                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+              <div className="rounded-2xl mt-6 bg-surface-container-high p-4 border-l-2 border-l-primary">
+                <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
                   Target
                 </p>
                 <p className="mt-1 font-headline text-lg font-bold text-on-background break-words">
@@ -776,7 +776,7 @@ function AdminRegistrationsManagementPage() {
 
               <div className="mt-7 flex flex-col sm:flex-row sm:justify-end gap-3">
                 <button
-                  className="px-5 py-3 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                  className="rounded-xl px-5 py-3 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal disabled:opacity-50"
                   onClick={() => setActionModal(null)}
                   type="button"
                   disabled={isBulkWorking}
@@ -784,7 +784,7 @@ function AdminRegistrationsManagementPage() {
                   Cancel
                 </button>
                 <button
-                  className={`px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50 ${
+                  className={`px-5 py-3 font-headline text-xs font-bold tracking-normal disabled:opacity-50 ${
                     actionModal.tone === 'danger'
                       ? 'bg-error text-on-error'
                       : 'bg-primary text-on-primary'
@@ -805,21 +805,21 @@ function AdminRegistrationsManagementPage() {
       {adminSuccessModal ? (
         <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
           <div className="w-full max-w-md bg-surface-container-lowest border border-outline-variant shadow-2xl">
-            <div className="h-1 bg-secondary"></div>
+            <div className="rounded-xl h-1 bg-secondary"></div>
             <div className="p-7">
               <div className="flex items-start gap-4">
                 <span className="material-symbols-outlined text-secondary text-4xl">verified_user</span>
                 <div>
-                  <p className="font-label text-[10px] uppercase tracking-[0.25em] font-bold text-secondary">
+                  <p className="font-label text-[10px] tracking-normal font-bold text-secondary">
                     Admin Added
                   </p>
-                  <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                  <h2 className="mt-2 font-headline text-2xl font-black tracking-tight text-on-background">
                     Admin Created Successfully
                   </h2>
                 </div>
               </div>
 
-              <div className="mt-6 bg-surface-container-high p-4 border-l-2 border-l-secondary space-y-2">
+              <div className="rounded-2xl mt-6 bg-surface-container-high p-4 border-l-2 border-l-secondary space-y-2">
                 <p className="text-sm text-on-surface-variant">
                   Username: <span className="font-bold text-on-surface">{adminSuccessModal.username}</span>
                 </p>
@@ -832,7 +832,7 @@ function AdminRegistrationsManagementPage() {
               </div>
 
               <button
-                className="mt-7 w-full px-5 py-3 bg-secondary text-on-secondary font-headline text-xs font-bold uppercase tracking-widest"
+                className="rounded-xl mt-7 w-full px-5 py-3 bg-secondary text-on-secondary font-headline text-xs font-bold tracking-normal"
                 onClick={() => setAdminSuccessModal(null)}
                 type="button"
               >
@@ -845,15 +845,15 @@ function AdminRegistrationsManagementPage() {
       {duplicateAdminModal ? (
         <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
           <div className="w-full max-w-md bg-surface-container-lowest border border-outline-variant shadow-2xl">
-            <div className="h-1 bg-primary"></div>
+            <div className="rounded-xl h-1 bg-primary"></div>
             <div className="p-7">
               <div className="flex items-start gap-4">
                 <span className="material-symbols-outlined text-primary text-4xl">manage_accounts</span>
                 <div>
-                  <p className="font-label text-[10px] uppercase tracking-[0.25em] font-bold text-primary">
+                  <p className="font-label text-[10px] tracking-normal font-bold text-primary">
                     Existing Account
                   </p>
-                  <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                  <h2 className="mt-2 font-headline text-2xl font-black tracking-tight text-on-background">
                     User Already Exists
                   </h2>
                 </div>
@@ -863,7 +863,7 @@ function AdminRegistrationsManagementPage() {
                 I found a matching account and selected it in the user list. Use the existing account instead of creating a duplicate.
               </p>
 
-              <div className="mt-5 bg-surface-container-high p-4 border-l-2 border-l-primary space-y-2">
+              <div className="rounded-2xl mt-5 bg-surface-container-high p-4 border-l-2 border-l-primary space-y-2">
                 <p className="text-sm text-on-surface-variant">
                   Username: <span className="font-bold text-on-surface">{duplicateAdminModal.username}</span>
                 </p>
@@ -877,7 +877,7 @@ function AdminRegistrationsManagementPage() {
 
               <div className="mt-7 flex flex-col sm:flex-row gap-3">
                 <button
-                  className="px-5 py-3 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest"
+                  className="rounded-xl px-5 py-3 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal"
                   onClick={() => setDuplicateAdminModal(null)}
                   type="button"
                 >
@@ -885,7 +885,7 @@ function AdminRegistrationsManagementPage() {
                 </button>
                 {!duplicateAdminModal.isAdmin ? (
                   <button
-                    className="px-5 py-3 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                    className="rounded-xl px-5 py-3 bg-primary text-on-primary font-headline text-xs font-bold tracking-normal disabled:opacity-50"
                     disabled={isAdminWorking}
                     onClick={() => {
                       const user = users.find((entry) => entry.id === duplicateAdminModal.id)
@@ -900,7 +900,7 @@ function AdminRegistrationsManagementPage() {
                   </button>
                 ) : (
                   <button
-                    className="px-5 py-3 bg-secondary text-on-secondary font-headline text-xs font-bold uppercase tracking-widest"
+                    className="rounded-xl px-5 py-3 bg-secondary text-on-secondary font-headline text-xs font-bold tracking-normal"
                     onClick={() => setDuplicateAdminModal(null)}
                     type="button"
                   >

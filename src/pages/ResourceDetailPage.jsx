@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getCveById, subscribeCvesData } from '../data/cvesData'
+import { getResourceById, subscribeResourcesData } from '../data/resourcesData'
 import { parseMarkdownToHtml } from '../utils/markdown'
-import CvePublicationProof from '../components/CvePublicationProof'
+import ResourcePublicationProof from '../components/ResourcePublicationProof'
 
 function looksLikeCodeContent(text) {
   const lines = String(text || '').split('\n')
@@ -32,14 +32,14 @@ function renderCveContent(text, { preferCode = false } = {}) {
   return parseMarkdownToHtml(raw)
 }
 
-function CveDetailPage() {
+function ResourceDetailPage() {
   const { id } = useParams()
-  const [cve, setCve] = useState(() => getCveById(id))
+  const [cve, setCve] = useState(() => getResourceById(id))
   const contentRootRef = useRef(null)
 
   useEffect(() => {
-    return subscribeCvesData(() => {
-      const foundCve = getCveById(id)
+    return subscribeResourcesData(() => {
+      const foundCve = getResourceById(id)
       if (foundCve) {
         setCve(foundCve)
       }
@@ -63,7 +63,7 @@ function CveDetailPage() {
       button.type = 'button'
       button.dataset.copyCode = 'true'
       button.className =
-        'absolute right-3 top-3 bg-surface-container-lowest border border-outline-variant/40 px-3 py-1.5 font-headline text-[9px] font-bold uppercase tracking-widest text-on-surface-variant opacity-0 transition-opacity group-hover:opacity-100 hover:text-primary'
+        'absolute right-3 top-3 bg-surface-container-lowest border border-outline-variant/40 px-3 py-1.5 font-headline text-[9px] font-bold tracking-normal text-on-surface-variant opacity-0 transition-opacity group-hover:opacity-100 hover:text-primary'
       button.textContent = 'Copy'
 
       const handleClick = async () => {
@@ -97,15 +97,15 @@ function CveDetailPage() {
 
   if (!cve) {
     return (
-      <main className="min-h-screen bg-surface px-6 md:px-10 py-10 mt-16 md:mt-20 flex items-center justify-center">
+      <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10 mt-16 md:mt-20 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-on-surface-variant font-headline tracking-widest uppercase mb-4">CVE Not Found.</p>
+          <p className="text-on-surface-variant font-headline tracking-normal mb-4">Resource Not Found.</p>
           <Link
-            to="/cves"
-            className="bg-primary text-on-primary px-6 py-3 font-headline text-xs font-bold uppercase tracking-widest inline-flex items-center gap-2 hover:bg-primary-darker transition-colors"
+            to="/resources"
+            className="rounded-xl bg-primary text-on-primary px-6 py-3 font-headline text-xs font-bold tracking-normal inline-flex items-center gap-2 hover:bg-primary-darker transition-colors"
           >
             <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-            Back to CVE Database
+            Back to Resource Database
           </Link>
         </div>
       </main>
@@ -113,30 +113,30 @@ function CveDetailPage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface px-6 md:px-10 py-10 mt-16 md:mt-20">
+    <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10 mt-16 md:mt-20">
       <div ref={contentRootRef} className="max-w-4xl mx-auto space-y-12">
         <nav className="flex items-center gap-4 border-b border-outline-variant pb-6 mb-10">
           <Link
-            to="/cves"
+            to="/resources"
             className="text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-            <span className="font-label text-[10px] font-bold uppercase tracking-widest">
-              CVE Database
+            <span className="font-label text-[10px] font-bold tracking-normal">
+              Resource Database
             </span>
           </Link>
           <div className="h-4 w-px bg-outline-variant"></div>
-          <span className="font-headline text-[10px] text-on-surface tracking-widest uppercase">
+          <span className="font-headline text-[10px] text-on-surface tracking-normal">
             {cve.cve_id}
           </span>
         </nav>
 
         <header className="space-y-6 mb-12 border-l-4 border-l-primary pl-6">
-          <h1 className="text-4xl md:text-5xl font-black font-headline tracking-tight uppercase text-on-background">
+          <h1 className="text-4xl md:text-5xl font-black font-headline tracking-tight text-on-background">
             {cve.cve_id}
           </h1>
-          <div className="flex flex-wrap items-center gap-4 text-xs font-label uppercase tracking-widest text-on-surface-variant">
-            <span className="bg-surface-container-highest px-3 py-1 font-bold text-on-surface">
+          <div className="flex flex-wrap items-center gap-4 text-xs font-label tracking-normal text-on-surface-variant">
+            <span className="rounded-full bg-surface-container-highest px-3 py-1 font-bold text-on-surface">
               Found: {cve.found_year || 'Unknown'}
             </span>
             <span className="font-bold text-primary">
@@ -148,32 +148,32 @@ function CveDetailPage() {
           </p>
         </header>
 
-        <section className="bg-surface-container-lowest p-8 border-l border-outline-variant/30">
-          <h2 className="font-headline text-xl font-bold uppercase tracking-tight text-on-surface mb-6 flex items-center gap-3">
+        <section className="rounded-2xl bg-surface-container-lowest p-8 border-l border-outline-variant/30">
+          <h2 className="font-headline text-xl font-bold tracking-tight text-on-surface mb-6 flex items-center gap-3">
             <span className="material-symbols-outlined text-primary">bug_report</span>
             Vulnerability Report
           </h2>
           <div
-            className="font-body text-sm md:text-base text-on-surface-variant leading-relaxed [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mt-4 [&_h3]:mb-2 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mb-1.5 [&_pre]:bg-surface [&_pre]:border [&_pre]:border-outline-variant/30 [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre]:my-4 [&_pre]:text-sm [&_code]:font-mono [&_code]:text-[0.9em] [&_code]:bg-on-surface/5 [&_code]:px-1.5 [&_code]:py-0.5 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_a]:text-primary [&_a]:underline"
+            className="rounded-2xl font-body text-sm md:text-base text-on-surface-variant leading-relaxed [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mt-4 [&_h3]:mb-2 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mb-1.5 [&_pre]:bg-surface [&_pre]:border [&_pre]:border-outline-variant/30 [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre]:my-4 [&_pre]:text-sm [&_code]:font-mono [&_code]:text-[0.9em] [&_code]:bg-on-surface/5 [&_code]:px-1.5 [&_code]:py-0.5 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_a]:text-primary [&_a]:underline"
             dangerouslySetInnerHTML={{ __html: renderCveContent(cve.vulnerability_report) }}
           ></div>
         </section>
 
-        <CvePublicationProof cve={cve} />
+        <ResourcePublicationProof cve={cve} />
 
-        <section className="bg-surface-container-lowest p-8 border-l border-outline-variant/30">
-          <h2 className="font-headline text-xl font-bold uppercase tracking-tight text-on-surface mb-6 flex items-center gap-3">
+        <section className="rounded-2xl bg-surface-container-lowest p-8 border-l border-outline-variant/30">
+          <h2 className="font-headline text-xl font-bold tracking-tight text-on-surface mb-6 flex items-center gap-3">
             <span className="material-symbols-outlined text-primary">search_insights</span>
             Discovery Method
           </h2>
           <div
-            className="font-body text-sm md:text-base text-on-surface-variant leading-relaxed [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mt-4 [&_h3]:mb-2 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mb-1.5 [&_pre]:bg-surface [&_pre]:border [&_pre]:border-outline-variant/30 [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre]:my-4 [&_pre]:text-sm [&_code]:font-mono [&_code]:text-[0.9em] [&_code]:bg-on-surface/5 [&_code]:px-1.5 [&_code]:py-0.5 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_a]:text-primary [&_a]:underline"
+            className="rounded-2xl font-body text-sm md:text-base text-on-surface-variant leading-relaxed [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mt-4 [&_h3]:mb-2 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mb-1.5 [&_pre]:bg-surface [&_pre]:border [&_pre]:border-outline-variant/30 [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre]:my-4 [&_pre]:text-sm [&_code]:font-mono [&_code]:text-[0.9em] [&_code]:bg-on-surface/5 [&_code]:px-1.5 [&_code]:py-0.5 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_a]:text-primary [&_a]:underline"
             dangerouslySetInnerHTML={{ __html: renderCveContent(cve.method_followed, { preferCode: true }) }}
           ></div>
         </section>
 
-        <section className="bg-surface-container-lowest p-8 border-l border-outline-variant/30">
-          <h2 className="font-headline text-xl font-bold uppercase tracking-tight text-on-surface mb-6 flex items-center gap-3">
+        <section className="rounded-2xl bg-surface-container-lowest p-8 border-l border-outline-variant/30">
+          <h2 className="font-headline text-xl font-bold tracking-tight text-on-surface mb-6 flex items-center gap-3">
             <span className="material-symbols-outlined text-primary">menu_book</span>
             References
           </h2>
@@ -211,4 +211,4 @@ function CveDetailPage() {
   )
 }
 
-export default CveDetailPage
+export default ResourceDetailPage

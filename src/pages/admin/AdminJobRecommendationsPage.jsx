@@ -212,23 +212,23 @@ function AdminJobRecommendationsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface px-6 py-10 md:px-10">
+    <main className="rounded-2xl min-h-screen bg-surface px-6 py-10 md:px-10">
       <section className="mx-auto max-w-7xl space-y-8">
         <button
-          className="bg-surface-container-high px-4 py-2 font-headline text-xs font-bold uppercase tracking-widest text-on-surface"
+          className="rounded-lg bg-surface-container-high px-4 py-2 font-headline text-xs font-bold tracking-normal text-on-surface"
           onClick={() => navigate('/admin')}
           type="button"
         >
           Back
         </button>
 
-        <header className="bg-surface-container-lowest border-l-4 border-secondary p-8 md:p-10">
-          <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-secondary">
+        <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-8 md:p-10">
+          <p className="font-headline text-[10px] font-bold tracking-normal text-secondary">
             Placement Intelligence
           </p>
           <div className="mt-3 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="font-headline text-4xl font-black uppercase tracking-tight md:text-5xl">
+              <h1 className="font-headline text-4xl font-black tracking-tight md:text-5xl">
                 Job Recommendations
               </h1>
               <p className="mt-4 max-w-3xl text-sm leading-relaxed text-on-surface-variant">
@@ -236,7 +236,7 @@ function AdminJobRecommendationsPage() {
               </p>
             </div>
             <button
-              className="bg-secondary px-5 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-secondary disabled:opacity-60"
+              className="rounded-xl bg-secondary px-5 py-3 font-headline text-[10px] font-bold tracking-normal text-on-secondary disabled:opacity-60"
               disabled={isRefreshing}
               onClick={refreshAll}
               type="button"
@@ -253,19 +253,19 @@ function AdminJobRecommendationsPage() {
             ['High Probability', summary.high, 'border-secondary', 'text-secondary'],
             ['Applications', summary.applications, 'border-primary', 'text-primary'],
           ].map(([label, value, borderClass, textClass]) => (
-            <div className={`bg-surface-container-lowest p-5 border-l-4 ${borderClass}`} key={label}>
-              <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+            <div className={`rounded-2xl bg-surface-container-lowest p-5 border-l-4 ${borderClass}`} key={label}>
+              <p className="font-label text-[10px] font-bold tracking-normal text-on-surface-variant">
                 {label}
               </p>
               <p className={`mt-2 font-headline text-4xl font-black ${textClass}`}>{value}</p>
             </div>
           ))}
-          <label className="bg-surface-container-lowest p-5 border-l-4 border-outline-variant">
-            <span className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+          <label className="rounded-2xl bg-surface-container-lowest p-5 border-l-4 border-outline-variant">
+            <span className="font-label text-[10px] font-bold tracking-normal text-on-surface-variant">
               Search Student / JD / Skill
             </span>
             <input
-              className="mt-3 w-full bg-surface-container-highest border-l-2 border-l-primary px-4 py-3 outline-none"
+              className="rounded-xl mt-3 w-full bg-surface-container-highest border-l-2 border-l-primary px-4 py-3 outline-none"
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Registration, name, company, skill..."
               type="text"
@@ -274,16 +274,16 @@ function AdminJobRecommendationsPage() {
           </label>
         </section>
 
-        {message ? <p className="border-l-4 border-secondary bg-secondary/10 px-4 py-3 text-sm text-secondary">{message}</p> : null}
-        {error ? <p className="border-l-4 border-error bg-error/10 px-4 py-3 text-sm text-error">{error}</p> : null}
+        {message ? <p className="rounded-xl border-l-4 border-secondary bg-secondary/10 px-4 py-3 text-sm text-secondary">{message}</p> : null}
+        {error ? <p className="rounded-xl border-l-4 border-error bg-error/10 px-4 py-3 text-sm text-error">{error}</p> : null}
 
-        <section className="bg-surface-container-lowest border-l-4 border-primary p-6">
+        <section className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="font-headline text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
+              <p className="font-headline text-[10px] font-bold tracking-normal text-primary">
                 External Job Feed
               </p>
-              <h2 className="mt-2 font-headline text-xl font-black uppercase tracking-tight">
+              <h2 className="mt-2 font-headline text-xl font-black tracking-tight">
                 {scrapedJobStatus?.database || 'job_db'}.{scrapedJobStatus?.table || 'scraped_jobs'}
               </h2>
               <p className="mt-2 max-w-3xl text-sm text-on-surface-variant">
@@ -291,16 +291,16 @@ function AdminJobRecommendationsPage() {
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:min-w-72">
-              <div className="bg-surface-container-high p-4">
-                <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+              <div className="rounded-2xl bg-surface-container-high p-4">
+                <p className="font-label text-[10px] font-bold tracking-normal text-on-surface-variant">
                   Feed Status
                 </p>
-                <p className="mt-1 font-headline text-lg font-black uppercase text-primary">
+                <p className="mt-1 font-headline text-lg font-black text-primary">
                   {scrapedJobStatus?.status || 'unknown'}
                 </p>
               </div>
-              <div className="bg-surface-container-high p-4">
-                <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+              <div className="rounded-2xl bg-surface-container-high p-4">
+                <p className="font-label text-[10px] font-bold tracking-normal text-on-surface-variant">
                   Imported
                 </p>
                 <p className="mt-1 font-headline text-lg font-black text-secondary">
@@ -309,7 +309,7 @@ function AdminJobRecommendationsPage() {
               </div>
             </div>
             <button
-              className="bg-primary px-5 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-primary disabled:opacity-60"
+              className="rounded-xl bg-primary px-5 py-3 font-headline text-[10px] font-bold tracking-normal text-on-primary disabled:opacity-60"
               disabled={isSyncingScrapedJobs}
               onClick={syncScrapedJobs}
               type="button"
@@ -319,19 +319,19 @@ function AdminJobRecommendationsPage() {
           </div>
         </section>
 
-        <section className="bg-surface-container-lowest border-l-4 border-primary p-6">
+        <section className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-2xl">
-              <p className="font-headline text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
+              <p className="font-headline text-[10px] font-bold tracking-normal text-primary">
                 Markdown Job Intake
               </p>
-              <h2 className="mt-2 font-headline text-xl font-black uppercase tracking-tight">Add New Job Listing</h2>
+              <h2 className="mt-2 font-headline text-xl font-black tracking-tight">Add New Job Listing</h2>
               <p className="mt-2 text-sm text-on-surface-variant">
                 Paste a markdown job block. Saving it re-analyzes active students.
               </p>
             </div>
             <button
-              className="bg-primary px-5 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-primary disabled:opacity-60"
+              className="rounded-xl bg-primary px-5 py-3 font-headline text-[10px] font-bold tracking-normal text-on-primary disabled:opacity-60"
               disabled={isAddingJob}
               onClick={addMarkdownJob}
               type="button"
@@ -340,21 +340,21 @@ function AdminJobRecommendationsPage() {
             </button>
           </div>
           <textarea
-            className="mt-5 min-h-40 w-full resize-y bg-surface-container-highest border-l-2 border-l-primary px-4 py-3 font-space text-sm outline-none"
+            className="rounded-xl mt-5 min-h-40 w-full resize-y bg-surface-container-highest border-l-2 border-l-primary px-4 py-3 font-headline text-sm outline-none"
             onChange={(event) => setJobMarkdown(event.target.value)}
-            placeholder={'### SOC Analyst - Tier 1\n**Company:** Example\n**Location:** Remote\n**Salary:** ...\n**Type:** Entry Level | Cybersecurity | Remote\n...'}
+            placeholder={'### SOC Analyst - Tier 1\n**Company:** Example\n**Location:** Remote\n**Salary:** ...\n**Type:** Entry Level | Online Learning | Remote\n...'}
             value={jobMarkdown}
           />
         </section>
 
-        <section className="bg-surface-container-lowest p-6">
+        <section className="rounded-2xl bg-surface-container-lowest p-6">
           <div className="mb-8 border-b border-outline-variant/40 pb-6">
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="font-headline text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
+                <p className="font-headline text-[10px] font-bold tracking-normal text-primary">
                   Application Tracker
                 </p>
-                <h2 className="mt-2 font-headline text-xl font-black uppercase tracking-tight">
+                <h2 className="mt-2 font-headline text-xl font-black tracking-tight">
                   Student Apply Activity
                 </h2>
               </div>
@@ -365,29 +365,29 @@ function AdminJobRecommendationsPage() {
               <table className="w-full min-w-[980px] text-left">
                 <thead>
                   <tr className="border-b border-outline-variant">
-                    <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Student</th>
-                    <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Job</th>
-                    <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Match</th>
-                    <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Applied</th>
-                    <th className="py-3 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Status</th>
+                    <th className="py-3 pr-4 font-label text-[10px] tracking-normal text-on-surface-variant">Student</th>
+                    <th className="py-3 pr-4 font-label text-[10px] tracking-normal text-on-surface-variant">Job</th>
+                    <th className="py-3 pr-4 font-label text-[10px] tracking-normal text-on-surface-variant">Match</th>
+                    <th className="py-3 pr-4 font-label text-[10px] tracking-normal text-on-surface-variant">Applied</th>
+                    <th className="py-3 font-label text-[10px] tracking-normal text-on-surface-variant">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {applications.map((application) => (
                     <tr className="border-b border-outline-variant/30 align-top" key={application.id}>
                       <td className="py-4 pr-4">
-                        <p className="font-headline text-sm font-black uppercase">{studentLabel(application)}</p>
+                        <p className="font-headline text-sm font-black">{studentLabel(application)}</p>
                         <p className="mt-1 text-xs text-on-surface-variant">{application.email || application.username}</p>
                       </td>
                       <td className="py-4 pr-4">
-                        <p className="font-headline text-sm font-black uppercase">{application.job?.title}</p>
+                        <p className="font-headline text-sm font-black">{application.job?.title}</p>
                         <p className="mt-1 text-xs text-on-surface-variant">
                           {application.job?.company} - {application.job?.location}
                         </p>
                       </td>
                       <td className="py-4 pr-4">
                         <p className="font-headline text-xl font-black text-secondary">{application.matchScore}%</p>
-                        <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                        <p className="font-label text-[10px] tracking-normal text-on-surface-variant">
                           {application.probabilityLabel}
                         </p>
                       </td>
@@ -396,7 +396,7 @@ function AdminJobRecommendationsPage() {
                       </td>
                       <td className="py-4">
                         <select
-                          className="bg-surface-container-highest border border-outline-variant px-3 py-2 font-headline text-xs font-bold uppercase tracking-widest outline-none"
+                          className="rounded-lg bg-surface-container-highest border border-outline-variant px-3 py-2 font-headline text-xs font-bold tracking-normal outline-none"
                           disabled={updatingApplicationId === application.id}
                           onChange={(event) => updateApplicationStatus(application, event.target.value)}
                           value={application.status}
@@ -412,7 +412,7 @@ function AdminJobRecommendationsPage() {
               </table>
             </div>
             {!applications.length ? (
-              <div className="mt-5 bg-surface-container-high p-5 text-sm text-on-surface-variant">
+              <div className="rounded-2xl mt-5 bg-surface-container-high p-5 text-sm text-on-surface-variant">
                 No tracked applications yet.
               </div>
             ) : null}
@@ -426,10 +426,10 @@ function AdminJobRecommendationsPage() {
 
               return (
                 <article className="border border-outline-variant/60 bg-surface-container-high" key={group.key}>
-                  <div className="grid grid-cols-1 gap-4 border-b border-outline-variant/50 bg-surface-container-lowest p-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(220px,0.7fr)_auto] lg:items-start">
+                  <div className="rounded-2xl grid grid-cols-1 gap-4 border-b border-outline-variant/50 bg-surface-container-lowest p-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(220px,0.7fr)_auto] lg:items-start">
                     <div>
-                      <p className="font-label text-[10px] font-bold uppercase tracking-[0.24em] text-primary">JD</p>
-                      <h3 className="mt-2 break-words font-headline text-xl font-black uppercase leading-tight text-on-background">
+                      <p className="font-label text-[10px] font-bold tracking-normal text-primary">JD</p>
+                      <h3 className="mt-2 break-words font-headline text-xl font-black leading-tight text-on-background">
                         {group.job?.title}
                       </h3>
                       <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">
@@ -437,15 +437,15 @@ function AdminJobRecommendationsPage() {
                       </p>
                     </div>
                     <div>
-                      <p className="font-label text-[10px] font-bold uppercase tracking-[0.24em] text-primary">Company</p>
-                      <p className="mt-2 font-headline text-lg font-black uppercase text-on-background">
+                      <p className="font-label text-[10px] font-bold tracking-normal text-primary">Company</p>
+                      <p className="mt-2 font-headline text-lg font-black text-on-background">
                         {group.job?.company}
                       </p>
                       <p className="mt-1 text-sm text-on-surface-variant">{group.job?.location}</p>
                       <p className="text-sm text-on-surface-variant">{group.job?.workMode}</p>
                     </div>
                     <button
-                      className="bg-surface-container-high px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface hover:bg-surface-container-highest"
+                      className="rounded-xl bg-surface-container-high px-4 py-3 font-headline text-[10px] font-bold tracking-normal text-on-surface hover:bg-surface-container-highest"
                       onClick={() => setExpandedJobKey(expanded ? null : group.key)}
                       type="button"
                     >
@@ -455,59 +455,59 @@ function AdminJobRecommendationsPage() {
 
                   <div className="divide-y divide-outline-variant/30">
                     <div className="hidden grid-cols-[1fr_120px_1.2fr_1.2fr_1.6fr] gap-4 px-5 py-3 lg:grid">
-                      <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Register Number</p>
-                      <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Matching %</p>
-                      <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Skill Matched</p>
-                      <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Skill Gap</p>
-                      <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">AI Analysis</p>
+                      <p className="font-label text-[10px] font-bold tracking-normal text-on-surface-variant">Register Number</p>
+                      <p className="font-label text-[10px] font-bold tracking-normal text-on-surface-variant">Matching %</p>
+                      <p className="font-label text-[10px] font-bold tracking-normal text-on-surface-variant">Skill Matched</p>
+                      <p className="font-label text-[10px] font-bold tracking-normal text-on-surface-variant">Skill Gap</p>
+                      <p className="font-label text-[10px] font-bold tracking-normal text-on-surface-variant">AI Analysis</p>
                     </div>
 
                     {visibleProfiles.map((profile) => (
                       <div className="grid grid-cols-1 gap-4 px-5 py-5 lg:grid-cols-[1fr_120px_1.2fr_1.2fr_1.6fr]" key={profile.id}>
                         <div>
-                          <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant lg:hidden">
+                          <p className="font-label text-[10px] font-bold tracking-normal text-on-surface-variant lg:hidden">
                             Register Number
                           </p>
-                          <p className="break-words font-headline text-sm font-black uppercase text-on-background">
+                          <p className="break-words font-headline text-sm font-black text-on-background">
                             {studentLabel(profile)}
                           </p>
                           <p className="mt-1 break-words text-xs text-on-surface-variant">{profile.email || profile.username}</p>
                         </div>
                         <div>
-                          <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant lg:hidden">
+                          <p className="font-label text-[10px] font-bold tracking-normal text-on-surface-variant lg:hidden">
                             Matching %
                           </p>
                           <p className="font-headline text-2xl font-black text-secondary">{profile.matchScore}%</p>
-                          <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                          <p className="font-label text-[10px] tracking-normal text-on-surface-variant">
                             {profile.probabilityLabel}
                           </p>
                         </div>
                         <div>
-                          <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant lg:hidden">
+                          <p className="font-label text-[10px] font-bold tracking-normal text-on-surface-variant lg:hidden">
                             Skill Matched
                           </p>
                           <div className="flex flex-wrap gap-2">
                             {(profile.matchedSkills || []).slice(0, 8).map((skill) => (
-                              <span className="bg-secondary/10 px-2 py-1 text-[11px] text-secondary" key={skill}>
+                              <span className="rounded-full bg-secondary/10 px-2 py-1 text-[11px] text-secondary" key={skill}>
                                 {skill}
                               </span>
                             ))}
                           </div>
                         </div>
                         <div>
-                          <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant lg:hidden">
+                          <p className="font-label text-[10px] font-bold tracking-normal text-on-surface-variant lg:hidden">
                             Skill Gap
                           </p>
                           <div className="flex flex-wrap gap-2">
                             {(profile.missingSkills || []).slice(0, 8).map((skill) => (
-                              <span className="bg-primary/10 px-2 py-1 text-[11px] text-primary" key={skill}>
+                              <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] text-primary" key={skill}>
                                 {skill}
                               </span>
                             ))}
                           </div>
                         </div>
                         <div>
-                          <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant lg:hidden">
+                          <p className="font-label text-[10px] font-bold tracking-normal text-on-surface-variant lg:hidden">
                             AI Analysis
                           </p>
                           <p className="text-sm leading-relaxed text-on-surface-variant">{profile.aiAnalysis}</p>
@@ -521,12 +521,12 @@ function AdminJobRecommendationsPage() {
           </div>
 
           {!groupedRecommendations.length && !isLoading ? (
-            <div className="mt-6 bg-surface-container-high p-6 text-sm text-on-surface-variant">
+            <div className="rounded-2xl mt-6 bg-surface-container-high p-6 text-sm text-on-surface-variant">
               No recommendations found. Refresh matches after students add career evidence or complete rooms.
             </div>
           ) : null}
           {isLoading ? (
-            <div className="mt-6 bg-surface-container-high p-6 text-sm text-on-surface-variant">
+            <div className="rounded-2xl mt-6 bg-surface-container-high p-6 text-sm text-on-surface-variant">
               Loading recommendation matrix...
             </div>
           ) : null}

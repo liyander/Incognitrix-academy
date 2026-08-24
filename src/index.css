@@ -3,36 +3,51 @@
 }
 
 :root {
-  --color-surface: #f8f9fb;
-  --color-background: #f8f9fb;
-  --color-on-background: #191c1e;
-  --color-on-surface: #191c1e;
-  --color-on-surface-variant: #5a4040;
+  /* Soft, light learning-platform palette: warm cocoa accent on cool paper. */
+  --color-surface: #f6f7fb;
+  --color-background: #eef0f6;
+  --color-on-background: #1b2233;
+  --color-on-surface: #1b2233;
+  --color-on-surface-variant: #6b7488;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f2f4f6;
-  --color-surface-container: #eceef0;
-  --color-surface-container-high: #e6e8ea;
-  --color-surface-container-highest: #e0e3e5;
-  --color-surface-variant: #e0e3e5;
-  --color-outline: #8e706f;
-  --color-outline-variant: #e3bebd;
-  --color-primary: #b6171e;
+  --color-surface-container-low: #fbfbfe;
+  --color-surface-container: #f2f4f9;
+  --color-surface-container-high: #e9ecf4;
+  --color-surface-container-highest: #e1e5ef;
+  --color-surface-variant: #eaedf4;
+  --color-outline: #a8b0c1;
+  --color-outline-variant: #e3e7ef;
+  --color-primary: #6d3a17;
   --color-on-primary: #ffffff;
-  --color-primary-container: #da3433;
-  --color-on-primary-container: #fffbff;
-  --color-secondary: #006878;
+  --color-primary-container: #f7e7d8;
+  --color-on-primary-container: #4a2409;
+  --color-secondary: #6d55e0;
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #91eafe;
-  --color-on-secondary-container: #006b7b;
-  --color-tertiary: #00666d;
+  --color-secondary-container: #ebe6ff;
+  --color-on-secondary-container: #35279a;
+  --color-tertiary: #0f9b76;
   --color-on-tertiary: #ffffff;
-  --color-error: #ba1a1a;
+  --color-tertiary-container: #d7f4e8;
+  --color-on-tertiary-container: #08543f;
+  --color-error: #d0453f;
   --color-on-error: #ffffff;
-  --color-error-container: #ffdad6;
-  --color-on-error-container: #93000a;
-  --color-inverse-surface: #2d3133;
-  --color-inverse-on-surface: #eff1f3;
-  --color-surface-tint: #ba1a20;
+  --color-error-container: #fde4e2;
+  --color-on-error-container: #8c1f1b;
+  --color-inverse-surface: #262d3c;
+  --color-inverse-on-surface: #f2f4f9;
+  --color-surface-tint: #6d3a17;
+
+  /* Pastel card accents lifted from the reference dashboard. */
+  --accent-mint: #d9f3e6;
+  --accent-on-mint: #0d6b50;
+  --accent-lavender: #f4e6fa;
+  --accent-on-lavender: #6b2b8f;
+  --accent-sky: #e2eefb;
+  --accent-on-sky: #1c5a99;
+  --accent-butter: #fdeec5;
+  --accent-on-butter: #8a6108;
+  --accent-blush: #fde4ef;
+  --accent-on-blush: #a92468;
 
   --neutral-50: 250 250 250;
   --neutral-100: 245 245 245;
@@ -48,36 +63,50 @@
 }
 
 html.dark {
-  --color-surface: #0f1215;
-  --color-background: #0f1215;
-  --color-on-background: #f2f5f7;
-  --color-on-surface: #f2f5f7;
-  --color-on-surface-variant: #b8c1c7;
-  --color-surface-container-lowest: #14181c;
-  --color-surface-container-low: #1a2025;
-  --color-surface-container: #20272d;
-  --color-surface-container-high: #2a333b;
-  --color-surface-container-highest: #333d46;
-  --color-surface-variant: #2b343c;
-  --color-outline: #73808a;
-  --color-outline-variant: #49535b;
-  --color-primary: #ff6f75;
-  --color-on-primary: #2a0003;
-  --color-primary-container: #8f1c24;
-  --color-on-primary-container: #ffe7e5;
-  --color-secondary: #7ad3e7;
-  --color-on-secondary: #042831;
-  --color-secondary-container: #1f4c58;
-  --color-on-secondary-container: #d3f7ff;
-  --color-tertiary: #6ad4da;
-  --color-on-tertiary: #022a2c;
-  --color-error: #ff8a8a;
-  --color-on-error: #330005;
-  --color-error-container: #5b1e1f;
-  --color-on-error-container: #ffdede;
-  --color-inverse-surface: #edf1f4;
-  --color-inverse-on-surface: #1c2227;
-  --color-surface-tint: #ff6f75;
+  /* Same soft geometry, dimmed to a calm indigo-charcoal. */
+  --color-surface: #161a24;
+  --color-background: #11141c;
+  --color-on-background: #eef1f7;
+  --color-on-surface: #eef1f7;
+  --color-on-surface-variant: #a3adc2;
+  --color-surface-container-lowest: #1b2029;
+  --color-surface-container-low: #1f242f;
+  --color-surface-container: #242a36;
+  --color-surface-container-high: #2c3341;
+  --color-surface-container-highest: #353d4d;
+  --color-surface-variant: #2a303d;
+  --color-outline: #5b6474;
+  --color-outline-variant: #333b49;
+  --color-primary: #e6a978;
+  --color-on-primary: #3d1d05;
+  --color-primary-container: #55311a;
+  --color-on-primary-container: #ffe5cd;
+  --color-secondary: #b3a3ff;
+  --color-on-secondary: #241a63;
+  --color-secondary-container: #3b3387;
+  --color-on-secondary-container: #e6e0ff;
+  --color-tertiary: #5fd7ae;
+  --color-on-tertiary: #00382a;
+  --color-tertiary-container: #14543f;
+  --color-on-tertiary-container: #c6f5e3;
+  --color-error: #ff8b83;
+  --color-on-error: #4d0f0c;
+  --color-error-container: #5f2320;
+  --color-on-error-container: #ffdedb;
+  --color-inverse-surface: #eef1f7;
+  --color-inverse-on-surface: #1b2233;
+  --color-surface-tint: #e6a978;
+
+  --accent-mint: #1a4438;
+  --accent-on-mint: #a5e8cd;
+  --accent-lavender: #3b2a4a;
+  --accent-on-lavender: #e5c3f5;
+  --accent-sky: #1f3752;
+  --accent-on-sky: #b8d9f7;
+  --accent-butter: #493a17;
+  --accent-on-butter: #f6dc9c;
+  --accent-blush: #4a2338;
+  --accent-on-blush: #f9bcd7;
 
   --neutral-50: 38 38 38;
   --neutral-100: 46 46 46;

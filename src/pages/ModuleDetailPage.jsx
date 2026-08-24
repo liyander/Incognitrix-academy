@@ -4,7 +4,7 @@ import {
   getCareerPathsData,
   hydrateCareerPathsData,
 } from '../data/careerPathsData'
-import { getRoomsData } from '../data/roomsData'
+import { getCoursesData } from '../data/coursesData'
 import { apiFetch } from '../services/api'
 import { parseMarkdownToHtml } from '../utils/markdown'
 
@@ -54,7 +54,7 @@ function ModuleDetailPage() {
 
   const path = careerPaths.find((item) => item.id === pathId || item.slug === pathId)
   const module = path?.modules?.find((m) => m.id === moduleId)
-  const allRooms = getRoomsData()
+  const allRooms = getCoursesData()
   const moduleOverviewSource =
     module?.content?.markdown || module?.markdown || module?.description || ''
   const moduleOverviewMarkup = renderRichContent(moduleOverviewSource, module?.content?.html || module?.html)
@@ -103,17 +103,17 @@ function ModuleDetailPage() {
           </div>
         )}
 
-        <div className="bg-surface-container-lowest p-0 relative border-l-8 border-secondary overflow-hidden">
+        <div className="rounded-xl bg-surface-container-lowest p-0 relative border-l-8 border-secondary overflow-hidden">
           <div className="p-10">
             <div>
-              <span className="font-headline text-[10px] font-bold text-secondary tracking-[2px] uppercase">
+              <span className="font-headline text-[10px] font-bold text-secondary tracking-[2px]">
                 {module.phase}
               </span>
-              <h1 className="text-5xl font-black font-headline tracking-tighter text-on-surface mb-4 uppercase">
+              <h1 className="text-5xl font-black font-headline tracking-tighter text-on-surface mb-4">
                 {module.title}
               </h1>
               <div
-                className="text-on-surface-variant max-w-3xl leading-relaxed [&_h1]:text-3xl [&_h1]:font-black [&_h1]:tracking-tight [&_h1]:mt-8 [&_h1]:mb-4 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:tracking-tight [&_h2]:mt-7 [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mt-6 [&_h3]:mb-2 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4 [&_li]:mb-1.5 [&_pre]:bg-surface-container-high [&_pre]:border [&_pre]:border-outline-variant/30 [&_pre]:p-5 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:my-5 [&_code]:font-mono [&_code]:text-[0.9em] [&_code]:bg-surface-container-highest [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_a]:text-primary [&_a]:underline [&_hr]:my-6 [&_hr]:border-outline-variant/40 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:bg-surface-container-low [&_blockquote]:px-4 [&_blockquote]:py-3 [&_blockquote]:my-4 [&_table]:w-full [&_table]:border-collapse [&_table]:my-5 [&_th]:text-left [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-widest [&_th]:font-headline [&_th]:bg-surface-container-high [&_th]:p-3 [&_th]:border [&_th]:border-outline-variant/30 [&_td]:p-3 [&_td]:border [&_td]:border-outline-variant/30"
+                className="text-on-surface-variant max-w-3xl leading-relaxed [&_h1]:text-3xl [&_h1]:font-black [&_h1]:tracking-tight [&_h1]:mt-8 [&_h1]:mb-4 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:tracking-tight [&_h2]:mt-7 [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mt-6 [&_h3]:mb-2 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4 [&_li]:mb-1.5 [&_pre]:bg-surface-container-high [&_pre]:border [&_pre]:border-outline-variant/30 [&_pre]:p-5 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:my-5 [&_code]:font-mono [&_code]:text-[0.9em] [&_code]:bg-surface-container-highest [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_a]:text-primary [&_a]:underline [&_hr]:my-6 [&_hr]:border-outline-variant/40 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:bg-surface-container-low [&_blockquote]:px-4 [&_blockquote]:py-3 [&_blockquote]:my-4 [&_table]:w-full [&_table]:border-collapse [&_table]:my-5 [&_th]:text-left [&_th]:text-xs [&_th]:tracking-normal [&_th]:font-headline [&_th]:bg-surface-container-high [&_th]:p-3 [&_th]:border [&_th]:border-outline-variant/30 [&_td]:p-3 [&_td]:border [&_td]:border-outline-variant/30"
                 dangerouslySetInnerHTML={{ __html: moduleOverviewMarkup }}
               ></div>
             </div>
@@ -123,11 +123,11 @@ function ModuleDetailPage() {
 
       <section className="max-w-4xl">
         <header className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-black font-headline tracking-tight uppercase">
+          <h2 className="text-2xl font-black font-headline tracking-tight">
             Module Rooms
           </h2>
           <div className="h-px flex-1 mx-8 bg-surface-container-highest"></div>
-          <span className="text-[10px] font-headline text-outline tracking-widest uppercase">
+          <span className="text-[10px] font-headline text-outline tracking-normal">
             {module.rooms?.length || 0} Rooms
           </span>
         </header>
@@ -140,15 +140,15 @@ function ModuleDetailPage() {
               return (
                 <div
                   key={roomId}
-                  className="bg-surface-container-lowest p-6 flex items-center justify-between group hover:bg-white transition-colors cursor-pointer"
-                  onClick={() => navigate(`/learn/lab/${room.slug}`)}
+                  className="rounded-2xl bg-surface-container-lowest p-6 flex items-center justify-between group hover:bg-white transition-colors cursor-pointer"
+                  onClick={() => navigate(`/learn/course/${room.slug}`)}
                 >
                   <div className="flex items-center gap-4 flex-1">
-                    <div className="w-12 h-12 flex items-center justify-center bg-secondary-container text-on-secondary-container">
+                    <div className="rounded-xl w-12 h-12 flex items-center justify-center bg-secondary-container text-on-secondary-container">
                       <span className="material-symbols-outlined">flag</span>
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-bold text-lg font-headline uppercase">
+                      <h3 className="font-bold text-lg font-headline">
                         {room.title}
                       </h3>
                       <p className="text-sm text-on-surface-variant mt-1">
@@ -158,7 +158,7 @@ function ModuleDetailPage() {
                         {room.tags?.map((tag) => (
                           <span
                             key={tag}
-                            className="text-[10px] font-headline font-bold text-secondary uppercase tracking-widest bg-secondary/10 px-2 py-1"
+                            className="rounded-full text-[10px] font-headline font-bold text-secondary tracking-normal bg-secondary/10 px-2 py-1"
                           >
                             {tag}
                           </span>
@@ -168,10 +168,10 @@ function ModuleDetailPage() {
                   </div>
                   <div className="flex items-center gap-6">
                     <div className="flex flex-col items-end">
-                      <span className="text-[8px] font-headline text-outline uppercase tracking-widest mb-1">
+                      <span className="text-[8px] font-headline text-outline tracking-normal mb-1">
                         Reward
                       </span>
-                      <span className="text-[10px] font-headline font-bold text-secondary uppercase">
+                      <span className="text-[10px] font-headline font-bold text-secondary">
                         {room.xp}
                       </span>
                     </div>
@@ -189,8 +189,8 @@ function ModuleDetailPage() {
             })}
           </div>
         ) : (
-          <div className="bg-surface-container-low border border-dashed border-outline-variant/30 p-12 flex items-center justify-center">
-            <span className="text-[10px] font-headline text-outline uppercase tracking-widest">
+          <div className="rounded-2xl bg-surface-container-low border border-dashed border-outline-variant/30 p-12 flex items-center justify-center">
+            <span className="text-[10px] font-headline text-outline tracking-normal">
               No rooms assigned to this module
             </span>
           </div>

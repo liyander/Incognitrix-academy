@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getAuthSession } from '../auth'
 import { getCareerPathsData, hydrateCareerPathsData } from '../data/careerPathsData'
-import { getRoomsData } from '../data/roomsData'
+import { getCoursesData } from '../data/coursesData'
 import { apiFetch } from '../services/api'
 import { getLabProgressEvents, getLabProgressMap } from '../services/labProgress'
 
@@ -56,24 +56,24 @@ function buildDisplayName(profile, fallbackUsername) {
     .filter(Boolean)
     .join(' ')
 
-  return fullName || profile?.username || fallbackUsername || 'Operator'
+  return fullName || profile?.username || fallbackUsername || 'Student'
 }
 
 const RANK_TIERS = [
-  { name: 'Recruit Analyst', xp: 0 },
-  { name: 'Junior Operator', xp: 250 },
-  { name: 'Field Analyst', xp: 750 },
-  { name: 'Incident Responder', xp: 1500 },
-  { name: 'Threat Hunter', xp: 3000 },
-  { name: 'Senior Analyst', xp: 5000 },
-  { name: 'Red Team Operator', xp: 8000 },
-  { name: 'Elite Commander', xp: 12000 },
+  { name: 'New Learner', xp: 0 },
+  { name: 'Beginner', xp: 250 },
+  { name: 'Apprentice', xp: 750 },
+  { name: 'Practitioner', xp: 1500 },
+  { name: 'Specialist', xp: 3000 },
+  { name: 'Advanced', xp: 5000 },
+  { name: 'Expert', xp: 8000 },
+  { name: 'Master', xp: 12000 },
 ]
 
 const ACHIEVEMENT_DEFINITIONS = [
   {
     id: 'first-breach',
-    name: 'First Breach',
+    name: 'First Step',
     icon: 'flag',
     tone: 'primary',
     criteria: 'Complete 1 room',
@@ -81,7 +81,7 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     id: 'steady-signal',
-    name: 'Steady Signal',
+    name: 'Getting Consistent',
     icon: 'timeline',
     tone: 'secondary',
     criteria: 'Complete 3 rooms',
@@ -89,7 +89,7 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     id: 'lab-operator',
-    name: 'Lab Operator',
+    name: 'Hands On',
     icon: 'terminal',
     tone: 'primary',
     criteria: 'Complete 5 rooms',
@@ -97,7 +97,7 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     id: 'mission-chain',
-    name: 'Mission Chain',
+    name: 'On a Roll',
     icon: 'conversion_path',
     tone: 'secondary',
     criteria: 'Complete 7 rooms',
@@ -105,7 +105,7 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     id: 'xp-hunter',
-    name: 'XP Hunter',
+    name: 'Point Collector',
     icon: 'data_thresholding',
     tone: 'primary',
     criteria: 'Earn 1,000 XP',
@@ -113,7 +113,7 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     id: 'signal-amplifier',
-    name: 'Signal Amplifier',
+    name: 'Momentum',
     icon: 'monitoring',
     tone: 'secondary',
     criteria: 'Earn 2,500 XP',
@@ -121,7 +121,7 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     id: 'vault-runner',
-    name: 'Vault Runner',
+    name: 'Deep Diver',
     icon: 'encrypted',
     tone: 'primary',
     criteria: 'Earn 4,000 XP',
@@ -129,7 +129,7 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     id: 'domain-hopper',
-    name: 'Domain Hopper',
+    name: 'Well Rounded',
     icon: 'hub',
     tone: 'secondary',
     criteria: 'Complete rooms in 3 categories',
@@ -137,7 +137,7 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     id: 'domain-cartographer',
-    name: 'Domain Cartographer',
+    name: 'Broad Horizons',
     icon: 'travel_explore',
     tone: 'secondary',
     criteria: 'Complete rooms in 5 categories',
@@ -220,7 +220,7 @@ function ProfilePage() {
   const analysisCacheKey = `incognitrix_profile_analysis_${authSession?.username || 'operator'}`
   const [profileIdentity, setProfileIdentity] = useState({
     username: authSession?.username || 'operator',
-    displayName: authSession?.username || 'Operator',
+    displayName: authSession?.username || 'Student',
     role: authSession?.role || 'operator',
     registrationNumber: '',
     userId: authSession?.id || null,
@@ -257,7 +257,7 @@ function ProfilePage() {
         if (!cancelled) {
           setProfileIdentity({
             username: authSession?.username || 'operator',
-            displayName: authSession?.username || 'Operator',
+            displayName: authSession?.username || 'Student',
             role: authSession?.role || 'operator',
             registrationNumber: '',
             userId: authSession?.id || null,
@@ -340,7 +340,7 @@ function ProfilePage() {
 
     const loadProfileStats = async () => {
       const progressMap = getLabProgressMap()
-      const roomsById = new Map(getRoomsData().map((room) => [room.id, room]))
+      const roomsById = new Map(getCoursesData().map((room) => [room.id, room]))
       const localCompletedRoomIds = Object.entries(progressMap)
         .filter(([, progress]) => Boolean(progress?.completedAt))
         .map(([roomId]) => roomId)
@@ -437,7 +437,7 @@ function ProfilePage() {
 
   const moduleProgressItems = useMemo(() => {
     void labProgressTick
-    const roomsById = new Map(getRoomsData().map((room) => [room.id, room]))
+    const roomsById = new Map(getCoursesData().map((room) => [room.id, room]))
     const progressMap = getLabProgressMap()
 
     const modules = careerPaths.flatMap((path) =>
@@ -482,10 +482,10 @@ function ProfilePage() {
   const firstColumnItems = moduleProgressItems.filter((_, index) => index % 2 === 0)
   const secondColumnItems = moduleProgressItems.filter((_, index) => index % 2 !== 0)
   const operatorId = profileIdentity.registrationNumber || (profileIdentity.userId ? `USER_${profileIdentity.userId}` : profileIdentity.username)
-  const roleLabel = aiAnalysis?.suitableRole || (profileIdentity.role === 'admin' ? 'Admin Operator' : 'Cybersecurity Learner')
+  const roleLabel = aiAnalysis?.suitableRole || (profileIdentity.role === 'admin' ? 'Administrator' : 'Learner')
   const labTimelineItems = useMemo(() => {
     void labProgressTick
-    const roomsById = new Map(getRoomsData().map((room) => [room.id, room]))
+    const roomsById = new Map(getCoursesData().map((room) => [room.id, room]))
     const progressMap = getLabProgressMap()
 
     return Object.entries(progressMap)
@@ -530,20 +530,20 @@ function ProfilePage() {
     : null
   const networkState = profileStats.completedRooms === 0
     ? {
-        label: 'AWAITING_SIGNAL',
+        label: 'Waiting…',
         message: 'Complete your first room to activate performance telemetry.',
-        action: 'START_FIRST_ROOM',
+        action: 'Start your first course',
       }
     : percentile
       ? {
-          label: percentile <= 10 ? 'SECURE_NODE' : percentile <= 35 ? 'ACTIVE_NODE' : 'TRAINING_NODE',
+          label: percentile <= 10 ? 'Secure' : percentile <= 35 ? 'Active' : 'Practice',
           message: `Your current performance is in the top ${percentile}% of ranked academy operators.`,
-          action: percentile <= 10 ? 'MAINTAIN_CURRENT_TRAJECTORY' : 'COMPLETE_MORE_ROOMS',
+          action: percentile <= 10 ? 'Keep up the pace' : 'Complete more courses',
         }
       : {
-          label: 'LOCAL_NODE',
+          label: 'Local',
           message: `You have completed ${profileStats.completedRooms} room${profileStats.completedRooms === 1 ? '' : 's'} and earned ${formatNumber(profileStats.xp)} XP.`,
-          action: 'SYNC_RANKING_DATA',
+          action: 'Sync rankings',
         }
 
   return (
@@ -556,21 +556,21 @@ function ProfilePage() {
                 {profileIdentity.displayName}
               </h1>
               <div className="flex gap-4 items-center">
-                <span className="bg-primary-container text-on-primary-container px-3 py-1 font-label text-[10px] tracking-widest uppercase">
+                <span className="rounded-full bg-primary-container text-on-primary-container px-3 py-1 font-label text-[10px] tracking-normal">
                   {roleLabel}
                 </span>
-                <span className="text-on-surface-variant font-label text-[10px] tracking-widest uppercase">
+                <span className="text-on-surface-variant font-label text-[10px] tracking-normal">
                   ID: {operatorId}
                 </span>
               </div>
             </div>
-            <div className="bg-surface-container-lowest p-8 flex flex-col justify-between border-l-4 border-primary">
-              <span className="font-label text-[10px] tracking-widest uppercase text-on-surface-variant">Total Experience Points</span>
+            <div className="rounded-2xl bg-surface-container-lowest p-8 flex flex-col justify-between border-l-4 border-primary">
+              <span className="font-label text-[10px] tracking-normal text-on-surface-variant">Total Experience Points</span>
               <div className="flex flex-col">
                 <span className="font-headline font-bold text-5xl tracking-tighter text-primary">
                   {formatNumber(profileStats.xp)}
                 </span>
-                <span className="font-label text-[10px] tracking-widest uppercase text-primary/60 mt-1">
+                <span className="font-label text-[10px] tracking-normal text-primary/60 mt-1">
                   {profileStats.completedRooms} rooms completed
                 </span>
               </div>
@@ -578,13 +578,13 @@ function ProfilePage() {
           </div>
 
           <div className="grid grid-cols-12 gap-8">
-            <div className="col-span-12 bg-surface-container-lowest p-8 border-l-4 border-secondary">
+            <div className="rounded-2xl col-span-12 bg-surface-container-lowest p-8 border-l-4 border-secondary">
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
                 <div className="max-w-3xl">
-                  <span className="font-label text-[10px] tracking-[0.25em] uppercase text-secondary font-bold">
+                  <span className="font-label text-[10px] tracking-normal text-secondary font-bold">
                     AI Career Analysis
                   </span>
-                  <h2 className="font-headline font-bold text-2xl uppercase tracking-tight mt-2">
+                  <h2 className="font-headline font-bold text-2xl tracking-tight mt-2">
                     {isLoadingAnalysis
                       ? 'Analyzing completed rooms...'
                       : aiAnalysis?.suitableRole || 'Complete rooms to unlock role analysis'}
@@ -594,8 +594,8 @@ function ProfilePage() {
                       'The recommendation is generated from completed rooms, theoretical scores, answered questions, and evaluator feedback.'}
                   </p>
                 </div>
-                <div className="bg-surface-container-high px-5 py-4 min-w-44">
-                  <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                <div className="rounded-2xl bg-surface-container-high px-5 py-4 min-w-44">
+                  <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
                     Confidence
                   </p>
                   <p className="font-headline text-2xl font-black text-secondary mt-1">
@@ -608,8 +608,8 @@ function ProfilePage() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-                <div className="bg-surface p-5">
-                  <h3 className="font-headline text-xs font-bold uppercase tracking-widest text-primary mb-4">
+                <div className="rounded-2xl bg-surface p-5">
+                  <h3 className="font-headline text-xs font-bold tracking-normal text-primary mb-4">
                     Strengths
                   </h3>
                   <div className="space-y-3">
@@ -620,8 +620,8 @@ function ProfilePage() {
                     ))}
                   </div>
                 </div>
-                <div className="bg-surface p-5">
-                  <h3 className="font-headline text-xs font-bold uppercase tracking-widest text-primary mb-4">
+                <div className="rounded-2xl bg-surface p-5">
+                  <h3 className="font-headline text-xs font-bold tracking-normal text-primary mb-4">
                     Improve Next
                   </h3>
                   <div className="space-y-3">
@@ -635,11 +635,11 @@ function ProfilePage() {
               </div>
             </div>
 
-            <div className="col-span-12 lg:col-span-8 bg-surface-container-lowest p-8 border-l-4 border-primary/70">
+            <div className="rounded-2xl col-span-12 lg:col-span-8 bg-surface-container-lowest p-8 border-l-4 border-primary/70">
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h2 className="font-headline font-bold text-xl uppercase tracking-tight">Skill Matrix Output</h2>
-                  <p className="text-[10px] font-label tracking-widest uppercase text-on-surface-variant mt-1">
+                  <h2 className="font-headline font-bold text-xl tracking-tight">Skill Matrix Output</h2>
+                  <p className="text-[10px] font-label tracking-normal text-on-surface-variant mt-1">
                     Top 4 modules by completion output
                   </p>
                 </div>
@@ -649,14 +649,14 @@ function ProfilePage() {
                 {[firstColumnItems, secondColumnItems].map((columnItems, columnIndex) => (
                   <div className="space-y-4" key={`skill-col-${columnIndex + 1}`}>
                     {columnItems.map((item) => (
-                      <div className="bg-surface border border-surface-container p-4 space-y-3" key={item.id}>
+                      <div className="rounded-2xl bg-surface border border-surface-container p-4 space-y-3" key={item.id}>
                         <div className="flex justify-between gap-4">
                           <div className="min-w-0">
-                            <span className="inline-flex items-center px-2 py-1 bg-surface-container-high text-[9px] font-bold font-label tracking-widest uppercase mb-2">
+                            <span className="rounded-full inline-flex items-center px-2 py-1 bg-surface-container-high text-[9px] font-bold font-label tracking-normal mb-2">
                               Rank #{item.rank}
                             </span>
-                            <h3 className="font-headline font-bold text-sm uppercase tracking-wide truncate">{item.title}</h3>
-                            <p className="text-[10px] text-on-surface-variant mt-1 uppercase tracking-widest truncate">
+                            <h3 className="font-headline font-bold text-sm tracking-wide truncate">{item.title}</h3>
+                            <p className="text-[10px] text-on-surface-variant mt-1 tracking-normal truncate">
                               {item.subtitle}
                             </p>
                           </div>
@@ -674,7 +674,7 @@ function ProfilePage() {
                           ></div>
                         </div>
 
-                        <div className="flex justify-between text-[10px] font-label uppercase tracking-widest text-on-surface-variant">
+                        <div className="flex justify-between text-[10px] font-label tracking-normal text-on-surface-variant">
                           <span>
                             {item.completedRooms}/{item.totalRooms} labs complete
                           </span>
@@ -699,16 +699,16 @@ function ProfilePage() {
               </div>
             </div>
 
-            <div className="col-span-12 lg:col-span-4 bg-surface-container-lowest p-8 text-on-surface relative overflow-hidden border border-outline-variant/40 border-l-4 border-l-secondary shadow-sm">
-              <div className="absolute top-0 right-0 h-32 w-32 bg-secondary/10 blur-[80px]"></div>
+            <div className="rounded-2xl col-span-12 lg:col-span-4 bg-surface-container-lowest p-8 text-on-surface relative overflow-hidden border border-outline-variant/40 border-l-4 border-l-secondary shadow-sm">
+              <div className="rounded-xl absolute top-0 right-0 h-32 w-32 bg-secondary/10 blur-[80px]"></div>
               <div className="flex justify-between items-center mb-8 relative z-10">
                 <div>
-                  <h2 className="font-headline font-bold text-sm uppercase tracking-widest">Lab Completion Timeline</h2>
-                  <p className="mt-1 text-[10px] font-label uppercase tracking-widest text-on-surface-variant">
+                  <h2 className="font-headline font-bold text-sm tracking-normal">Lab Completion Timeline</h2>
+                  <p className="mt-1 text-[10px] font-label tracking-normal text-on-surface-variant">
                     Latest completed rooms
                   </p>
                 </div>
-                <span className="inline-flex items-center gap-1 bg-secondary/15 px-2.5 py-1 text-[9px] font-label font-bold uppercase tracking-widest text-secondary">
+                <span className="rounded-full inline-flex items-center gap-1 bg-secondary/15 px-2.5 py-1 text-[9px] font-label font-bold tracking-normal text-secondary">
                   <span className="h-1.5 w-1.5 rounded-full bg-secondary"></span>
                   Live
                 </span>
@@ -722,15 +722,15 @@ function ProfilePage() {
                     >
                       <div className="font-headline text-right">
                         <p className="text-sm font-black text-secondary">{formatTimelineTime(item.completedAt)}</p>
-                        <p className="mt-1 text-[9px] uppercase tracking-widest text-on-surface-variant">
+                        <p className="mt-1 text-[9px] tracking-normal text-on-surface-variant">
                           {formatTimelineDate(item.completedAt)}
                         </p>
                       </div>
-                      <div className="min-w-0 bg-surface-container-high px-4 py-3">
-                        <p className="font-headline text-xs font-black uppercase tracking-wide text-on-surface truncate">
+                      <div className="rounded-xl min-w-0 bg-surface-container-high px-4 py-3">
+                        <p className="font-headline text-xs font-black tracking-wide text-on-surface truncate">
                           {item.title}
                         </p>
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[9px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[9px] font-label font-bold tracking-normal text-on-surface-variant">
                           <span>{item.category}</span>
                           <span className="h-1 w-1 rounded-full bg-outline"></span>
                           <span>{item.difficulty}</span>
@@ -745,11 +745,11 @@ function ProfilePage() {
                     </div>
                   ))
                 ) : (
-                  <div className="bg-surface-container-high p-6 text-center">
+                  <div className="rounded-2xl bg-surface-container-high p-6 text-center">
                     <span className="material-symbols-outlined text-3xl text-on-surface-variant">
                       timeline
                     </span>
-                    <p className="mt-3 font-headline text-xs font-bold uppercase tracking-widest text-on-surface">
+                    <p className="mt-3 font-headline text-xs font-bold tracking-normal text-on-surface">
                       No completed labs yet
                     </p>
                     <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">
@@ -760,22 +760,22 @@ function ProfilePage() {
               </div>
             </div>
 
-            <div className="col-span-12 bg-surface-container-low p-8">
+            <div className="rounded-2xl col-span-12 bg-surface-container-low p-8">
               <div className="flex justify-between items-end mb-8">
                 <div>
-                  <h2 className="font-headline font-bold text-xl uppercase tracking-tight">Achievement Vault</h2>
-                  <p className="text-on-surface-variant text-[10px] font-label uppercase tracking-widest mt-1">
+                  <h2 className="font-headline font-bold text-xl tracking-tight">Achievement Vault</h2>
+                  <p className="text-on-surface-variant text-[10px] font-label tracking-normal mt-1">
                     Criteria based on XP, completed rooms, categories, and module mastery
                   </p>
                 </div>
-                <span className="font-label text-[10px] tracking-widest uppercase text-primary border-b-2 border-primary pb-1">
+                <span className="font-label text-[10px] tracking-normal text-primary border-b-2 border-primary pb-1">
                   {achievements.filter((item) => item.unlocked).length}/{achievements.length} Unlocked
                 </span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
                 {achievements.map((achievement) => (
                   <div
-                    className={`aspect-square bg-surface-container-lowest p-5 flex flex-col items-center justify-center text-center gap-3 border border-outline-variant/20 transition-opacity ${
+                    className={`rounded-2xl aspect-square bg-surface-container-lowest p-5 flex flex-col items-center justify-center text-center gap-3 border border-outline-variant/20 transition-opacity ${
                       achievement.unlocked ? '' : 'opacity-35 grayscale'
                     }`}
                     key={achievement.id}
@@ -787,7 +787,7 @@ function ProfilePage() {
                     >
                       {achievement.unlocked ? achievement.icon : 'lock'}
                     </span>
-                    <span className="font-label text-[10px] font-bold tracking-widest uppercase">
+                    <span className="font-label text-[10px] font-bold tracking-normal">
                       {achievement.unlocked ? achievement.name : 'Locked File'}
                     </span>
                     <span className="text-[9px] leading-relaxed text-on-surface-variant">
@@ -798,11 +798,11 @@ function ProfilePage() {
               </div>
             </div>
 
-            <div className="col-span-12 lg:col-span-6 bg-surface-container-lowest h-64 overflow-hidden relative">
+            <div className="rounded-xl col-span-12 lg:col-span-6 bg-surface-container-lowest h-64 overflow-hidden relative">
               <img alt="Servers" className="w-full h-full object-cover grayscale opacity-20 mix-blend-multiply" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8Up8U0Qns_mn9r9DwX9zZyvGMbGwohDNQ9BG4mbWDhnv0l4-3gpm4UDv9c46eqHBIzyJtLpzvO4j-raquDQB9Kf9U9wtASYKd-r5Bkk5wASptx560cccS9lcqSOEFEwIjNtqc0B-ux92is0Zz8a6bYJA5HGoLwEAuDmn7lzG1kN1lmmcbJpQyRc0YrcR_25GSA13Z_9ISSXGx-PsmWEev9swLpEGoskBLUatjuQsdfCXYL4-LRN2nvKAHbSu2RFneVMhwYubmE4g" />
               <div className="absolute inset-0 p-8 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
-                  <h3 className="font-headline font-bold text-lg uppercase">Network Status</h3>
+                  <h3 className="font-headline font-bold text-lg">Network Status</h3>
                   <span className="bg-green-500/20 text-green-700 px-2 py-1 text-[8px] font-bold tracking-[2px]">
                     {networkState.label}
                   </span>
@@ -811,26 +811,26 @@ function ProfilePage() {
                   <p className="font-body text-sm text-on-surface-variant max-w-xs">
                     {networkState.message}
                   </p>
-                  <span className="font-label text-[10px] text-primary tracking-widest uppercase font-bold">
+                  <span className="font-label text-[10px] text-primary tracking-normal font-bold">
                     {networkState.action}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="col-span-12 lg:col-span-6 bg-primary-container p-8 flex flex-col justify-between text-on-primary-container">
+            <div className="rounded-2xl col-span-12 lg:col-span-6 bg-primary-container p-8 flex flex-col justify-between text-on-primary-container">
               <div className="flex justify-between items-start">
                 <span className="material-symbols-outlined text-4xl">military_tech</span>
                 <div className="text-right">
-                  <span className="font-label text-[10px] tracking-widest uppercase opacity-70">Next Rank Progression</span>
-                  <p className="font-headline font-bold text-xl uppercase">{rankProgress.nextRank}</p>
-                  <p className="mt-1 font-label text-[9px] uppercase tracking-widest opacity-70">
+                  <span className="font-label text-[10px] tracking-normal opacity-70">Next Rank Progression</span>
+                  <p className="font-headline font-bold text-xl">{rankProgress.nextRank}</p>
+                  <p className="mt-1 font-label text-[9px] tracking-normal opacity-70">
                     Current: {rankProgress.currentRank}
                   </p>
                 </div>
               </div>
               <div>
-                <div className="flex justify-between font-label text-[10px] tracking-widest uppercase mb-2">
+                <div className="flex justify-between font-label text-[10px] tracking-normal mb-2">
                   <span>Rank Progress</span>
                   <span>
                     {rankProgress.xpToNext > 0 ? `${formatNumber(rankProgress.xpToNext)} XP to Next Rank` : 'Max Rank Reached'}
@@ -846,11 +846,11 @@ function ProfilePage() {
       </main>
 
       <footer className="w-full py-6 mt-auto bg-neutral-50 border-t border-neutral-200/50 flex flex-col md:flex-row justify-between items-center px-12">
-        <div className="font-headline text-[10px] tracking-widest uppercase text-neutral-400">© 2024 INCOGNITRIX ACADEMY // SURGICAL INTEL UNIT</div>
+        <div className="font-headline text-[10px] tracking-normal text-neutral-400">© 2026 Minerva Academy</div>
         <div className="flex gap-8 mt-4 md:mt-0">
-          <a className="font-headline text-[10px] tracking-widest uppercase text-neutral-400 hover:text-red-600 opacity-80 hover:opacity-100 transition-all duration-150" href="#">Privacy Protocol</a>
-          <a className="font-headline text-[10px] tracking-widest uppercase text-neutral-400 hover:text-red-600 opacity-80 hover:opacity-100 transition-all duration-150" href="#">Terms of Engagement</a>
-          <a className="font-headline text-[10px] tracking-widest uppercase text-neutral-400 hover:text-red-600 opacity-80 hover:opacity-100 transition-all duration-150" href="#">Liability Waiver</a>
+          <a className="font-headline text-[10px] tracking-normal text-neutral-400 hover:text-primary opacity-80 hover:opacity-100 transition-all duration-150" href="#">Privacy</a>
+          <a className="font-headline text-[10px] tracking-normal text-neutral-400 hover:text-primary opacity-80 hover:opacity-100 transition-all duration-150" href="#">Terms</a>
+          <a className="font-headline text-[10px] tracking-normal text-neutral-400 hover:text-primary opacity-80 hover:opacity-100 transition-all duration-150" href="#">Accessibility</a>
         </div>
       </footer>
     </>

@@ -26,9 +26,9 @@ const inputClass =
   'w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none'
 
 const labelClass =
-  'block font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2'
+  'block font-headline text-[10px] font-bold tracking-normal text-on-surface-variant mb-2'
 
-function AdminLabResearchPage() {
+function AdminProjectsPage() {
   const navigate = useNavigate()
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
@@ -188,21 +188,21 @@ function AdminLabResearchPage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
+    <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10">
       <section className="max-w-6xl mx-auto">
-        <header className="bg-surface-container-lowest border-l-4 border-secondary p-8 md:p-10 mb-8">
+        <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-8 md:p-10 mb-8">
           <button
-            className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors"
+            className="rounded-lg inline-flex items-center gap-2 mb-6 px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-primary transition-colors"
             onClick={() => navigate('/admin')}
             type="button"
           >
             <span className="material-symbols-outlined text-sm">arrow_back</span>
             Back to Admin Panel
           </button>
-          <p className="font-headline text-[10px] tracking-[0.25em] uppercase text-secondary font-bold">
+          <p className="font-headline text-[10px] tracking-normal text-secondary font-bold">
             Knowledge Transfer
           </p>
-          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight mt-3 uppercase">
+          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight mt-3">
             Lab Research Manager
           </h1>
           <p className="text-sm text-on-surface-variant mt-4 max-w-2xl">
@@ -212,20 +212,20 @@ function AdminLabResearchPage() {
         </header>
 
         {error ? (
-          <div className="mb-6 bg-error/10 border-l-4 border-error p-4">
-            <p className="text-error font-headline text-xs font-bold uppercase tracking-widest">{error}</p>
+          <div className="rounded-2xl mb-6 bg-error/10 border-l-4 border-error p-4">
+            <p className="text-error font-headline text-xs font-bold tracking-normal">{error}</p>
           </div>
         ) : null}
 
         {success ? (
-          <div className="mb-6 bg-secondary/10 border-l-4 border-secondary p-4">
-            <p className="text-secondary font-headline text-xs font-bold uppercase tracking-widest">{success}</p>
+          <div className="rounded-2xl mb-6 bg-secondary/10 border-l-4 border-secondary p-4">
+            <p className="text-secondary font-headline text-xs font-bold tracking-normal">{success}</p>
           </div>
         ) : null}
 
-        <div className="bg-surface-container-lowest border-l-4 border-primary p-8 mb-8">
+        <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8 mb-8">
           <button
-            className="bg-primary text-on-primary px-6 py-2.5 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors"
+            className="rounded-lg bg-primary text-on-primary px-6 py-2.5 font-headline text-xs font-bold tracking-normal hover:bg-primary-container transition-colors"
             onClick={() => {
               if (showForm) {
                 resetForm()
@@ -340,7 +340,7 @@ function AdminLabResearchPage() {
 
               <div className="flex flex-col gap-4 pt-2 md:flex-row md:items-center md:justify-between">
                 <div className="flex flex-col gap-3 sm:flex-row">
-                  <label className="inline-flex items-center gap-3 text-sm text-on-surface-variant bg-surface-container-high px-4 py-3 w-fit">
+                  <label className="rounded-xl inline-flex items-center gap-3 text-sm text-on-surface-variant bg-surface-container-high px-4 py-3 w-fit">
                     <input
                       checked={formData.isActive}
                       className="h-4 w-4 accent-[#b6171e]"
@@ -351,7 +351,7 @@ function AdminLabResearchPage() {
                     Visible to Players
                   </label>
                   <label
-                    className={`inline-flex items-center gap-3 text-sm text-on-surface-variant bg-surface-container-high px-4 py-3 w-fit ${formData.projectType === 'research' ? 'opacity-50' : ''}`}
+                    className={`rounded-xl inline-flex items-center gap-3 text-sm text-on-surface-variant bg-surface-container-high px-4 py-3 w-fit ${formData.projectType === 'research' ? 'opacity-50' : ''}`}
                     title={formData.projectType === 'research' ? 'Code lab needs a web-based or program-based project type' : ''}
                   >
                     <input
@@ -367,7 +367,7 @@ function AdminLabResearchPage() {
                 </div>
 
                 <button
-                  className="w-full md:w-auto min-w-[220px] bg-primary text-on-primary px-6 py-3 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors disabled:opacity-60"
+                  className="rounded-xl w-full md:w-auto min-w-[220px] bg-primary text-on-primary px-6 py-3 font-headline text-xs font-bold tracking-normal hover:bg-primary-container transition-colors disabled:opacity-60"
                   disabled={saving}
                   type="submit"
                 >
@@ -379,26 +379,26 @@ function AdminLabResearchPage() {
         </div>
 
         <div>
-          <h2 className="font-headline text-2xl font-bold uppercase tracking-tight mb-6 text-primary flex items-center gap-2">
+          <h2 className="font-headline text-2xl font-bold tracking-tight mb-6 text-primary flex items-center gap-2">
             <span className="material-symbols-outlined">biotech</span>
             Research Projects ({projects.length})
           </h2>
 
           {loading ? (
-            <div className="bg-surface-container-lowest p-8 text-center">
+            <div className="rounded-2xl bg-surface-container-lowest p-8 text-center">
               <p className="text-on-surface-variant">Loading research projects...</p>
             </div>
           ) : projects.length === 0 ? (
-            <div className="bg-surface-container-lowest p-10 text-center border-l-4 border-outline-variant/40">
-              <p className="font-headline text-lg font-bold uppercase">No research projects yet</p>
+            <div className="rounded-2xl bg-surface-container-lowest p-10 text-center border-l-4 border-outline-variant/40">
+              <p className="font-headline text-lg font-bold">No research projects yet</p>
             </div>
           ) : (
             <div className="grid gap-4">
               {projects.map((project) => (
-                <div className="bg-surface-container-lowest border-l-4 border-secondary/50 p-6" key={project.id}>
+                <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary/50 p-6" key={project.id}>
                   <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div className="space-y-2 min-w-0">
-                      <h3 className="font-headline text-lg font-bold uppercase">{project.title}</h3>
+                      <h3 className="font-headline text-lg font-bold">{project.title}</h3>
                       {project.stack ? (
                         <p className="text-xs text-on-surface-variant">Stack: {project.stack}</p>
                       ) : null}
@@ -412,16 +412,16 @@ function AdminLabResearchPage() {
                           : ''}
                       </p>
                       <div className="flex flex-wrap gap-2 mt-2">
-                        <span className={`px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest ${project.isActive ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                        <span className={`px-2 py-1 text-[10px] font-headline font-bold tracking-normal ${project.isActive ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
                           {project.isActive ? 'Visible' : 'Hidden'}
                         </span>
-                        <span className="px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest bg-surface-container-high text-on-surface-variant">
+                        <span className="rounded-full px-2 py-1 text-[10px] font-headline font-bold tracking-normal bg-surface-container-high text-on-surface-variant">
                           {project.projectType === 'web' ? 'Web-Based' : project.projectType === 'program' ? 'Program-Based' : 'Research'}
                         </span>
-                        <span className={`px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest ${project.codingEnabled ? 'bg-primary/15 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                        <span className={`px-2 py-1 text-[10px] font-headline font-bold tracking-normal ${project.codingEnabled ? 'bg-primary/15 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
                           Code Lab {project.codingEnabled ? 'Enabled' : 'Disabled'}
                         </span>
-                        <span className="px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest bg-surface-container-high text-on-surface-variant">
+                        <span className="rounded-full px-2 py-1 text-[10px] font-headline font-bold tracking-normal bg-surface-container-high text-on-surface-variant">
                           {project.questionCount} quiz questions
                         </span>
                       </div>
@@ -429,14 +429,14 @@ function AdminLabResearchPage() {
 
                     <div className="flex flex-wrap gap-2 shrink-0">
                       <button
-                        className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-secondary transition-colors"
+                        className="rounded-lg px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-secondary transition-colors"
                         onClick={() => handleViewCompletions(project.id)}
                         type="button"
                       >
                         Completions
                       </button>
                       <button
-                        className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-secondary transition-colors"
+                        className="rounded-lg px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-secondary transition-colors"
                         onClick={() => handleToggle(project, 'isActive')}
                         type="button"
                       >
@@ -444,7 +444,7 @@ function AdminLabResearchPage() {
                       </button>
                       {project.projectType !== 'research' ? (
                         <button
-                          className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-secondary transition-colors"
+                          className="rounded-lg px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-secondary transition-colors"
                           onClick={() => handleToggle(project, 'codingEnabled')}
                           type="button"
                         >
@@ -452,14 +452,14 @@ function AdminLabResearchPage() {
                         </button>
                       ) : null}
                       <button
-                        className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors"
+                        className="rounded-lg px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-primary transition-colors"
                         onClick={() => handleEdit(project)}
                         type="button"
                       >
                         Edit
                       </button>
                       <button
-                        className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-error transition-colors"
+                        className="rounded-lg px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-error transition-colors"
                         onClick={() => handleDelete(project.id)}
                         type="button"
                       >
@@ -474,17 +474,17 @@ function AdminLabResearchPage() {
         </div>
 
         {completionsLoading ? (
-          <div className="mt-8 bg-surface-container-lowest p-8 text-center">
+          <div className="rounded-2xl mt-8 bg-surface-container-lowest p-8 text-center">
             <p className="text-on-surface-variant">Loading completions...</p>
           </div>
         ) : completions ? (
-          <div className="mt-8 bg-surface-container-lowest border-l-4 border-primary p-8">
+          <div className="rounded-2xl mt-8 bg-surface-container-lowest border-l-4 border-primary p-8">
             <div className="flex items-start justify-between gap-4 mb-6">
-              <h2 className="font-headline text-xl font-bold uppercase tracking-tight text-primary">
+              <h2 className="font-headline text-xl font-bold tracking-tight text-primary">
                 Player Progress — {completions.project.title}
               </h2>
               <button
-                className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-error transition-colors"
+                className="rounded-lg px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-error transition-colors"
                 onClick={() => setCompletions(null)}
                 type="button"
               >
@@ -497,7 +497,7 @@ function AdminLabResearchPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant border-b border-outline-variant">
+                    <tr className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant border-b border-outline-variant">
                       <th className="py-3 pr-4">Player</th>
                       <th className="py-3 pr-4">Quiz Score</th>
                       <th className="py-3 pr-4">Knowledge Check</th>
@@ -513,9 +513,9 @@ function AdminLabResearchPage() {
                           <Link
                             className="block text-left group"
                             title="Open this player's answers and submissions"
-                            to={`/admin/lab-research/projects/${completions.project.id}/players/${player.userId}`}
+                            to={`/admin/projects/${completions.project.id}/students/${player.userId}`}
                           >
-                            <p className="font-headline text-xs font-bold uppercase text-primary group-hover:underline">
+                            <p className="font-headline text-xs font-bold text-primary group-hover:underline">
                               {player.username}
                             </p>
                             <p className="text-xs text-on-surface-variant">{player.email}</p>
@@ -524,11 +524,11 @@ function AdminLabResearchPage() {
                         <td className="py-3 pr-4 font-headline font-bold">{player.quizScore}/100</td>
                         <td className="py-3 pr-4">
                           {player.quizCompleted ? (
-                            <span className="px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest bg-secondary/15 text-secondary">
+                            <span className="rounded-full px-2 py-1 text-[10px] font-headline font-bold tracking-normal bg-secondary/15 text-secondary">
                               Completed {player.quizCompletedAt ? new Date(player.quizCompletedAt).toLocaleString() : ''}
                             </span>
                           ) : (
-                            <span className="px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest bg-surface-container-high text-on-surface-variant">
+                            <span className="rounded-full px-2 py-1 text-[10px] font-headline font-bold tracking-normal bg-surface-container-high text-on-surface-variant">
                               In Progress
                             </span>
                           )}
@@ -536,11 +536,11 @@ function AdminLabResearchPage() {
                         <td className="py-3 pr-4">
                           {completions.project.codingEnabled || player.codeAccepted ? (
                             player.codeAccepted ? (
-                              <span className="px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest bg-secondary/15 text-secondary">
+                              <span className="rounded-full px-2 py-1 text-[10px] font-headline font-bold tracking-normal bg-secondary/15 text-secondary">
                                 Accepted {player.codeAcceptedAt ? new Date(player.codeAcceptedAt).toLocaleString() : ''}
                               </span>
                             ) : (
-                              <span className="px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest bg-surface-container-high text-on-surface-variant">
+                              <span className="rounded-full px-2 py-1 text-[10px] font-headline font-bold tracking-normal bg-surface-container-high text-on-surface-variant">
                                 Not Accepted
                               </span>
                             )
@@ -552,7 +552,7 @@ function AdminLabResearchPage() {
                         <td className="py-3">
                           {player.latestSubmission ? (
                             <button
-                              className="px-3 py-1.5 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold uppercase tracking-widest hover:text-primary transition-colors disabled:opacity-60"
+                              className="rounded-full px-3 py-1.5 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold tracking-normal hover:text-primary transition-colors disabled:opacity-60"
                               disabled={submissionLoading}
                               onClick={() => handleViewSubmission(player.latestSubmission.id)}
                               type="button"
@@ -576,7 +576,7 @@ function AdminLabResearchPage() {
               <div className="mt-8 border-t border-outline-variant pt-6">
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div>
-                    <h3 className="font-headline text-lg font-bold uppercase tracking-tight">
+                    <h3 className="font-headline text-lg font-bold tracking-tight">
                       Submission — {submissionView.username}
                     </h3>
                     <p className="text-xs text-on-surface-variant mt-1">
@@ -589,7 +589,7 @@ function AdminLabResearchPage() {
                     </p>
                   </div>
                   <button
-                    className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-error transition-colors"
+                    className="rounded-lg px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-error transition-colors"
                     onClick={() => setSubmissionView(null)}
                     type="button"
                   >
@@ -599,7 +599,7 @@ function AdminLabResearchPage() {
 
                 {submissionView.screenshot ? (
                   <div className="mb-6">
-                    <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">
+                    <p className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant mb-2">
                       Rendered Page Screenshot
                     </p>
                     <img
@@ -625,7 +625,7 @@ function AdminLabResearchPage() {
                           {result.passed ? 'check_circle' : 'cancel'}
                         </span>
                         <div>
-                          <p className="font-headline text-[10px] font-bold uppercase tracking-widest">
+                          <p className="font-headline text-[10px] font-bold tracking-normal">
                             Test {result.index}: {result.passed ? 'Passed' : 'Failed'}
                           </p>
                           {result.description ? (
@@ -641,7 +641,7 @@ function AdminLabResearchPage() {
                 ) : null}
 
                 <details>
-                  <summary className="cursor-pointer font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                  <summary className="cursor-pointer font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">
                     Submitted Code
                   </summary>
                   <pre className="mt-3 max-h-96 overflow-auto bg-[#0d1117] text-[#e6edf3] font-mono text-xs leading-6 p-4">
@@ -657,4 +657,4 @@ function AdminLabResearchPage() {
   )
 }
 
-export default AdminLabResearchPage
+export default AdminProjectsPage

@@ -94,7 +94,7 @@ export function buildCertificateHtml(certificate, pathTitle, artworkData) {
         font-size: 52px; 
         font-weight: 900;
         letter-spacing: 0.12em;
-        text-transform: uppercase;
+        text-transform:;
         color: #10d66a;
         z-index: 3;
         white-space: nowrap;

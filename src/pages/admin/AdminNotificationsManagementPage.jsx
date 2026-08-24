@@ -127,21 +127,21 @@ function AdminNotificationsManagementPage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
+    <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10">
       <section className="max-w-6xl mx-auto">
-        <header className="bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 mb-8">
+        <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 mb-8">
           <button
-            className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors"
+            className="rounded-lg inline-flex items-center gap-2 mb-6 px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-primary transition-colors"
             onClick={() => navigate('/admin')}
             type="button"
           >
             <span className="material-symbols-outlined text-sm">arrow_back</span>
             Back to Admin Panel
           </button>
-          <p className="font-headline text-[10px] tracking-[0.25em] uppercase text-primary font-bold">
+          <p className="font-headline text-[10px] tracking-normal text-primary font-bold">
             Content Management
           </p>
-          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight mt-3 uppercase">
+          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight mt-3">
             Notifications Manager
           </h1>
           <p className="text-sm text-on-surface-variant mt-4 max-w-2xl">
@@ -162,7 +162,7 @@ function AdminNotificationsManagementPage() {
         )}
 
         {/* Create/Edit Form */}
-        <div className="bg-surface-container-lowest border-l-4 border-primary p-8 mb-8">
+        <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8 mb-8">
           <button
             type="button"
             onClick={() => {
@@ -170,15 +170,15 @@ function AdminNotificationsManagementPage() {
               setEditingId(null)
               setFormData({ title: '', message: '', type: 'info' })
             }}
-            className="mb-6 bg-primary text-on-primary px-6 py-2.5 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors"
+            className="rounded-lg mb-6 bg-primary text-on-primary px-6 py-2.5 font-headline text-xs font-bold tracking-normal hover:bg-primary-container transition-colors"
           >
-            {showForm ? 'CANCEL' : '+ CREATE NEW NOTIFICATION'}
+            {showForm ? 'Cancel' : '+ CREATE NEW NOTIFICATION'}
           </button>
 
           {showForm && (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">
+                <label className="block font-headline text-[10px] font-bold tracking-normal text-on-surface-variant mb-2">
                   Notification Title
                 </label>
                 <input
@@ -187,12 +187,12 @@ function AdminNotificationsManagementPage() {
                   value={formData.title}
                   onChange={handleInputChange}
                   placeholder="e.g., New Challenge Available"
-                  className="w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                  className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">
+                <label className="block font-headline text-[10px] font-bold tracking-normal text-on-surface-variant mb-2">
                   Message
                 </label>
                 <textarea
@@ -201,19 +201,19 @@ function AdminNotificationsManagementPage() {
                   onChange={handleInputChange}
                   placeholder="Notification message content..."
                   rows={4}
-                  className="w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none resize-none"
+                  className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none resize-none"
                 />
               </div>
 
               <div>
-                <label className="block font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">
+                <label className="block font-headline text-[10px] font-bold tracking-normal text-on-surface-variant mb-2">
                   Notification Type
                 </label>
                 <select
                   name="type"
                   value={formData.type}
                   onChange={handleInputChange}
-                  className="w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none cursor-pointer"
+                  className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none cursor-pointer"
                 >
                   <option value="info">Info</option>
                   <option value="success">Success</option>
@@ -224,9 +224,9 @@ function AdminNotificationsManagementPage() {
 
               <button
                 type="submit"
-                className="bg-primary text-on-primary px-6 py-3 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors"
+                className="rounded-xl bg-primary text-on-primary px-6 py-3 font-headline text-xs font-bold tracking-normal hover:bg-primary-container transition-colors"
               >
-                {editingId ? 'UPDATE NOTIFICATION' : 'CREATE NOTIFICATION'}
+                {editingId ? 'Update notification' : 'Create notification'}
               </button>
             </form>
           )}
@@ -234,7 +234,7 @@ function AdminNotificationsManagementPage() {
 
         {/* Notifications List */}
         <div>
-          <h2 className="font-headline text-2xl font-bold uppercase tracking-tight mb-6 text-primary flex items-center gap-2">
+          <h2 className="font-headline text-2xl font-bold tracking-tight mb-6 text-primary flex items-center gap-2">
             <span className="material-symbols-outlined">notifications_active</span>
             Active Notifications ({notifications.length})
           </h2>
@@ -244,7 +244,7 @@ function AdminNotificationsManagementPage() {
               <p className="text-on-surface-variant">Loading notifications...</p>
             </div>
           ) : notifications.length === 0 ? (
-            <div className="bg-surface-container-lowest border-l-4 border-outline-variant/30 p-8 text-center">
+            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-outline-variant/30 p-8 text-center">
               <span className="material-symbols-outlined text-6xl text-neutral-300 mb-4 block">
                 notifications_none
               </span>
@@ -258,18 +258,18 @@ function AdminNotificationsManagementPage() {
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`bg-surface-container-lowest border-l-4 p-6 ${
+                  className={`rounded-2xl bg-surface-container-lowest border-l-4 p-6 ${
                     notification.is_active ? 'border-l-primary' : 'border-l-outline-variant/50 opacity-75'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-headline text-lg font-bold uppercase tracking-tight text-on-background">
+                        <h3 className="font-headline text-lg font-bold tracking-tight text-on-background">
                           {notification.title}
                         </h3>
                         <span
-                          className={`px-3 py-1 text-[10px] font-headline font-bold uppercase tracking-widest rounded inline-block ${
+                          className={`px-3 py-1 text-[10px] font-headline font-bold tracking-normal rounded inline-block ${
                             notification.type === 'info'
                               ? 'bg-primary/10 text-primary'
                               : notification.type === 'success'
@@ -294,25 +294,25 @@ function AdminNotificationsManagementPage() {
                       <button
                         type="button"
                         onClick={() => handleToggleActive(notification.id, notification.is_active)}
-                        className={`px-4 py-2 font-headline text-xs font-bold uppercase tracking-widest transition-colors ${
+                        className={`px-4 py-2 font-headline text-xs font-bold tracking-normal transition-colors ${
                           notification.is_active
                             ? 'bg-surface-container-high text-on-surface-variant hover:text-error'
                             : 'bg-secondary/10 text-secondary hover:bg-secondary/20'
                         }`}
                       >
-                        {notification.is_active ? 'DEACTIVATE' : 'ACTIVATE'}
+                        {notification.is_active ? 'Deactivate' : 'Activate'}
                       </button>
                       <button
                         type="button"
                         onClick={() => handleEdit(notification)}
-                        className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors"
+                        className="rounded-lg px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-primary transition-colors"
                       >
                         EDIT
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDelete(notification.id)}
-                        className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-error transition-colors"
+                        className="rounded-lg px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-error transition-colors"
                       >
                         DELETE
                       </button>

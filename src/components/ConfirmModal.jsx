@@ -5,8 +5,8 @@ export function ConfirmModal({ isOpen, title, message, onConfirm, onCancel }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-surface-container-lowest max-w-md w-full border border-outline-variant/30 border-t-4 border-t-error p-6 md:p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
-        <h2 className="font-headline text-xl font-bold uppercase text-on-surface mb-3 flex items-center gap-2">
+      <div className="rounded-2xl bg-surface-container-lowest max-w-md w-full border border-outline-variant/30 border-t-4 border-t-error p-6 md:p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
+        <h2 className="font-headline text-xl font-bold text-on-surface mb-3 flex items-center gap-2">
           <span className="material-symbols-outlined text-error">warning</span>
           {title || 'Confirm Action'}
         </h2>
@@ -17,14 +17,14 @@ export function ConfirmModal({ isOpen, title, message, onConfirm, onCancel }) {
           <button
             onClick={onCancel}
             type="button"
-            className="px-5 py-2.5 text-xs font-label font-bold tracking-widest uppercase border border-outline-variant hover:bg-surface-container transition-colors text-on-surface text-center"
+            className="rounded-lg px-5 py-2.5 text-xs font-label font-bold tracking-normal border border-outline-variant hover:bg-surface-container transition-colors text-on-surface text-center"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             type="button"
-            className="px-5 py-2.5 text-xs font-label font-bold tracking-widest uppercase bg-error text-on-error hover:bg-error/90 transition-colors text-center"
+            className="rounded-lg px-5 py-2.5 text-xs font-label font-bold tracking-normal bg-error text-on-error hover:bg-error/90 transition-colors text-center"
           >
             Yes, Delete
           </button>

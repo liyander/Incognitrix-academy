@@ -4,64 +4,64 @@ import './App.css'
 import { getAuthSession, logoutUser } from './auth'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
-import CyberChatbot from './components/CyberChatbot'
+import AssistantChatbot from './components/AssistantChatbot'
 import { loadPlatformConfig, savePlatformConfig } from './platformConfig'
 import { apiFetch } from './services/api'
 import { syncFrontendStateFromBackend } from './services/backendSync'
 import AdminPanelPage from './pages/AdminPanelPage'
-import AdminRoomsManagementPage from './pages/admin/AdminRoomsManagementPage'
-import AdminRoomEditorPage from './pages/admin/AdminRoomEditorPage'
+import AdminCoursesManagementPage from './pages/admin/AdminCoursesManagementPage'
+import AdminCourseEditorPage from './pages/admin/AdminCourseEditorPage'
 import AdminCategoriesPage from './pages/admin/AdminCategoriesPage'
 import AdminDockerConfigPage from './pages/admin/AdminDockerConfigPage'
-import AdminRunningMachinesPage from './pages/admin/AdminRunningMachinesPage'
+import AdminRunningEnvironmentsPage from './pages/admin/AdminRunningEnvironmentsPage'
 import AdminCareerPathsManagementPage from './pages/admin/AdminCareerPathsManagementPage'
 import AdminCareerPathEditorPage from './pages/admin/AdminCareerPathEditorPage'
 import AdminRoadmapBuilderPage from './pages/admin/AdminRoadmapBuilderPage'
 import AdminNotificationsManagementPage from './pages/admin/AdminNotificationsManagementPage'
 import AdminRegistrationsManagementPage from './pages/admin/AdminRegistrationsManagementPage'
 import AdminRegistrationDetailPage from './pages/admin/AdminRegistrationDetailPage'
-import AdminUpcomingCtfManagementPage from './pages/admin/AdminUpcomingCtfManagementPage'
-import AdminCvesManagementPage from './pages/admin/AdminCvesManagementPage'
-import AdminCveEditorPage from './pages/admin/AdminCveEditorPage'
+import AdminEventsManagementPage from './pages/admin/AdminEventsManagementPage'
+import AdminResourcesManagementPage from './pages/admin/AdminResourcesManagementPage'
+import AdminResourceEditorPage from './pages/admin/AdminResourceEditorPage'
 import AdminAiControlPage from './pages/admin/AdminAiControlPage'
 import AdminInterviewQuestionsPage from './pages/admin/AdminInterviewQuestionsPage'
 import AdminJobRecommendationsPage from './pages/admin/AdminJobRecommendationsPage'
-import AdminTopPlayerResumesPage from './pages/admin/AdminTopPlayerResumesPage'
-import AdminLabResearchPage from './pages/admin/AdminLabResearchPage'
-import AdminLabResearchPlayerPage from './pages/admin/AdminLabResearchPlayerPage'
+import AdminTopStudentResumesPage from './pages/admin/AdminTopStudentResumesPage'
+import AdminProjectsPage from './pages/admin/AdminProjectsPage'
+import AdminProjectSubmissionPage from './pages/admin/AdminProjectSubmissionPage'
 import DeveloperDashboardPage from './pages/developer/DeveloperDashboardPage'
 import DashboardPage from './pages/DashboardPage'
-import JobUpdatesPage from './pages/JobUpdatesPage'
-import InterviewPointPage from './pages/InterviewPointPage'
-import CvesPage from './pages/CvesPage'
-import CveDetailPage from './pages/CveDetailPage'
+import OpportunitiesPage from './pages/OpportunitiesPage'
+import CareerPrepPage from './pages/CareerPrepPage'
+import ResourcesPage from './pages/ResourcesPage'
+import ResourceDetailPage from './pages/ResourceDetailPage'
 import CertificateVerificationPage from './pages/CertificateVerificationPage'
-import LabRoomPage from './pages/LabRoomPage'
+import CoursePage from './pages/CoursePage'
 import LearningPathsPage from './pages/LearningPathsPage'
 import LoginPage from './pages/LoginPage'
-import ModulesPage from './pages/ModulesPage'
+import CourseCatalogPage from './pages/CourseCatalogPage'
 import ModuleDetailPage from './pages/ModuleDetailPage'
 import NotesPage from './pages/NotesPage'
 import NotFoundPage from './pages/NotFoundPage'
 import ProfilePage from './pages/ProfilePage'
 import RoadmapPage from './pages/RoadmapPage'
-import ScoreboardPage from './pages/ScoreboardPage'
+import LeaderboardPage from './pages/LeaderboardPage'
 import SettingsPage from './pages/SettingsPage'
 import RegistrationPage from './pages/RegistrationPage'
-import RedTeamOperatorPage from './pages/RedTeamOperatorPage'
-import UpcomingCtfPage from './pages/UpcomingCtfPage'
-import LabResearchPage from './pages/LabResearchPage'
-import LabResearchProjectPage from './pages/LabResearchProjectPage'
+import LearningPathDetailPage from './pages/LearningPathDetailPage'
+import EventsPage from './pages/EventsPage'
+import ProjectsPage from './pages/ProjectsPage'
+import ProjectDetailPage from './pages/ProjectDetailPage'
 import { getSavedTheme, toggleTheme as toggleThemeSetting } from './services/theme'
 
 function ControlledOutageScreen() {
   return (
-    <main className="min-h-screen bg-white text-slate-900 flex items-center justify-center px-6 py-10">
-      <section className="w-full max-w-xl rounded border border-slate-200 bg-white p-8 shadow-sm">
+    <main className="rounded-2xl min-h-screen bg-white text-on-surface flex items-center justify-center px-6 py-10">
+      <section className="w-full max-w-xl rounded border border-outline-variant bg-white p-8 shadow-sm">
         <h1 className="text-2xl font-semibold tracking-tight">
           Something went wrong.
         </h1>
-        <p className="mt-4 text-base leading-7 text-slate-600">
+        <p className="mt-4 text-base leading-7 text-on-surface-variant">
           The application encountered an unexpected error. Try refreshing the page.
         </p>
         <pre className="mt-6 max-h-56 overflow-auto rounded bg-slate-950 p-4 text-xs leading-6 text-slate-100">
@@ -79,7 +79,7 @@ function firstEnabledRoute(config) {
   if (config.routes.dashboard) return '/'
   if (config.routes.learningPaths) return '/learn/paths'
   if (config.routes.practiceLabs) return '/learn'
-  if (config.routes.upcomingCtf) return '/upcoming-ctf'
+  if (config.routes.upcomingCtf) return '/events'
   if (config.routes.profile) return '/profile'
   return '/'
 }
@@ -101,7 +101,7 @@ function App() {
 
   const themeToggleButton = (
     <button
-      className="fixed bottom-5 right-5 z-[80] inline-flex items-center gap-2 px-4 py-3 bg-surface-container-lowest border border-outline-variant text-on-surface font-headline text-[10px] font-bold uppercase tracking-widest shadow-lg hover:border-primary transition-colors"
+      className="rounded-full fixed bottom-5 right-5 z-[80] inline-flex items-center gap-2 px-4 py-3 bg-surface-container-lowest border border-outline-variant text-on-surface font-headline text-xs font-bold shadow-card hover:border-primary transition-colors"
       onClick={toggleTheme}
       type="button"
       aria-label="Toggle theme"
@@ -250,11 +250,11 @@ function App() {
 
   if (isBootstrapping) {
     return (
-      <main className="min-h-screen bg-surface flex items-center justify-center px-6">
+      <main className="rounded-xl min-h-screen bg-surface flex items-center justify-center px-6">
         <div className="text-center space-y-4">
           <div className="mx-auto h-10 w-10 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
-          <p className="font-headline text-xs uppercase tracking-[0.3em] text-primary font-bold">
-            Syncing platform state
+          <p className="font-headline text-sm text-on-surface-variant font-semibold">
+            Loading your workspace…
           </p>
         </div>
       </main>
@@ -303,7 +303,7 @@ function App() {
     return (
       <>
         {themeToggleButton}
-        <CyberChatbot />
+        <AssistantChatbot />
         <Routes>
           <Route path="/login" element={<Navigate to="/admin" replace />} />
           <Route path="/register" element={<Navigate to="/admin" replace />} />
@@ -321,15 +321,15 @@ function App() {
               />
             }
           />
-          <Route path="/admin/rooms" element={<AdminRoomsManagementPage />} />
-          <Route path="/admin/rooms/new" element={<AdminRoomEditorPage />} />
-          <Route path="/admin/rooms/:roomId" element={<AdminRoomEditorPage />} />
+          <Route path="/admin/courses" element={<AdminCoursesManagementPage />} />
+          <Route path="/admin/courses/new" element={<AdminCourseEditorPage />} />
+          <Route path="/admin/courses/:roomId" element={<AdminCourseEditorPage />} />
           <Route path="/admin/docker" element={<AdminDockerConfigPage />} />
-          <Route path="/admin/docker-machines" element={<AdminRunningMachinesPage />} />
+          <Route path="/admin/environments" element={<AdminRunningEnvironmentsPage />} />
           <Route path="/admin/categories" element={<AdminCategoriesPage />} />
-          <Route path="/admin/cves" element={<AdminCvesManagementPage />} />
-          <Route path="/admin/cves/new" element={<AdminCveEditorPage />} />
-          <Route path="/admin/cves/:id" element={<AdminCveEditorPage />} />
+          <Route path="/admin/resources" element={<AdminResourcesManagementPage />} />
+          <Route path="/admin/resources/new" element={<AdminResourceEditorPage />} />
+          <Route path="/admin/resources/:id" element={<AdminResourceEditorPage />} />
           <Route path="/admin/career-paths" element={<AdminCareerPathsManagementPage />} />
           <Route path="/admin/career-paths/new" element={<AdminCareerPathEditorPage />} />
           <Route path="/admin/career-paths/:pathId" element={<AdminCareerPathEditorPage />} />
@@ -337,13 +337,13 @@ function App() {
           <Route path="/admin/notifications" element={<AdminNotificationsManagementPage />} />
           <Route path="/admin/registrations" element={<AdminRegistrationsManagementPage />} />
           <Route path="/admin/registrations/:userId" element={<AdminRegistrationDetailPage />} />
-          <Route path="/admin/upcoming-ctf" element={<AdminUpcomingCtfManagementPage />} />
+          <Route path="/admin/events" element={<AdminEventsManagementPage />} />
           <Route path="/admin/ai-control" element={<AdminAiControlPage />} />
           <Route path="/admin/interview-questions" element={<AdminInterviewQuestionsPage />} />
           <Route path="/admin/jobs" element={<AdminJobRecommendationsPage />} />
-          <Route path="/admin/top-resumes" element={<AdminTopPlayerResumesPage />} />
-          <Route path="/admin/lab-research" element={<AdminLabResearchPage />} />
-          <Route path="/admin/lab-research/projects/:projectId/players/:userId" element={<AdminLabResearchPlayerPage />} />
+          <Route path="/admin/top-resumes" element={<AdminTopStudentResumesPage />} />
+          <Route path="/admin/projects" element={<AdminProjectsPage />} />
+          <Route path="/admin/projects/:projectId/students/:userId" element={<AdminProjectSubmissionPage />} />
           <Route path="/developer" element={<DeveloperDashboardPage />} />
           <Route path="*" element={<NotFoundPage variant="admin" />} />
         </Routes>
@@ -355,7 +355,7 @@ function App() {
     return (
       <>
         {themeToggleButton}
-        <CyberChatbot />
+        <AssistantChatbot />
         <Routes>
           <Route path="/login" element={<Navigate to="/developer" replace />} />
           <Route path="/register" element={<Navigate to="/developer" replace />} />
@@ -370,7 +370,7 @@ function App() {
   return (
     <>
       {themeToggleButton}
-      <CyberChatbot />
+      <AssistantChatbot />
       <Sidebar
         config={platformConfig}
         isSidebarOpen={isSidebarOpen}
@@ -408,7 +408,7 @@ function App() {
             element={
               platformConfig.routes.learningPaths ? (
                 <LearningPathsPage
-                  allowRedTeamPath={platformConfig.features.redTeamPath}
+                  allowFeaturedPath={platformConfig.features.featuredPath}
                 />
               ) : (
                 <Navigate to={firstEnabledRoute(platformConfig)} replace />
@@ -420,7 +420,7 @@ function App() {
             element={
               platformConfig.routes.learningPaths ? (
                 <LearningPathsPage
-                  allowRedTeamPath={platformConfig.features.redTeamPath}
+                  allowFeaturedPath={platformConfig.features.featuredPath}
                 />
               ) : (
                 <Navigate to={firstEnabledRoute(platformConfig)} replace />
@@ -428,11 +428,11 @@ function App() {
             }
           />
           <Route
-            path="/learn/path/red-team-operator"
+            path="/learn/path/full-stack-developer"
             element={
               platformConfig.routes.learningPaths &&
-              platformConfig.features.redTeamPath ? (
-                <RedTeamOperatorPage pathId="red-team-operator" />
+              platformConfig.features.featuredPath ? (
+                <LearningPathDetailPage pathId="full-stack-developer" />
               ) : (
                 <Navigate to={firstEnabledRoute(platformConfig)} replace />
               )
@@ -452,7 +452,7 @@ function App() {
             path="/learn/path/:pathId"
             element={
               platformConfig.routes.learningPaths ? (
-                <RedTeamOperatorPage />
+                <LearningPathDetailPage />
               ) : (
                 <Navigate to={firstEnabledRoute(platformConfig)} replace />
               )
@@ -462,36 +462,36 @@ function App() {
             path="/learn"
             element={
               platformConfig.routes.practiceLabs ? (
-                <ModulesPage allowLabRooms={platformConfig.features.labRooms} />
+                <CourseCatalogPage allowLabRooms={platformConfig.features.labRooms} />
               ) : (
                 <Navigate to={firstEnabledRoute(platformConfig)} replace />
               )
             }
           />
           <Route
-            path="/learn/lab/:labId"
+            path="/learn/course/:courseId"
             element={
               platformConfig.routes.practiceLabs &&
               platformConfig.features.labRooms ? (
-                <LabRoomPage />
+                <CoursePage />
               ) : (
                 <Navigate to={firstEnabledRoute(platformConfig)} replace />
               )
             }
           />
           <Route
-            path="/upcoming-ctf"
+            path="/events"
             element={
               platformConfig.routes.upcomingCtf ? (
-                <UpcomingCtfPage />
+                <EventsPage />
               ) : (
                 <Navigate to={firstEnabledRoute(platformConfig)} replace />
               )
             }
           />
           <Route
-            path="/cves"
-            element={<CvesPage />}
+            path="/resources"
+            element={<ResourcesPage />}
           />
           <Route
             path="/notes"
@@ -499,31 +499,31 @@ function App() {
           />
           <Route
             path="/jobs"
-            element={<JobUpdatesPage />}
+            element={<OpportunitiesPage />}
           />
           <Route
-            path="/interview-point"
-            element={<InterviewPointPage />}
+            path="/career-prep"
+            element={<CareerPrepPage />}
           />
           <Route
-            path="/lab-research"
-            element={<LabResearchPage />}
+            path="/projects"
+            element={<ProjectsPage />}
           />
           <Route
-            path="/lab-research/:projectId"
-            element={<LabResearchProjectPage />}
+            path="/projects/:projectId"
+            element={<ProjectDetailPage />}
           />
           <Route
             path="/roadmap"
             element={<RoadmapPage />}
           />
           <Route
-            path="/scoreboard"
-            element={<ScoreboardPage />}
+            path="/leaderboard"
+            element={<LeaderboardPage />}
           />
           <Route
-            path="/cves/:id"
-            element={<CveDetailPage />}
+            path="/resources/:id"
+            element={<ResourceDetailPage />}
           />
           <Route
             path="/profile"

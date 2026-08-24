@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { TEMP_USERS, loginUser } from '../auth'
+import { loginUser } from '../auth'
 
 function LoginPage({ onLoginSuccess }) {
   const [username, setUsername] = useState('')
@@ -24,64 +24,90 @@ function LoginPage({ onLoginSuccess }) {
     }
   }
 
+  const fieldClass =
+    'mt-2 w-full rounded-xl bg-surface-container border border-transparent focus:border-primary focus:ring-0 font-body text-sm py-3 px-4 outline-none transition-colors'
+
   return (
-    <main className="min-h-screen bg-surface flex items-center justify-center px-6">
-      <section className="w-full max-w-md bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 shadow-sm">
-        <p className="font-headline text-[10px] tracking-[0.2em] uppercase text-primary font-bold">
-          Secure Access
-        </p>
-        <h1 className="font-headline text-4xl font-bold tracking-tight mt-3 text-on-background uppercase">
-          Operator Login
-        </h1>
-        <p className="text-on-surface-variant mt-3 text-sm leading-relaxed">
-          Authenticate to access Incognitrix Academy modules and operator assets.
-        </p>
-
-        <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-          <label className="block">
-            <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
-              Username / Email / Registration Number
+    <main className="min-h-screen bg-background flex items-center justify-center px-5 py-10">
+      <section className="w-full max-w-4xl grid md:grid-cols-2 rounded-3xl overflow-hidden bg-surface-container-lowest shadow-card">
+        <div className="hidden md:flex flex-col justify-between bg-secondary-container p-10">
+          <div>
+            <p className="font-headline text-2xl font-extrabold text-on-secondary-container">
+              Minerva
+            </p>
+            <p className="font-body text-sm text-on-secondary-container/70 mt-1">
+              Learn at your own pace
+            </p>
+          </div>
+          <div className="space-y-4">
+            <p className="font-headline text-3xl font-extrabold text-on-secondary-container leading-tight">
+              Courses, projects and mentors — all in one place.
+            </p>
+            <p className="font-body text-sm text-on-secondary-container/80 leading-relaxed">
+              Track your progress across guided learning paths, keep notes as you go, and earn a
+              verifiable certificate when you finish.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <span className="rounded-full bg-surface-container-lowest/60 px-3 py-1 font-headline text-xs font-bold text-on-secondary-container">
+              Self-paced
             </span>
-            <input
-              className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="ENTER_IDENTIFIER"
-              type="text"
-              value={username}
-            />
-          </label>
-
-          <label className="block">
-            <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
-              Password
+            <span className="rounded-full bg-surface-container-lowest/60 px-3 py-1 font-headline text-xs font-bold text-on-secondary-container">
+              Certificates
             </span>
-            <input
-              className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="ENTER_PASSWORD"
-              type="password"
-              value={password}
-            />
-          </label>
+          </div>
+        </div>
 
-          {error ? (
-            <p className="text-xs font-label tracking-wider uppercase text-error">{error}</p>
-          ) : null}
+        <div className="p-8 sm:p-10">
+          <h1 className="font-headline text-3xl font-extrabold text-on-background">Welcome back</h1>
+          <p className="text-on-surface-variant mt-2 text-sm leading-relaxed font-body">
+            Sign in to continue your courses.
+          </p>
 
-          <button
-            className="w-full bg-primary text-on-primary py-3 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors"
-            type="submit"
-          >
-            Authenticate
-          </button>
+          <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+            <label className="block">
+              <span className="font-headline text-xs font-bold text-on-surface-variant">
+                Username, email or student ID
+              </span>
+              <input
+                className={fieldClass}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="you@example.com"
+                type="text"
+                value={username}
+              />
+            </label>
 
-          <Link
-            className="block text-center text-xs font-label tracking-widest uppercase text-primary hover:underline"
-            to="/register"
-          >
-            Create New Account
-          </Link>
-        </form>
+            <label className="block">
+              <span className="font-headline text-xs font-bold text-on-surface-variant">
+                Password
+              </span>
+              <input
+                className={fieldClass}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                type="password"
+                value={password}
+              />
+            </label>
+
+            {error ? <p className="text-xs font-body text-error">{error}</p> : null}
+
+            <button
+              className="w-full rounded-full bg-primary text-on-primary py-3.5 font-headline text-sm font-bold hover:opacity-90 transition-opacity"
+              type="submit"
+            >
+              Sign in
+            </button>
+
+            <Link
+              className="block text-center text-sm font-body text-primary hover:underline"
+              to="/register"
+            >
+              New here? Create an account
+            </Link>
+          </form>
+        </div>
       </section>
     </main>
   )

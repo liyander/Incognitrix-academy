@@ -23,7 +23,7 @@ function formatDateTime(value) {
   return date.toLocaleString()
 }
 
-function UpcomingCtfPage() {
+function EventsPage() {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -36,7 +36,7 @@ function UpcomingCtfPage() {
       setEvents(data)
       setError('')
     } catch (err) {
-      setError(err.message || 'Failed to load upcoming CTF events')
+      setError(err.message || 'Failed to load upcoming events')
     } finally {
       setLoading(false)
     }
@@ -108,14 +108,14 @@ function UpcomingCtfPage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface px-6 md:px-10 pt-24 pb-10">
+    <main className="rounded-xl min-h-screen bg-surface px-6 md:px-10 pt-24 pb-10">
       <section className="max-w-6xl mx-auto">
-        <header className="bg-surface-container-lowest border-l-4 border-secondary p-8 md:p-10 mb-8">
-          <p className="font-headline text-[10px] tracking-[0.25em] uppercase text-secondary font-bold">
+        <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-8 md:p-10 mb-8">
+          <p className="font-headline text-[10px] tracking-normal text-secondary font-bold">
             Competition Calendar
           </p>
-          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight mt-3 uppercase">
-            Upcoming CTF Events
+          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight mt-3">
+            Upcoming Events
           </h1>
           <p className="text-sm text-on-surface-variant mt-4 max-w-2xl">
             Track active events, register interest, and receive deadline and live-day reminders automatically.
@@ -123,19 +123,19 @@ function UpcomingCtfPage() {
         </header>
 
         {error ? (
-          <div className="mb-6 bg-error/10 border-l-4 border-error p-4">
-            <p className="text-error font-headline text-xs font-bold uppercase tracking-widest">{error}</p>
+          <div className="rounded-2xl mb-6 bg-error/10 border-l-4 border-error p-4">
+            <p className="text-error font-headline text-xs font-bold tracking-normal">{error}</p>
           </div>
         ) : null}
 
         {loading ? (
-          <div className="bg-surface-container-lowest p-8 text-center">
-            <p className="text-on-surface-variant">Loading upcoming CTF events...</p>
+          <div className="rounded-2xl bg-surface-container-lowest p-8 text-center">
+            <p className="text-on-surface-variant">Loading upcoming events…</p>
           </div>
         ) : upcomingEvents.length === 0 ? (
-          <div className="bg-surface-container-lowest p-10 text-center border-l-4 border-outline-variant/40">
+          <div className="rounded-2xl bg-surface-container-lowest p-10 text-center border-l-4 border-outline-variant/40">
             <span className="material-symbols-outlined text-5xl text-on-surface-variant">event_busy</span>
-            <p className="mt-3 font-headline text-lg font-bold uppercase">No open CTF registrations</p>
+            <p className="mt-3 font-headline text-lg font-bold">No open event registrations</p>
             <p className="text-sm text-on-surface-variant mt-2">
               Events whose registration deadline has passed are automatically hidden.
             </p>
@@ -144,32 +144,32 @@ function UpcomingCtfPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {upcomingEvents.map((event) => (
               <article
-                className="bg-surface-container-lowest border-l-4 border-secondary/60 p-6 flex flex-col gap-5"
+                className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary/60 p-6 flex flex-col gap-5"
                 key={event.id}
               >
                 <div>
-                  <p className="font-headline text-[10px] font-bold tracking-widest uppercase text-secondary">
+                  <p className="font-headline text-[10px] font-bold tracking-normal text-secondary">
                     Next CTF
                   </p>
-                  <h2 className="font-headline text-2xl font-black tracking-tight uppercase mt-2">{event.name}</h2>
+                  <h2 className="font-headline text-2xl font-black tracking-tight mt-2">{event.name}</h2>
                 </div>
 
                 <div className="space-y-2 text-sm text-on-surface-variant">
                   <p>
-                    <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-background">Registration Deadline: </span>
+                    <span className="font-headline text-[10px] font-bold tracking-normal text-on-background">Registration Deadline: </span>
                     {formatDateTime(event.registration_deadline)}
                   </p>
                   <p>
-                    <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-background">Live Time: </span>
+                    <span className="font-headline text-[10px] font-bold tracking-normal text-on-background">Live Time: </span>
                     {formatDateTime(event.live_time)}
                   </p>
                   <p>
-                    <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-background">Weightage: </span>
+                    <span className="font-headline text-[10px] font-bold tracking-normal text-on-background">Weightage: </span>
                     {Number(event.weight || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   </p>
                   {event.event_format ? (
                     <p>
-                      <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-background">Format: </span>
+                      <span className="font-headline text-[10px] font-bold tracking-normal text-on-background">Format: </span>
                       {event.event_format}
                     </p>
                   ) : null}
@@ -177,7 +177,7 @@ function UpcomingCtfPage() {
 
                 <div className="flex items-center gap-3 mt-auto">
                   <button
-                    className={`px-5 py-2.5 font-headline text-xs font-bold uppercase tracking-widest transition-colors ${
+                    className={`px-5 py-2.5 font-headline text-xs font-bold tracking-normal transition-colors ${
                       event.is_registered
                         ? 'bg-secondary/15 text-secondary hover:bg-secondary/25'
                         : 'bg-primary text-on-primary hover:bg-primary-container'
@@ -194,7 +194,7 @@ function UpcomingCtfPage() {
                   </button>
 
                   <a
-                    className="px-5 py-2.5 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors"
+                    className="rounded-lg px-5 py-2.5 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-primary transition-colors"
                     href={event.registration_link}
                     rel="noopener noreferrer"
                     target="_blank"
@@ -211,4 +211,4 @@ function UpcomingCtfPage() {
   )
 }
 
-export default UpcomingCtfPage
+export default EventsPage

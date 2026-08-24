@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { fetchLabPlayerDetail, fetchLabSubmission, resetLabPlayerProgress } from '../../services/labResearch'
 
-function AdminLabResearchPlayerPage() {
+function AdminProjectSubmissionPage() {
   const navigate = useNavigate()
   const { projectId, userId } = useParams()
   const [detail, setDetail] = useState(null)
@@ -75,21 +75,21 @@ function AdminLabResearchPlayerPage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
+    <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10">
       <section className="max-w-6xl mx-auto">
-        <header className="bg-surface-container-lowest border-l-4 border-secondary p-8 md:p-10 mb-8">
+        <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-8 md:p-10 mb-8">
           <button
-            className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors"
-            onClick={() => navigate('/admin/lab-research')}
+            className="rounded-lg inline-flex items-center gap-2 mb-6 px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-primary transition-colors"
+            onClick={() => navigate('/admin/projects')}
             type="button"
           >
             <span className="material-symbols-outlined text-sm">arrow_back</span>
             Back to Lab Research Manager
           </button>
-          <p className="font-headline text-[10px] tracking-[0.25em] uppercase text-secondary font-bold">
+          <p className="font-headline text-[10px] tracking-normal text-secondary font-bold">
             Player Activity
           </p>
-          <h1 className="font-headline text-3xl md:text-4xl font-black tracking-tight mt-3 uppercase">
+          <h1 className="font-headline text-3xl md:text-4xl font-black tracking-tight mt-3">
             {detail ? detail.player.username : 'Loading...'}
           </h1>
           {detail ? (
@@ -98,18 +98,18 @@ function AdminLabResearchPlayerPage() {
                 {detail.player.email} · Project: {detail.project.title}
               </p>
               <div className="flex flex-wrap gap-2 mt-5">
-                <span className={`px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest ${detail.progress.quizCompleted ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                <span className={`px-2 py-1 text-[10px] font-headline font-bold tracking-normal ${detail.progress.quizCompleted ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
                   Knowledge Check {detail.progress.quizCompleted ? 'Completed 100/100' : `${detail.progress.quizScore}/100`}
                 </span>
                 {detail.project.codingEnabled || detail.progress.codeAccepted ? (
-                  <span className={`px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest ${detail.progress.codeAccepted ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                  <span className={`px-2 py-1 text-[10px] font-headline font-bold tracking-normal ${detail.progress.codeAccepted ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
                     Code Lab {detail.progress.codeAccepted ? 'Accepted' : 'Not Accepted'} · {detail.progress.codeAttempts} attempt{detail.progress.codeAttempts === 1 ? '' : 's'}
                   </span>
                 ) : null}
               </div>
               <div className="flex flex-wrap gap-2 mt-6">
                 <button
-                  className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-error transition-colors disabled:opacity-60"
+                  className="rounded-lg px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-error transition-colors disabled:opacity-60"
                   disabled={resetting}
                   onClick={() => handleReset('quiz')}
                   type="button"
@@ -118,7 +118,7 @@ function AdminLabResearchPlayerPage() {
                 </button>
                 {detail.project.codingEnabled || detail.progress.codeAccepted || detail.submissions.length ? (
                   <button
-                    className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-error transition-colors disabled:opacity-60"
+                    className="rounded-lg px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-error transition-colors disabled:opacity-60"
                     disabled={resetting}
                     onClick={() => handleReset('code')}
                     type="button"
@@ -127,7 +127,7 @@ function AdminLabResearchPlayerPage() {
                   </button>
                 ) : null}
                 <button
-                  className="px-4 py-2 bg-error/15 text-error font-headline text-xs font-bold uppercase tracking-widest hover:bg-error/25 transition-colors disabled:opacity-60"
+                  className="rounded-lg px-4 py-2 bg-error/15 text-error font-headline text-xs font-bold tracking-normal hover:bg-error/25 transition-colors disabled:opacity-60"
                   disabled={resetting}
                   onClick={() => handleReset('all')}
                   type="button"
@@ -140,25 +140,25 @@ function AdminLabResearchPlayerPage() {
         </header>
 
         {success ? (
-          <div className="mb-6 bg-secondary/10 border-l-4 border-secondary p-4">
-            <p className="text-secondary font-headline text-xs font-bold uppercase tracking-widest">{success}</p>
+          <div className="rounded-2xl mb-6 bg-secondary/10 border-l-4 border-secondary p-4">
+            <p className="text-secondary font-headline text-xs font-bold tracking-normal">{success}</p>
           </div>
         ) : null}
 
         {error ? (
-          <div className="mb-6 bg-error/10 border-l-4 border-error p-4">
-            <p className="text-error font-headline text-xs font-bold uppercase tracking-widest">{error}</p>
+          <div className="rounded-2xl mb-6 bg-error/10 border-l-4 border-error p-4">
+            <p className="text-error font-headline text-xs font-bold tracking-normal">{error}</p>
           </div>
         ) : null}
 
         {loading ? (
-          <div className="bg-surface-container-lowest p-8 text-center">
+          <div className="rounded-2xl bg-surface-container-lowest p-8 text-center">
             <p className="text-on-surface-variant">Loading player details...</p>
           </div>
         ) : detail ? (
           <>
-            <div className="bg-surface-container-lowest border-l-4 border-primary p-8 mb-8">
-              <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-5 text-primary flex items-center gap-2">
+            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8 mb-8">
+              <h2 className="font-headline text-xl font-bold tracking-tight mb-5 text-primary flex items-center gap-2">
                 <span className="material-symbols-outlined">quiz</span>
                 Assessment Attempts ({detail.attempts.length})
               </h2>
@@ -169,10 +169,10 @@ function AdminLabResearchPlayerPage() {
                   {detail.attempts.map((attempt) => (
                     <details className="bg-surface-container-high" key={attempt.id} open={detail.attempts.length === 1}>
                       <summary className="cursor-pointer p-4 flex flex-wrap items-center gap-3">
-                        <span className="font-headline text-xs font-bold uppercase tracking-widest">
+                        <span className="font-headline text-xs font-bold tracking-normal">
                           {new Date(attempt.createdAt).toLocaleString()}
                         </span>
-                        <span className={`px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest ${
+                        <span className={`px-2 py-1 text-[10px] font-headline font-bold tracking-normal ${
                           attempt.status === 'completed'
                             ? 'bg-secondary/15 text-secondary'
                             : attempt.status === 'terminated'
@@ -188,17 +188,17 @@ function AdminLabResearchPlayerPage() {
                       <div className="px-4 pb-4 space-y-3">
                         {attempt.questions.map((question) => (
                           <div
-                            className={`bg-surface-container-lowest border-l-4 p-4 ${question.isCorrect ? 'border-secondary' : question.answered ? 'border-error' : 'border-outline-variant'}`}
+                            className={`rounded-2xl bg-surface-container-lowest border-l-4 p-4 ${question.isCorrect ? 'border-secondary' : question.answered ? 'border-error' : 'border-outline-variant'}`}
                             key={question.position}
                           >
                             <div className="flex items-start justify-between gap-3">
                               <p className="text-sm leading-6">
-                                <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mr-2">
+                                <span className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant mr-2">
                                   Q{question.position}
                                 </span>
                                 {question.prompt}
                               </p>
-                              <span className={`shrink-0 px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest ${
+                              <span className={`shrink-0 px-2 py-1 text-[10px] font-headline font-bold tracking-normal ${
                                 question.isCorrect
                                   ? 'bg-secondary/15 text-secondary'
                                   : question.answered
@@ -209,8 +209,8 @@ function AdminLabResearchPlayerPage() {
                               </span>
                             </div>
                             {question.answered ? (
-                              <div className="mt-3 bg-surface-container-high p-3">
-                                <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">
+                              <div className="rounded-xl mt-3 bg-surface-container-high p-3">
+                                <p className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant mb-1">
                                   Player&apos;s Answer{question.score !== null ? ` · scored ${question.score}/100` : ''}
                                 </p>
                                 <p className="text-sm whitespace-pre-line">{question.answer || '—'}</p>
@@ -230,8 +230,8 @@ function AdminLabResearchPlayerPage() {
               )}
             </div>
 
-            <div className="bg-surface-container-lowest border-l-4 border-secondary p-8">
-              <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-5 text-secondary flex items-center gap-2">
+            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-8">
+              <h2 className="font-headline text-xl font-bold tracking-tight mb-5 text-secondary flex items-center gap-2">
                 <span className="material-symbols-outlined">code</span>
                 Code Submissions ({detail.submissions.length})
               </h2>
@@ -240,25 +240,25 @@ function AdminLabResearchPlayerPage() {
               ) : (
                 <div className="space-y-2">
                   {detail.submissions.map((item) => (
-                    <div className="bg-surface-container-high p-3 flex flex-wrap items-center justify-between gap-3" key={item.id}>
+                    <div className="rounded-xl bg-surface-container-high p-3 flex flex-wrap items-center justify-between gap-3" key={item.id}>
                       <div className="flex flex-wrap items-center gap-3">
-                        <span className="font-headline text-xs font-bold uppercase tracking-widest">
+                        <span className="font-headline text-xs font-bold tracking-normal">
                           {new Date(item.createdAt).toLocaleString()}
                         </span>
-                        <span className="px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest bg-surface-container-highest text-on-surface-variant">
+                        <span className="rounded-full px-2 py-1 text-[10px] font-headline font-bold tracking-normal bg-surface-container-highest text-on-surface-variant">
                           {item.kind === 'ui' ? 'UI Feature' : item.language}
                         </span>
-                        <span className={`px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest ${item.passed ? 'bg-secondary/15 text-secondary' : 'bg-error/15 text-error'}`}>
+                        <span className={`px-2 py-1 text-[10px] font-headline font-bold tracking-normal ${item.passed ? 'bg-secondary/15 text-secondary' : 'bg-error/15 text-error'}`}>
                           {item.passed ? 'Accepted' : 'Failed'}
                         </span>
                         {item.hasScreenshot ? (
-                          <span className="px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest bg-primary/15 text-primary">
+                          <span className="rounded-full px-2 py-1 text-[10px] font-headline font-bold tracking-normal bg-primary/15 text-primary">
                             Screenshot
                           </span>
                         ) : null}
                       </div>
                       <button
-                        className="px-3 py-1.5 bg-surface-container-highest text-on-surface font-headline text-[10px] font-bold uppercase tracking-widest hover:text-primary transition-colors disabled:opacity-60"
+                        className="rounded-full px-3 py-1.5 bg-surface-container-highest text-on-surface font-headline text-[10px] font-bold tracking-normal hover:text-primary transition-colors disabled:opacity-60"
                         disabled={submissionLoading}
                         onClick={() => handleViewSubmission(item.id)}
                         type="button"
@@ -276,7 +276,7 @@ function AdminLabResearchPlayerPage() {
                 <div className="mt-8 border-t border-outline-variant pt-6">
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div>
-                      <h3 className="font-headline text-lg font-bold uppercase tracking-tight">
+                      <h3 className="font-headline text-lg font-bold tracking-tight">
                         Submission — {new Date(submissionView.createdAt).toLocaleString()}
                       </h3>
                       <p className="text-xs text-on-surface-variant mt-1">
@@ -288,7 +288,7 @@ function AdminLabResearchPlayerPage() {
                       </p>
                     </div>
                     <button
-                      className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-error transition-colors"
+                      className="rounded-lg px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-error transition-colors"
                       onClick={() => setSubmissionView(null)}
                       type="button"
                     >
@@ -298,7 +298,7 @@ function AdminLabResearchPlayerPage() {
 
                   {submissionView.screenshot ? (
                     <div className="mb-6">
-                      <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">
+                      <p className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant mb-2">
                         Rendered Page Screenshot
                       </p>
                       <img
@@ -324,7 +324,7 @@ function AdminLabResearchPlayerPage() {
                             {result.passed ? 'check_circle' : 'cancel'}
                           </span>
                           <div>
-                            <p className="font-headline text-[10px] font-bold uppercase tracking-widest">
+                            <p className="font-headline text-[10px] font-bold tracking-normal">
                               Test {result.index}: {result.passed ? 'Passed' : 'Failed'}
                             </p>
                             {result.description ? (
@@ -340,7 +340,7 @@ function AdminLabResearchPlayerPage() {
                   ) : null}
 
                   <details open>
-                    <summary className="cursor-pointer font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                    <summary className="cursor-pointer font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">
                       Submitted Code
                     </summary>
                     <pre className="mt-3 max-h-96 overflow-auto bg-[#0d1117] text-[#e6edf3] font-mono text-xs leading-6 p-4">
@@ -357,4 +357,4 @@ function AdminLabResearchPlayerPage() {
   )
 }
 
-export default AdminLabResearchPlayerPage
+export default AdminProjectSubmissionPage

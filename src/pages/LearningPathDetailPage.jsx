@@ -5,15 +5,15 @@ import {
   hydrateCareerPathsData,
   subscribeCareerPathsData,
 } from '../data/careerPathsData'
-import { getRoomsData } from '../data/roomsData'
+import { getCoursesData } from '../data/coursesData'
 import { apiFetch } from '../services/api'
 import { downloadCertificateAsPDF, issueCertificateForPath } from '../services/certificates'
 import { getLabProgressEvents, getLabProgressMap } from '../services/labProgress'
 
-function RedTeamOperatorPage({ pathId: propPathId }) {
+function LearningPathDetailPage({ pathId: propPathId }) {
   const navigate = useNavigate()
   const { pathId: paramPathId } = useParams()
-  const pathId = propPathId || paramPathId || 'red-team-operator'
+  const pathId = propPathId || paramPathId || 'full-stack-developer'
   const [careerPaths, setCareerPaths] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [labProgressTick, setLabProgressTick] = useState(0)
@@ -25,7 +25,7 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
 
     const loadPaths = async () => {
       try {
-        console.log('🌐 RedTeamOperatorPage: Fetching paths...')
+        console.log('🌐 LearningPathDetailPage: Fetching paths...')
         const response = await apiFetch('/career-paths')
         if (!cancelled) {
           const paths = Array.isArray(response) ? response : []
@@ -72,7 +72,7 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
   }, [])
 
   const path = careerPaths.find((item) => item.id === pathId || item.slug === pathId)
-  const allRooms = getRoomsData()
+  const allRooms = getCoursesData()
   const labProgressMap = getLabProgressMap()
   void labProgressTick
 
@@ -161,7 +161,7 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
     <>
       <main className="pt-20 px-8 pb-12">
         <section className="mb-12">
-          <div className="bg-surface-container-lowest p-0 relative border-l-8 border-primary overflow-hidden">
+          <div className="rounded-xl bg-surface-container-lowest p-0 relative border-l-8 border-primary overflow-hidden">
             <div className="absolute top-0 right-0 w-1/2 h-full opacity-10 pointer-events-none">
               <img
                 alt="Background"
@@ -171,11 +171,11 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
             </div>
             <div className="relative z-10 p-10 flex flex-col md:flex-row justify-between items-start gap-8">
               <div className="max-w-2xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary-container text-on-primary-container font-headline text-[10px] tracking-[2px] uppercase mb-4">
+                <div className="rounded-full inline-flex items-center gap-2 px-3 py-1 bg-primary-container text-on-primary-container font-headline text-[10px] tracking-[2px] mb-4">
                   <span className="material-symbols-outlined text-sm">priority_high</span>
                   Critical Learning Path
                 </div>
-                <h1 className="text-5xl font-black font-headline tracking-tighter text-on-surface mb-4 uppercase">
+                <h1 className="text-5xl font-black font-headline tracking-tighter text-on-surface mb-4">
                   {path.title}
                 </h1>
                 <p className="text-on-surface-variant leading-relaxed mb-8 max-w-xl">
@@ -183,48 +183,48 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
                 </p>
                 <div className="flex flex-wrap gap-8">
                   <div className="space-y-1">
-                    <span className="text-[10px] font-headline uppercase tracking-widest text-outline">
+                    <span className="text-[10px] font-headline tracking-normal text-outline">
                       Difficulty
                     </span>
                     <div className="flex items-center gap-2 text-primary">
                       <span className="material-symbols-outlined text-sm">bolt</span>
-                      <span className="font-headline font-bold uppercase text-sm">{path.difficulty}</span>
+                      <span className="font-headline font-bold text-sm">{path.difficulty}</span>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-[10px] font-headline uppercase tracking-widest text-outline">
+                    <span className="text-[10px] font-headline tracking-normal text-outline">
                       Est. Commitment
                     </span>
                     <div className="flex items-center gap-2 text-on-surface">
                       <span className="material-symbols-outlined text-sm">schedule</span>
-                      <span className="font-headline font-bold uppercase text-sm">{path.estimatedHours} Hours</span>
+                      <span className="font-headline font-bold text-sm">{path.estimatedHours} Hours</span>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-[10px] font-headline uppercase tracking-widest text-outline">
+                    <span className="text-[10px] font-headline tracking-normal text-outline">
                       Enrolled Ops
                     </span>
                     <div className="flex items-center gap-2 text-on-surface">
                       <span className="material-symbols-outlined text-sm">group</span>
-                      <span className="font-headline font-bold uppercase text-sm">{path.enrolledCount?.toLocaleString()}</span>
+                      <span className="font-headline font-bold text-sm">{path.enrolledCount?.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="w-full md:w-80 bg-surface-container-low p-6 border-t-2 border-primary">
+              <div className="rounded-2xl w-full md:w-80 bg-surface-container-low p-6 border-t-2 border-primary">
                 <div className="flex justify-between items-end mb-4">
-                  <span className="text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface">
+                  <span className="text-[10px] font-headline font-bold tracking-normal text-on-surface">
                     Path Progress
                   </span>
                   <span className="text-2xl font-headline font-black text-primary">{completionPercentage}%</span>
                 </div>
-                <div className="h-1 bg-surface-variant w-full mb-6">
+                <div className="rounded-xl h-1 bg-surface-variant w-full mb-6">
                   <div className="h-full bg-primary transition-all duration-500" style={{ width: `${completionPercentage}%` }}></div>
                 </div>
-                <p className="text-[10px] font-headline text-on-surface-variant uppercase tracking-widest mb-3">
+                <p className="text-[10px] font-headline text-on-surface-variant tracking-normal mb-3">
                   {completedRooms}/{totalRooms} Rooms Completed
                 </p>
-                <button className="w-full bg-primary text-on-primary py-4 font-headline font-bold tracking-widest uppercase hover:bg-primary-container transition-all active:scale-95" onClick={handleResumeOperation} type="button">
+                <button className="rounded-2xl w-full bg-primary text-on-primary py-4 font-headline font-bold tracking-normal hover:bg-primary-container transition-all active:scale-95" onClick={handleResumeOperation} type="button">
                   RESUME OPERATION
                 </button>
               </div>
@@ -235,11 +235,11 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           <div className="lg:col-span-8 space-y-12">
             <header className="flex items-center justify-between">
-              <h2 className="text-2xl font-black font-headline tracking-tight uppercase">
+              <h2 className="text-2xl font-black font-headline tracking-tight">
                 Path Syllabus
               </h2>
               <div className="h-px flex-1 mx-8 bg-surface-container-highest"></div>
-              <span className="text-[10px] font-headline text-outline tracking-widest uppercase">
+              <span className="text-[10px] font-headline text-outline tracking-normal">
                 {getModuleCount()} Modules - {getTotalRooms()} Rooms
               </span>
             </header>
@@ -248,13 +248,13 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
               <div className="space-y-8 relative before:absolute before:left-6 before:top-0 before:bottom-0 before:w-px before:bg-surface-container-highest">
                 {path.modules.map((module, index) => (
                   <div key={module.id} className="relative pl-16 group cursor-pointer" onClick={() => navigate(`/learn/path/${pathId}/module/${module.id}`)}>
-                    <div className="absolute left-3.5 top-0 w-5 h-5 bg-primary ring-4 ring-surface group-hover:scale-125 transition-transform"></div>
+                    <div className="rounded-xl absolute left-3.5 top-0 w-5 h-5 bg-primary ring-4 ring-surface group-hover:scale-125 transition-transform"></div>
                     <div className="space-y-6">
                       <div className="group-hover:text-primary transition-colors">
-                        <span className="text-[10px] font-headline font-bold text-primary tracking-[2px] uppercase">
+                        <span className="text-[10px] font-headline font-bold text-primary tracking-[2px]">
                           {module.phase}
                         </span>
-                        <h3 className="text-xl font-bold font-headline uppercase mt-1">
+                        <h3 className="text-xl font-bold font-headline mt-1">
                           {module.title}
                         </h3>
                         {module.description && (
@@ -268,13 +268,13 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
                             const room = allRooms.find((r) => r.id === roomId)
                             if (!room) return null
                             return (
-                              <div key={roomId} className="bg-surface-container-lowest p-6 flex items-center justify-between group hover:bg-white transition-colors">
+                              <div key={roomId} className="rounded-2xl bg-surface-container-lowest p-6 flex items-center justify-between group hover:bg-white transition-colors">
                                 <div className="flex items-center gap-4">
-                                  <div className="w-10 h-10 flex items-center justify-center bg-primary-container text-on-primary-container">
+                                  <div className="rounded-xl w-10 h-10 flex items-center justify-center bg-primary-container text-on-primary-container">
                                     <span className="material-symbols-outlined text-sm">flag</span>
                                   </div>
                                   <div>
-                                    <h4 className="font-bold text-sm font-headline uppercase">
+                                    <h4 className="font-bold text-sm font-headline">
                                       {room.title}
                                     </h4>
                                     <p className="text-xs text-on-surface-variant">
@@ -284,10 +284,10 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
                                 </div>
                                 <div className="flex items-center gap-6">
                                   <div className="flex flex-col items-end">
-                                    <span className="text-[8px] font-headline text-outline uppercase tracking-widest mb-1">
+                                    <span className="text-[8px] font-headline text-outline tracking-normal mb-1">
                                       Reward
                                     </span>
-                                    <span className="text-[10px] font-headline font-bold text-primary uppercase">
+                                    <span className="text-[10px] font-headline font-bold text-primary">
                                       {room.xp}
                                     </span>
                                   </div>
@@ -300,8 +300,8 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
                           })}
                         </div>
                       ) : (
-                        <div className="bg-surface-container-low border border-dashed border-outline-variant/30 p-6 flex items-center justify-center">
-                          <span className="text-[10px] font-headline text-outline uppercase tracking-widest">
+                        <div className="rounded-2xl bg-surface-container-low border border-dashed border-outline-variant/30 p-6 flex items-center justify-center">
+                          <span className="text-[10px] font-headline text-outline tracking-normal">
                             No rooms assigned to this module
                           </span>
                         </div>
@@ -311,8 +311,8 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
                 ))}
               </div>
             ) : (
-              <div className="bg-surface-container-low border border-dashed border-outline-variant/30 p-12 flex items-center justify-center text-center">
-                <span className="text-[10px] font-headline text-outline uppercase tracking-widest">
+              <div className="rounded-2xl bg-surface-container-low border border-dashed border-outline-variant/30 p-12 flex items-center justify-center text-center">
+                <span className="text-[10px] font-headline text-outline tracking-normal">
                   No modules configured for this path
                 </span>
               </div>
@@ -320,8 +320,8 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
           </div>
 
           <aside className="lg:col-span-4 space-y-8">
-            <div className="bg-surface-container-low p-8 border-t-2 border-on-surface">
-              <h3 className="text-sm font-black font-headline tracking-[2px] uppercase mb-6 flex items-center gap-2">
+            <div className="rounded-2xl bg-surface-container-low p-8 border-t-2 border-on-surface">
+              <h3 className="text-sm font-black font-headline tracking-[2px] mb-6 flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary text-lg">inventory_2</span>
                 Path Resources ({path.resources?.length || 0})
               </h3>
@@ -330,16 +330,16 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
                   {path.resources.map((resource) => (
                     <div key={resource.id} className="group cursor-pointer">
                       <div className="flex gap-4 items-start">
-                        <div className="w-16 h-20 bg-surface-container-highest flex-shrink-0 flex items-center justify-center">
+                        <div className="rounded-xl w-16 h-20 bg-surface-container-highest flex-shrink-0 flex items-center justify-center">
                           <span className="material-symbols-outlined text-3xl text-outline group-hover:text-primary transition-colors">
                             description
                           </span>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-[8px] font-headline font-bold bg-primary/10 text-primary px-1.5 py-0.5 uppercase tracking-widest">
+                          <span className="rounded-xl text-[8px] font-headline font-bold bg-primary/10 text-primary px-1.5 py-0.5 tracking-normal">
                             {resource.type}
                           </span>
-                          <h4 className="text-xs font-bold font-headline uppercase group-hover:text-primary transition-colors leading-tight">
+                          <h4 className="text-xs font-bold font-headline group-hover:text-primary transition-colors leading-tight">
                             {resource.title}
                           </h4>
                           {resource.url && (
@@ -359,8 +359,8 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
               )}
             </div>
 
-            <div className={`bg-surface-container-low p-8 border-t-2 border-on-surface transition-opacity ${completionPercentage < 100 ? 'opacity-60' : ''}`}>
-              <h3 className="text-sm font-black font-headline tracking-[2px] uppercase mb-6 flex items-center gap-2">
+            <div className={`rounded-2xl bg-surface-container-low p-8 border-t-2 border-on-surface transition-opacity ${completionPercentage < 100 ? 'opacity-60' : ''}`}>
+              <h3 className="text-sm font-black font-headline tracking-[2px] mb-6 flex items-center gap-2">
                 {completionPercentage === 100 ? (
                   <span className="material-symbols-outlined text-primary text-lg">verified</span>
                 ) : (
@@ -374,7 +374,7 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
                   <div className="flex justify-center mb-4">
                     <span className="material-symbols-outlined text-6xl text-outline/40">lock</span>
                   </div>
-                  <p className="text-xs text-on-surface-variant font-headline uppercase tracking-widest">
+                  <p className="text-xs text-on-surface-variant font-headline tracking-normal">
                     Complete {100 - completionPercentage}% more of this path to unlock your certificate
                   </p>
                   <div className="bg-surface-container-highest/50 p-3 rounded border border-outline-variant/30 text-left">
@@ -392,7 +392,7 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
                     </p>
                   </div>
                   <button
-                    className="w-full bg-primary text-on-primary py-3 font-headline text-xs font-bold tracking-widest uppercase hover:bg-primary-container transition-all active:scale-95 disabled:opacity-50"
+                    className="rounded-xl w-full bg-primary text-on-primary py-3 font-headline text-xs font-bold tracking-normal hover:bg-primary-container transition-all active:scale-95 disabled:opacity-50"
                     onClick={handleDownloadCertificate}
                     type="button"
                   >
@@ -406,7 +406,7 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
                 </div>
               ) : (
                 <button
-                  className="w-full bg-primary text-on-primary py-3 font-headline text-xs font-bold tracking-widest uppercase hover:bg-primary-container transition-all active:scale-95 disabled:opacity-50"
+                  className="rounded-xl w-full bg-primary text-on-primary py-3 font-headline text-xs font-bold tracking-normal hover:bg-primary-container transition-all active:scale-95 disabled:opacity-50"
                   onClick={handleIssueCertificate}
                   disabled={isCertificateLoading}
                   type="button"
@@ -422,4 +422,4 @@ function RedTeamOperatorPage({ pathId: propPathId }) {
   )
 }
 
-export default RedTeamOperatorPage
+export default LearningPathDetailPage
