@@ -86,13 +86,13 @@ function CertificateVerificationPage() {
   return (
     <main className="pt-24 min-h-screen px-6 pb-12">
       <div className="max-w-6xl mx-auto space-y-8">
-        <section className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 relative overflow-hidden">
+        <section className="bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 relative overflow-hidden">
           <div className="absolute -right-10 -top-10 w-48 h-48 bg-primary/10 blur-3xl rounded-full" />
           <div className="relative z-10 max-w-3xl">
-            <p className="font-headline text-[10px] tracking-normal text-primary font-bold mb-4">
+            <p className="font-headline text-[10px] uppercase tracking-[0.4em] text-primary font-bold mb-4">
               Public Verification
             </p>
-            <h1 className="font-headline text-4xl md:text-6xl font-black tracking-tight mb-4">
+            <h1 className="font-headline text-4xl md:text-6xl font-black uppercase tracking-tight mb-4">
               Certificate Check
             </h1>
             <p className="text-on-surface-variant leading-relaxed max-w-2xl">
@@ -103,19 +103,19 @@ function CertificateVerificationPage() {
         </section>
 
         <section className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-          <div className="rounded-2xl xl:col-span-5 bg-surface-container-low p-8 border border-outline-variant/60">
-            <h2 className="font-headline text-xl font-bold tracking-tight mb-2">Lookup Certificate</h2>
-            <p className="text-xs tracking-normal text-on-surface-variant font-headline mb-6">
+          <div className="xl:col-span-5 bg-surface-container-low p-8 border border-outline-variant/60">
+            <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-2">Lookup Certificate</h2>
+            <p className="text-xs uppercase tracking-widest text-on-surface-variant font-headline mb-6">
               Authentication is not required
             </p>
 
             <form className="space-y-5" onSubmit={handleVerify}>
               <label className="block space-y-2">
-                <span className="text-[10px] font-headline tracking-normal text-on-surface-variant">
+                <span className="text-[10px] font-headline uppercase tracking-widest text-on-surface-variant">
                   Certificate ID
                 </span>
                 <input
-                  className="rounded-2xl w-full bg-surface border border-outline-variant px-4 py-4 text-on-surface font-headline tracking-normal text-sm focus:outline-none focus:border-primary"
+                  className="w-full bg-surface border border-outline-variant px-4 py-4 text-on-surface font-headline uppercase tracking-widest text-sm focus:outline-none focus:border-primary"
                   onChange={(event) => setCertificateId(event.target.value)}
                   placeholder="CERT-..."
                   value={certificateId}
@@ -125,11 +125,11 @@ function CertificateVerificationPage() {
               </label>
 
               <button
-                className="rounded-2xl w-full py-4 bg-primary text-on-primary font-headline text-[10px] tracking-normal font-bold hover:bg-primary-container transition-colors active:scale-[0.99]"
+                className="w-full py-4 bg-primary text-on-primary font-headline text-[10px] tracking-[0.3em] font-bold uppercase hover:bg-primary-container transition-colors active:scale-[0.99]"
                 disabled={isLoading}
                 type="submit"
               >
-                {isLoading ? 'VERIFYING...' : 'Verify certificate'}
+                {isLoading ? 'VERIFYING...' : 'VERIFY CERTIFICATE'}
               </button>
             </form>
 
@@ -143,8 +143,8 @@ function CertificateVerificationPage() {
 
           <div className="xl:col-span-7 space-y-8">
             {error ? (
-              <div className="rounded-2xl bg-error-container/20 border border-error/40 p-6">
-                <p className="font-headline text-xs tracking-normal text-error font-bold mb-2">
+              <div className="bg-error-container/20 border border-error/40 p-6">
+                <p className="font-headline text-xs uppercase tracking-[0.25em] text-error font-bold mb-2">
                   Verification Failed
                 </p>
                 <p className="text-on-surface">{error}</p>
@@ -152,17 +152,17 @@ function CertificateVerificationPage() {
             ) : null}
 
             {result?.valid ? (
-              <div className="rounded-2xl bg-surface-container-high p-8 border-l-4 border-primary space-y-6">
+              <div className="bg-surface-container-high p-8 border-l-4 border-primary space-y-6">
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                   <div>
-                    <p className="font-headline text-[10px] tracking-normal text-primary font-bold mb-2">
+                    <p className="font-headline text-[10px] uppercase tracking-[0.35em] text-primary font-bold mb-2">
                       Verified
                     </p>
-                    <h2 className="font-headline text-2xl md:text-3xl font-black tracking-tight">
+                    <h2 className="font-headline text-2xl md:text-3xl font-black uppercase tracking-tight">
                       Certificate Confirmed
                     </h2>
                   </div>
-                  <span className="rounded-lg inline-flex items-center gap-2 px-3 py-2 bg-primary-container text-on-primary-container font-headline text-[10px] font-bold tracking-normal">
+                  <span className="inline-flex items-center gap-2 px-3 py-2 bg-primary-container text-on-primary-container font-headline text-[10px] font-bold uppercase tracking-widest">
                     <span className="material-symbols-outlined text-sm">verified</span>
                     Valid
                   </span>
@@ -179,16 +179,16 @@ function CertificateVerificationPage() {
 
                 <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between border-t border-outline-variant pt-6">
                   <div>
-                    <p className="text-[10px] font-headline tracking-normal text-on-surface-variant mb-1">
+                    <p className="text-[10px] font-headline uppercase tracking-widest text-on-surface-variant mb-1">
                       Verified Status
                     </p>
-                    <p className="font-headline text-lg tracking-tight text-primary">
+                    <p className="font-headline text-lg uppercase tracking-tight text-primary">
                       This certificate is authentic.
                     </p>
                   </div>
                   {certificate?.certificateId ? (
                     <Link
-                      className="rounded-xl font-headline text-[10px] tracking-normal text-primary border border-primary px-4 py-3 hover:bg-primary hover:text-on-primary transition-colors"
+                      className="font-headline text-[10px] uppercase tracking-[0.25em] text-primary border border-primary px-4 py-3 hover:bg-primary hover:text-on-primary transition-colors"
                       to={`/verify-certificate/${encodeURIComponent(certificate.certificateId)}`}
                     >
                       Open Shareable View
@@ -199,11 +199,11 @@ function CertificateVerificationPage() {
             ) : null}
 
             {result && !result.valid ? (
-              <div className="rounded-2xl bg-surface-container-low p-8 border border-outline-variant/60">
-                <p className="font-headline text-xs tracking-normal text-outline font-bold mb-3">
+              <div className="bg-surface-container-low p-8 border border-outline-variant/60">
+                <p className="font-headline text-xs uppercase tracking-[0.25em] text-outline font-bold mb-3">
                   Not Found
                 </p>
-                <h2 className="font-headline text-2xl font-black tracking-tight mb-3">
+                <h2 className="font-headline text-2xl font-black uppercase tracking-tight mb-3">
                   Certificate could not be verified
                 </h2>
                 <p className="text-on-surface-variant">
@@ -213,7 +213,7 @@ function CertificateVerificationPage() {
             ) : null}
 
             {!result && !error ? (
-              <div className="rounded-2xl bg-surface-container-low p-8 border border-outline-variant/60 text-on-surface-variant">
+              <div className="bg-surface-container-low p-8 border border-outline-variant/60 text-on-surface-variant">
                 Enter a certificate ID to view the verification result and issuance details.
               </div>
             ) : null}
@@ -226,11 +226,11 @@ function CertificateVerificationPage() {
 
 function InfoCard({ label, value }) {
   return (
-    <div className="rounded-2xl bg-surface border border-outline-variant/60 p-4">
-      <p className="text-[10px] font-headline tracking-normal text-on-surface-variant mb-2">
+    <div className="bg-surface border border-outline-variant/60 p-4">
+      <p className="text-[10px] font-headline uppercase tracking-widest text-on-surface-variant mb-2">
         {label}
       </p>
-      <p className="font-headline text-sm md:text-base font-bold tracking-wide break-words">
+      <p className="font-headline text-sm md:text-base font-bold uppercase tracking-wide break-words">
         {value || 'Not available'}
       </p>
     </div>

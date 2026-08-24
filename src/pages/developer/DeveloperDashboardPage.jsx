@@ -4,7 +4,7 @@ import { getAuthSession, logoutUser } from '../../auth'
 import { API_BASE_URL, apiFetch } from '../../services/api'
 
 const defaultCatalog = {
-  name: 'Minerva Developer API',
+  name: 'Incognitrix Developer API',
   version: '1.1.0',
   baseUrl: `${API_BASE_URL}/developer`,
   endpoints: [],
@@ -25,7 +25,7 @@ function StatCard({ label, sublabel, value, tone = 'primary' }) {
   const toneClass = tone === 'secondary' ? 'border-l-secondary text-secondary' : 'border-l-primary text-primary'
   return (
     <article className={`bg-surface-container-lowest border-l-4 ${toneClass} p-5 min-h-32`}>
-      <p className="font-label text-[10px] font-bold tracking-normal text-on-surface-variant">
+      <p className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
         {label}
       </p>
       <p className="mt-3 font-headline text-4xl font-black text-on-background">{value}</p>
@@ -36,7 +36,7 @@ function StatCard({ label, sublabel, value, tone = 'primary' }) {
 
 function StatusPill({ children, active }) {
   return (
-    <span className={`inline-flex items-center gap-2 px-3 py-1 font-headline text-[10px] font-bold tracking-normal ${active ? 'bg-secondary/15 text-secondary' : 'bg-error/15 text-error'}`}>
+    <span className={`inline-flex items-center gap-2 px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-widest ${active ? 'bg-secondary/15 text-secondary' : 'bg-error/15 text-error'}`}>
       <span className={`h-2 w-2 rounded-full ${active ? 'bg-secondary' : 'bg-error'}`}></span>
       {children}
     </span>
@@ -52,10 +52,10 @@ function EndpointCard({ endpoint, selected, onSelect }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-label text-[10px] tracking-normal text-primary font-bold">{endpoint.group}</p>
+          <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">{endpoint.group}</p>
           <p className="mt-2 font-mono text-sm font-bold text-on-background break-all leading-5">{endpoint.path}</p>
         </div>
-        <span className="rounded-full shrink-0 bg-surface-container-lowest px-2 py-1 font-headline text-[10px] font-bold tracking-normal text-secondary">
+        <span className="shrink-0 bg-surface-container-lowest px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
           {endpoint.method}
         </span>
       </div>
@@ -67,7 +67,7 @@ function EndpointCard({ endpoint, selected, onSelect }) {
 function EndpointReference({ endpoint }) {
   if (!endpoint) {
     return (
-      <div className="rounded-2xl bg-surface-container-high p-4 text-sm text-on-surface-variant">
+      <div className="bg-surface-container-high p-4 text-sm text-on-surface-variant">
         Select an endpoint to inspect its documentation.
       </div>
     )
@@ -75,15 +75,15 @@ function EndpointReference({ endpoint }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl bg-surface-container-high p-4">
+      <div className="bg-surface-container-high p-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="font-label text-[10px] tracking-normal text-primary font-bold">
+            <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">
               {endpoint.group}
             </p>
             <p className="mt-2 break-all font-mono text-sm font-bold text-on-background">{endpoint.path}</p>
           </div>
-          <span className="rounded-lg w-fit bg-surface-container-lowest px-3 py-2 font-headline text-[10px] font-bold tracking-normal text-secondary">
+          <span className="w-fit bg-surface-container-lowest px-3 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
             {endpoint.method}
           </span>
         </div>
@@ -91,22 +91,22 @@ function EndpointReference({ endpoint }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="rounded-2xl bg-surface-container-high p-4">
-          <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+        <div className="bg-surface-container-high p-4">
+          <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
             Authentication
           </p>
           <p className="mt-2 text-sm text-on-background">{endpoint.authentication}</p>
         </div>
-        <div className="rounded-2xl bg-surface-container-high p-4">
-          <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+        <div className="bg-surface-container-high p-4">
+          <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
             Returns
           </p>
           <p className="mt-2 text-sm text-on-background">{endpoint.returns || 'JSON response body.'}</p>
         </div>
       </div>
 
-      <div className="rounded-2xl bg-surface-container-high p-4">
-        <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+      <div className="bg-surface-container-high p-4">
+        <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
           Parameters
         </p>
         <div className="mt-3 space-y-2">
@@ -120,8 +120,8 @@ function EndpointReference({ endpoint }) {
         </div>
       </div>
 
-      <div className="rounded-2xl bg-surface-container-high p-4">
-        <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+      <div className="bg-surface-container-high p-4">
+        <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
           Example Response
         </p>
         <pre className="mt-3 max-h-60 overflow-auto whitespace-pre-wrap bg-black p-3 font-mono text-xs text-cyan-100">
@@ -130,8 +130,8 @@ function EndpointReference({ endpoint }) {
       </div>
 
       {endpoint.notes?.length ? (
-        <div className="rounded-2xl bg-surface-container-high p-4">
-          <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+        <div className="bg-surface-container-high p-4">
+          <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
             Notes
           </p>
           <ul className="mt-3 space-y-2 text-sm text-on-surface-variant">
@@ -334,16 +334,16 @@ function DeveloperDashboardPage() {
   }
 
   return (
-    <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10 pb-32">
+    <main className="min-h-screen bg-surface px-6 md:px-10 py-10 pb-32">
       <section className="max-w-[1500px] mx-auto space-y-8">
         <div className="grid min-w-0 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_420px] gap-5">
-          <header className="rounded-xl min-w-0 bg-surface-container-lowest border-l-4 border-primary p-7 md:p-9">
+          <header className="min-w-0 bg-surface-container-lowest border-l-4 border-primary p-7 md:p-9">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <p className="font-headline text-[10px] tracking-normal text-primary font-bold">
+                <p className="font-headline text-[10px] tracking-[0.25em] uppercase text-primary font-bold">
                   Developer Operations
                 </p>
-                <h1 className="font-headline text-4xl md:text-6xl font-black tracking-tight mt-3">
+                <h1 className="font-headline text-4xl md:text-6xl font-black tracking-tight mt-3 uppercase">
                   Monitoring Command Center
                 </h1>
                 <p className="mt-4 max-w-3xl text-sm text-on-surface-variant">
@@ -353,7 +353,7 @@ function DeveloperDashboardPage() {
               <div className="flex gap-3">
                 {session.role === 'admin' ? (
                   <button
-                    className="rounded-xl bg-surface-container-high px-5 py-3 font-headline text-xs font-bold tracking-normal"
+                    className="bg-surface-container-high px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest"
                     onClick={() => navigate('/admin')}
                     type="button"
                   >
@@ -361,7 +361,7 @@ function DeveloperDashboardPage() {
                   </button>
                 ) : null}
                 <button
-                  className="rounded-xl bg-primary px-5 py-3 font-headline text-xs font-bold tracking-normal text-on-primary"
+                  className="bg-primary px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-primary"
                   onClick={() => setConfirmLogoutOpen(true)}
                   type="button"
                 >
@@ -371,8 +371,8 @@ function DeveloperDashboardPage() {
             </div>
           </header>
 
-          <aside className="rounded-2xl min-w-0 bg-surface-container-lowest border-l-4 border-secondary p-6">
-            <p className="font-label text-[10px] tracking-normal text-secondary font-bold">API Base URL</p>
+          <aside className="min-w-0 bg-surface-container-lowest border-l-4 border-secondary p-6">
+            <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">API Base URL</p>
             <p className="mt-3 break-all font-mono text-sm text-on-background">{catalog.baseUrl}</p>
             <div className="mt-5 space-y-3">
               <div className="flex items-center justify-between">
@@ -394,12 +394,12 @@ function DeveloperDashboardPage() {
         </div>
 
         {error ? (
-          <div className="rounded-2xl bg-error/10 border-l-4 border-error p-4">
+          <div className="bg-error/10 border-l-4 border-error p-4">
             <p className="font-headline text-sm font-bold text-error">{error}</p>
           </div>
         ) : null}
         {success ? (
-          <div className="rounded-2xl bg-secondary/10 border-l-4 border-secondary p-4">
+          <div className="bg-secondary/10 border-l-4 border-secondary p-4">
             <p className="font-headline text-sm font-bold text-secondary">{success}</p>
           </div>
         ) : null}
@@ -412,20 +412,20 @@ function DeveloperDashboardPage() {
               <StatCard label="Active Now" sublabel="Operators seen in the last 30 seconds" value={activeNow.length} />
               <StatCard label="Total Users" sublabel={`${overview?.users?.operators ?? 0} operators`} value={overview?.users?.total ?? 0} tone="secondary" />
               <StatCard label="Developers" sublabel="Developer-role accounts" value={overview?.users?.developers ?? 0} />
-              <StatCard label="Courses In Progress" sublabel="Open learning sessions" value={overview?.rooms?.inProgress ?? 0} tone="secondary" />
+              <StatCard label="Rooms In Progress" sublabel="Open learning sessions" value={overview?.rooms?.inProgress ?? 0} tone="secondary" />
               <StatCard label="Docker Alive" sublabel="Running containers only" value={runningDocker.length} />
-              <StatCard label="Practical Courses" sublabel={`${overview?.rooms?.theoretical ?? 0} theoretical`} value={overview?.rooms?.practical ?? 0} tone="secondary" />
+              <StatCard label="Practical Rooms" sublabel={`${overview?.rooms?.theoretical ?? 0} theoretical`} value={overview?.rooms?.practical ?? 0} tone="secondary" />
             </section>
 
             <section className="grid min-w-0 grid-cols-1 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] gap-6">
-              <div className="rounded-2xl min-w-0 bg-surface-container-lowest p-6 border-l-4 border-primary">
+              <div className="min-w-0 bg-surface-container-lowest p-6 border-l-4 border-primary">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="font-label text-[10px] tracking-normal text-primary font-bold">Monitoring System</p>
-                    <h2 className="font-headline text-2xl font-black">Current Active Users</h2>
+                    <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">Monitoring System</p>
+                    <h2 className="font-headline text-2xl font-black uppercase">Current Active Users</h2>
                   </div>
                   <button
-                    className="rounded-lg bg-surface-container-high px-4 py-2 font-headline text-[10px] font-bold tracking-normal"
+                    className="bg-surface-container-high px-4 py-2 font-headline text-[10px] font-bold uppercase tracking-widest"
                     onClick={() => void loadDashboard()}
                     type="button"
                   >
@@ -436,11 +436,11 @@ function DeveloperDashboardPage() {
                   <table className="min-w-full text-left text-sm">
                     <thead>
                       <tr className="border-b border-outline-variant/30">
-                        <th className="py-3 pr-4 font-label text-[10px] tracking-normal">Status</th>
-                        <th className="py-3 pr-4 font-label text-[10px] tracking-normal">User</th>
-                        <th className="py-3 pr-4 font-label text-[10px] tracking-normal">Solving</th>
-                        <th className="py-3 pr-4 font-label text-[10px] tracking-normal">Docker</th>
-                        <th className="py-3 pr-4 font-label text-[10px] tracking-normal">Last Seen</th>
+                        <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest">Status</th>
+                        <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest">User</th>
+                        <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest">Solving</th>
+                        <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest">Docker</th>
+                        <th className="py-3 pr-4 font-label text-[10px] uppercase tracking-widest">Last Seen</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -450,7 +450,7 @@ function DeveloperDashboardPage() {
                             <StatusPill active={user.active}>{user.active ? 'online' : 'idle'}</StatusPill>
                           </td>
                           <td className="py-4 pr-4">
-                            <p className="font-headline font-bold">{user.username}</p>
+                            <p className="font-headline font-bold uppercase">{user.username}</p>
                             <p className="text-xs text-on-surface-variant">{user.registrationNumber || user.email || user.role}</p>
                           </td>
                           <td className="py-4 pr-4 text-on-surface-variant">
@@ -465,22 +465,22 @@ function DeveloperDashboardPage() {
                     </tbody>
                   </table>
                   {!activeNow.length ? (
-                    <p className="rounded-2xl mt-4 bg-surface-container-high p-4 text-sm text-on-surface-variant">
+                    <p className="mt-4 bg-surface-container-high p-4 text-sm text-on-surface-variant">
                       No users are currently active on the platform.
                     </p>
                   ) : null}
                 </div>
               </div>
 
-              <div className="rounded-2xl min-w-0 bg-surface-container-lowest p-6 border-l-4 border-secondary">
-                <p className="font-label text-[10px] tracking-normal text-secondary font-bold">Container Runtime</p>
-                <h2 className="font-headline text-2xl font-black">Running environments</h2>
+              <div className="min-w-0 bg-surface-container-lowest p-6 border-l-4 border-secondary">
+                <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">Container Runtime</p>
+                <h2 className="font-headline text-2xl font-black uppercase">Alive Docker Machines</h2>
                 <div className="mt-5 space-y-3 max-h-[500px] overflow-y-auto pr-2">
                   {runningDocker.map((machine) => (
-                    <article className="rounded-2xl bg-surface-container-high p-4" key={machine.id}>
+                    <article className="bg-surface-container-high p-4" key={machine.id}>
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="font-headline text-sm font-bold">{machine.roomTitle || machine.roomId}</p>
+                          <p className="font-headline text-sm font-bold uppercase">{machine.roomTitle || machine.roomId}</p>
                           <p className="mt-1 text-xs text-on-surface-variant">{machine.username || 'Unknown user'}</p>
                         </div>
                         <StatusPill active={machine.status === 'running'}>{machine.status}</StatusPill>
@@ -495,22 +495,22 @@ function DeveloperDashboardPage() {
             </section>
 
             <section className="grid min-w-0 grid-cols-1 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-6">
-              <div className="rounded-2xl min-w-0 bg-surface-container-lowest p-6 border-l-4 border-primary">
-                <p className="font-label text-[10px] tracking-normal text-primary font-bold">Key Vault</p>
-                <h2 className="font-headline text-2xl font-black">Developer API Keys</h2>
+              <div className="min-w-0 bg-surface-container-lowest p-6 border-l-4 border-primary">
+                <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">Key Vault</p>
+                <h2 className="font-headline text-2xl font-black uppercase">Developer API Keys</h2>
                 <p className="mt-2 text-sm text-on-surface-variant">
                   Exported data endpoints require a developer API key. Login tokens can manage keys, but cannot call `/data` endpoints directly.
                 </p>
                 <form className="mt-5 flex min-w-0 flex-col sm:flex-row gap-3" onSubmit={createApiKey}>
                   <input
-                    className="rounded-xl min-w-0 flex-1 bg-surface-container-highest border-l-2 border-l-primary px-4 py-3 outline-none"
+                    className="min-w-0 flex-1 bg-surface-container-highest border-l-2 border-l-primary px-4 py-3 outline-none"
                     onChange={(event) => setNewKeyName(event.target.value)}
                     placeholder="Key name, e.g. SIEM collector"
                     type="text"
                     value={newKeyName}
                   />
                   <button
-                    className="rounded-xl bg-primary px-5 py-3 font-headline text-xs font-bold tracking-normal text-on-primary disabled:opacity-50"
+                    className="bg-primary px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-primary disabled:opacity-50"
                     disabled={working}
                     type="submit"
                   >
@@ -518,8 +518,8 @@ function DeveloperDashboardPage() {
                   </button>
                 </form>
                 {generatedKey ? (
-                  <div className="rounded-2xl mt-5 bg-secondary/10 border-l-4 border-secondary p-4">
-                    <p className="font-label text-[10px] tracking-normal text-secondary font-bold">
+                  <div className="mt-5 bg-secondary/10 border-l-4 border-secondary p-4">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">
                       Copy this key now
                     </p>
                     <p className="mt-2 break-all font-mono text-sm text-on-background">{generatedKey.key}</p>
@@ -527,14 +527,14 @@ function DeveloperDashboardPage() {
                 ) : null}
                 <div className="mt-5 space-y-3">
                   {apiKeys.map((key) => (
-                    <article className="rounded-2xl min-w-0 bg-surface-container-high p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" key={key.id}>
+                    <article className="min-w-0 bg-surface-container-high p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" key={key.id}>
                       <div className="min-w-0">
-                        <p className="font-headline text-sm font-bold">{key.name}</p>
+                        <p className="font-headline text-sm font-bold uppercase">{key.name}</p>
                         <p className="mt-1 font-mono text-xs text-on-surface-variant">{key.key}</p>
                         <p className="mt-1 text-xs text-on-surface-variant">Last used: {formatDateTime(key.lastUsedAt)}</p>
                       </div>
                       <button
-                        className="rounded-lg bg-error px-4 py-2 font-headline text-[10px] font-bold tracking-normal text-on-error disabled:opacity-50"
+                        className="bg-error px-4 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-on-error disabled:opacity-50"
                         disabled={working || Boolean(key.revokedAt)}
                         onClick={() => void revokeApiKey(key.id)}
                         type="button"
@@ -546,19 +546,19 @@ function DeveloperDashboardPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl min-w-0 bg-surface-container-lowest p-6 border-l-4 border-secondary">
+              <div className="min-w-0 bg-surface-container-lowest p-6 border-l-4 border-secondary">
                 <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div className="min-w-0">
-                    <p className="font-label text-[10px] tracking-normal text-secondary font-bold">Swagger-Style API Tester</p>
-                    <h2 className="font-headline text-2xl font-black">Try Endpoint</h2>
+                    <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">Swagger-Style API Tester</p>
+                    <h2 className="font-headline text-2xl font-black uppercase">Try Endpoint</h2>
                   </div>
                   <span className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-mono text-xs text-on-surface-variant lg:max-w-[420px]">{catalog.baseUrl}</span>
                 </div>
                 <form className="mt-5 space-y-4" onSubmit={runTester}>
                   <label className="block">
-                    <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Developer API Key</span>
+                    <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Developer API Key</span>
                     <input
-                      className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary px-4 py-3 outline-none"
+                      className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary px-4 py-3 outline-none"
                       onChange={(event) => setTesterKey(event.target.value)}
                       placeholder="icx_dev_..."
                       type="password"
@@ -567,20 +567,20 @@ function DeveloperDashboardPage() {
                   </label>
                   <div className="grid min-w-0 grid-cols-1 md:grid-cols-[150px_minmax(0,1fr)] gap-3">
                     <select
-                      className="rounded-xl bg-surface-container-highest border-l-2 border-l-secondary px-4 py-3 outline-none"
+                      className="bg-surface-container-highest border-l-2 border-l-secondary px-4 py-3 outline-none"
                       onChange={(event) => setTesterMethod(event.target.value)}
                       value={testerMethod}
                     >
                       <option value="GET">GET</option>
                     </select>
                     <input
-                      className="rounded-xl min-w-0 bg-surface-container-highest border-l-2 border-l-secondary px-4 py-3 font-mono text-sm outline-none"
+                      className="min-w-0 bg-surface-container-highest border-l-2 border-l-secondary px-4 py-3 font-mono text-sm outline-none"
                       onChange={(event) => setTesterPath(event.target.value)}
                       value={testerPath}
                     />
                   </div>
                   <textarea
-                    className="rounded-2xl min-h-20 w-full bg-surface-container-highest border-l-2 border-l-secondary p-4 font-mono text-sm outline-none"
+                    className="min-h-20 w-full bg-surface-container-highest border-l-2 border-l-secondary p-4 font-mono text-sm outline-none"
                     onChange={(event) => setTesterBody(event.target.value)}
                     placeholder="Optional JSON body for future POST/PATCH endpoints"
                     value={testerBody}
@@ -590,7 +590,7 @@ function DeveloperDashboardPage() {
                       Selected: {selectedEndpoint?.description || 'Custom developer data endpoint'}
                     </p>
                     <button
-                      className="rounded-xl bg-secondary px-5 py-3 font-headline text-xs font-bold tracking-normal text-on-secondary disabled:opacity-50"
+                      className="bg-secondary px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-secondary disabled:opacity-50"
                       disabled={working}
                       type="submit"
                     >
@@ -605,22 +605,22 @@ function DeveloperDashboardPage() {
             </section>
 
             <section className="grid min-w-0 grid-cols-1 items-start xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-6">
-              <div className="rounded-2xl min-w-0 bg-surface-container-lowest p-6 border-l-4 border-primary">
+              <div className="min-w-0 bg-surface-container-lowest p-6 border-l-4 border-primary">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <p className="font-label text-[10px] tracking-normal text-primary font-bold">Documentation</p>
-                    <h2 className="font-headline text-2xl font-black">Developer Docs</h2>
+                    <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">Documentation</p>
+                    <h2 className="font-headline text-2xl font-black uppercase">Developer Docs</h2>
                   </div>
                   <div className="flex gap-2">
                     <button
-                      className={`px-3 py-2 font-headline text-[10px] font-bold tracking-normal ${activeDocTab === 'reference' ? 'bg-primary text-on-primary' : 'bg-surface-container-high'}`}
+                      className={`px-3 py-2 font-headline text-[10px] font-bold uppercase tracking-widest ${activeDocTab === 'reference' ? 'bg-primary text-on-primary' : 'bg-surface-container-high'}`}
                       onClick={() => setActiveDocTab('reference')}
                       type="button"
                     >
                       Reference
                     </button>
                     <button
-                      className={`px-3 py-2 font-headline text-[10px] font-bold tracking-normal ${activeDocTab === 'notes' ? 'bg-primary text-on-primary' : 'bg-surface-container-high'}`}
+                      className={`px-3 py-2 font-headline text-[10px] font-bold uppercase tracking-widest ${activeDocTab === 'notes' ? 'bg-primary text-on-primary' : 'bg-surface-container-high'}`}
                       onClick={() => setActiveDocTab('notes')}
                       type="button"
                     >
@@ -631,15 +631,15 @@ function DeveloperDashboardPage() {
 
                 {activeDocTab === 'reference' ? (
                   <div className="mt-5 space-y-4">
-                    <div className="rounded-2xl bg-surface-container-high p-4">
-                      <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Authentication</p>
+                    <div className="bg-surface-container-high p-4">
+                      <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Authentication</p>
                       <pre className="mt-3 whitespace-pre-wrap font-mono text-xs text-on-background">
 {`x-api-key: <developer_api_key>
 Authorization: Bearer <developer_api_key>`}
                       </pre>
                     </div>
-                    <div className="rounded-2xl bg-surface-container-high p-4">
-                      <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Curl Example</p>
+                    <div className="bg-surface-container-high p-4">
+                      <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Curl Example</p>
                       <pre className="mt-3 whitespace-pre-wrap break-all font-mono text-xs text-on-background">
 {`curl ${catalog.baseUrl}/data/all \\
   -H "x-api-key: <developer_api_key>"`}
@@ -653,12 +653,12 @@ Authorization: Bearer <developer_api_key>`}
                 ) : (
                   <div className="mt-5">
                     <textarea
-                      className="rounded-2xl min-h-[300px] w-full bg-surface-container-highest border-l-2 border-l-primary p-4 font-mono text-sm outline-none"
+                      className="min-h-[300px] w-full bg-surface-container-highest border-l-2 border-l-primary p-4 font-mono text-sm outline-none"
                       onChange={(event) => setDocs(event.target.value)}
                       value={docs}
                     />
                     <button
-                      className="rounded-xl mt-3 bg-primary px-5 py-3 font-headline text-xs font-bold tracking-normal text-on-primary disabled:opacity-50"
+                      className="mt-3 bg-primary px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-primary disabled:opacity-50"
                       disabled={working}
                       onClick={() => void saveDocs()}
                       type="button"
@@ -669,9 +669,9 @@ Authorization: Bearer <developer_api_key>`}
                 )}
               </div>
 
-              <div className="rounded-2xl min-w-0 bg-surface-container-lowest p-6 border-l-4 border-secondary">
-                <p className="font-label text-[10px] tracking-normal text-secondary font-bold">Endpoint Catalog</p>
-                <h2 className="font-headline text-2xl font-black">Available Data Endpoints</h2>
+              <div className="min-w-0 bg-surface-container-lowest p-6 border-l-4 border-secondary">
+                <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">Endpoint Catalog</p>
+                <h2 className="font-headline text-2xl font-black uppercase">Available Data Endpoints</h2>
                 <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
                   {catalog.endpoints.map((endpoint) => (
                     <EndpointCard
@@ -695,10 +695,10 @@ Authorization: Bearer <developer_api_key>`}
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
           <section className="w-full max-w-md border border-outline-variant bg-surface-container-lowest shadow-2xl">
             <div className="border-t-4 border-primary p-6">
-              <p className="font-headline text-[10px] font-bold tracking-normal text-primary">
+              <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-primary">
                 Session Control
               </p>
-              <h2 className="mt-3 font-headline text-3xl font-black text-on-background">
+              <h2 className="mt-3 font-headline text-3xl font-black uppercase text-on-background">
                 Confirm Logout
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-on-surface-variant">
@@ -706,14 +706,14 @@ Authorization: Bearer <developer_api_key>`}
               </p>
               <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button
-                  className="rounded-xl bg-surface-container-high px-5 py-3 font-headline text-xs font-bold tracking-normal text-on-background"
+                  className="bg-surface-container-high px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-background"
                   onClick={() => setConfirmLogoutOpen(false)}
                   type="button"
                 >
                   Stay Logged In
                 </button>
                 <button
-                  className="rounded-xl bg-primary px-5 py-3 font-headline text-xs font-bold tracking-normal text-on-primary"
+                  className="bg-primary px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-primary"
                   onClick={confirmLogout}
                   type="button"
                 >

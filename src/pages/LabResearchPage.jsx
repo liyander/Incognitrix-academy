@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchLabProjects } from '../services/labResearch'
 
-function ProjectsPage() {
+function LabResearchPage() {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -34,11 +34,11 @@ function ProjectsPage() {
 
   return (
     <div className="flex-1 px-6 md:px-10 pt-24 pb-24 md:pb-10">
-      <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 mb-8">
-        <p className="font-headline text-[10px] tracking-normal text-primary font-bold">
+      <header className="bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 mb-8">
+        <p className="font-headline text-[10px] tracking-[0.25em] uppercase text-primary font-bold">
           Knowledge Transfer
         </p>
-        <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight mt-3">
+        <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight mt-3 uppercase">
           Lab Research
         </h1>
         <p className="text-sm text-on-surface-variant mt-4 max-w-2xl">
@@ -48,18 +48,18 @@ function ProjectsPage() {
       </header>
 
       {error ? (
-        <div className="rounded-2xl mb-6 bg-error/10 border-l-4 border-error p-4">
-          <p className="text-error font-headline text-xs font-bold tracking-normal">{error}</p>
+        <div className="mb-6 bg-error/10 border-l-4 border-error p-4">
+          <p className="text-error font-headline text-xs font-bold uppercase tracking-widest">{error}</p>
         </div>
       ) : null}
 
       {loading ? (
-        <div className="rounded-2xl bg-surface-container-lowest p-8 text-center">
+        <div className="bg-surface-container-lowest p-8 text-center">
           <p className="text-on-surface-variant">Loading research projects...</p>
         </div>
       ) : projects.length === 0 ? (
-        <div className="rounded-2xl bg-surface-container-lowest p-10 text-center border-l-4 border-outline-variant/40">
-          <p className="font-headline text-lg font-bold">No research projects published yet</p>
+        <div className="bg-surface-container-lowest p-10 text-center border-l-4 border-outline-variant/40">
+          <p className="font-headline text-lg font-bold uppercase">No research projects published yet</p>
           <p className="text-sm text-on-surface-variant mt-2">Check back soon — the lab is always building.</p>
         </div>
       ) : (
@@ -68,13 +68,13 @@ function ProjectsPage() {
             const fullyDone = project.progress.quizCompleted && (!project.codingEnabled || project.progress.codeAccepted)
             return (
               <Link
-                className="rounded-2xl block bg-surface-container-lowest border-l-4 border-secondary/60 p-6 hover:bg-surface-container-high transition-all"
+                className="block bg-surface-container-lowest border-l-4 border-secondary/60 p-6 hover:bg-surface-container-high transition-all"
                 key={project.id}
-                to={`/projects/${project.id}`}
+                to={`/lab-research/${project.id}`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <h2 className="font-headline text-lg font-bold truncate">{project.title}</h2>
+                    <h2 className="font-headline text-lg font-bold uppercase truncate">{project.title}</h2>
                     {project.stack ? (
                       <p className="text-xs text-on-surface-variant mt-1 truncate">Stack: {project.stack}</p>
                     ) : null}
@@ -88,19 +88,19 @@ function ProjectsPage() {
                   <p className="text-sm text-on-surface-variant mt-3 line-clamp-2">{project.summary}</p>
                 ) : null}
                 <div className="flex flex-wrap gap-2 mt-4">
-                  <span className="rounded-full px-2 py-1 text-[10px] font-headline font-bold tracking-normal bg-surface-container-high text-on-surface-variant">
+                  <span className="px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest bg-surface-container-high text-on-surface-variant">
                     {project.projectType === 'web' ? 'Web-Based' : project.projectType === 'program' ? 'Program-Based' : 'Research'}
                   </span>
-                  <span className={`px-2 py-1 text-[10px] font-headline font-bold tracking-normal ${project.progress.quizCompleted ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                  <span className={`px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest ${project.progress.quizCompleted ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
                     {project.progress.quizCompleted ? 'Knowledge Check 100/100' : `Knowledge Check ${project.progress.quizScore}/100`}
                   </span>
                   {project.codingEnabled ? (
-                    <span className={`px-2 py-1 text-[10px] font-headline font-bold tracking-normal ${project.progress.codeAccepted ? 'bg-secondary/15 text-secondary' : 'bg-primary/15 text-primary'}`}>
+                    <span className={`px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest ${project.progress.codeAccepted ? 'bg-secondary/15 text-secondary' : 'bg-primary/15 text-primary'}`}>
                       {project.progress.codeAccepted ? 'Code Lab Accepted' : 'Code Lab Available'}
                     </span>
                   ) : null}
                   {fullyDone ? (
-                    <span className="rounded-full px-2 py-1 text-[10px] font-headline font-bold tracking-normal bg-secondary text-on-secondary">
+                    <span className="px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest bg-secondary text-on-secondary">
                       Completed
                     </span>
                   ) : null}
@@ -114,4 +114,4 @@ function ProjectsPage() {
   )
 }
 
-export default ProjectsPage
+export default LabResearchPage

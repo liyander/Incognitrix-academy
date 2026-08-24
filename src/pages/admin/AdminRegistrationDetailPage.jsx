@@ -100,7 +100,7 @@ function formatDateTime(value) {
 
 function ProfileLabelWithLogo({ logo, text }) {
   return (
-    <span className="flex items-center gap-2 font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+    <span className="flex items-center gap-2 font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
       <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full ${logo.bgClass}`}>
         <img alt={logo.alt} className="h-3.5 w-3.5 object-contain" src={logo.src} />
       </span>
@@ -111,19 +111,19 @@ function ProfileLabelWithLogo({ logo, text }) {
 
 const profileLogos = {
   htb: {
-    src: 'https://cdn.simpleicons.org/googlechrome',
-    alt: 'Portfolio',
-    bgClass: 'bg-[#0ea5e9]',
+    src: 'https://cdn.simpleicons.org/hackthebox',
+    alt: 'Hack The Box',
+    bgClass: 'bg-[#9fef00]',
   },
   thm: {
-    src: 'https://cdn.simpleicons.org/stackoverflow',
-    alt: 'Stack Overflow',
-    bgClass: 'bg-[#f48024]',
+    src: 'https://cdn.simpleicons.org/tryhackme',
+    alt: 'TryHackMe',
+    bgClass: 'bg-[#c11111]',
   },
   pico: {
-    src: 'https://cdn.simpleicons.org/kaggle',
-    alt: 'Kaggle',
-    bgClass: 'bg-[#20beff]',
+    src: 'https://play.picoctf.org/favicon.ico',
+    alt: 'picoCTF',
+    bgClass: 'bg-white',
   },
   resume: {
     src: 'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/file-earmark-person.svg',
@@ -472,11 +472,11 @@ function AdminRegistrationDetailPage() {
   }
 
   return (
-    <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10">
+    <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
       <section className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between gap-4">
           <button
-            className="rounded-lg px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal"
+            className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest"
             onClick={() => navigate('/admin/registrations')}
             type="button"
           >
@@ -484,11 +484,11 @@ function AdminRegistrationDetailPage() {
           </button>
         </div>
 
-        <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10">
-          <p className="font-headline text-[10px] tracking-normal text-primary font-bold">
+        <header className="bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10">
+          <p className="font-headline text-[10px] tracking-[0.25em] uppercase text-primary font-bold">
             Player Details
           </p>
-          <h1 className="font-headline text-3xl md:text-4xl font-black tracking-tight mt-3">
+          <h1 className="font-headline text-3xl md:text-4xl font-black tracking-tight mt-3 uppercase">
             {user?.registration_number || user?.username || 'Registration Profile'}
           </h1>
           <p className="text-sm text-on-surface-variant mt-4 max-w-2xl">
@@ -501,26 +501,26 @@ function AdminRegistrationDetailPage() {
         ) : null}
 
         {error ? (
-          <div className="rounded-2xl bg-error/10 border-l-4 border-error p-4">
+          <div className="bg-error/10 border-l-4 border-error p-4">
             <p className="text-error font-headline text-sm font-bold">{error}</p>
           </div>
         ) : null}
 
         {success ? (
-          <div className="rounded-2xl bg-secondary/10 border-l-4 border-secondary p-4">
+          <div className="bg-secondary/10 border-l-4 border-secondary p-4">
             <p className="text-secondary font-headline text-sm font-bold">{success}</p>
           </div>
         ) : null}
 
         {!loading && !error && user ? (
           <form className="space-y-4" onSubmit={handleSave}>
-            <section className="rounded-2xl bg-surface-container-lowest p-6 md:p-8 space-y-4">
-              <h2 className="font-headline text-xl font-bold tracking-tight">Core Details</h2>
+            <section className="bg-surface-container-lowest p-6 md:p-8 space-y-4">
+              <h2 className="font-headline text-xl font-bold uppercase tracking-tight">Core Details</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label className="block">
-                  <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Username (locked)</span>
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Username (locked)</span>
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-outline-variant border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-outline-variant border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
                     disabled
                     type="text"
                     value={form.username}
@@ -528,9 +528,9 @@ function AdminRegistrationDetailPage() {
                 </label>
 
                 <label className="block">
-                  <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Registration Number</span>
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Registration Number</span>
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
                     onChange={(e) => updateField('registration_number', e.target.value)}
                     type="text"
                     value={form.registration_number}
@@ -538,9 +538,9 @@ function AdminRegistrationDetailPage() {
                 </label>
 
                 <label className="block">
-                  <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">First Name</span>
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">First Name</span>
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
                     onChange={(e) => updateField('first_name', e.target.value)}
                     type="text"
                     value={form.first_name}
@@ -548,9 +548,9 @@ function AdminRegistrationDetailPage() {
                 </label>
 
                 <label className="block">
-                  <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Last Name</span>
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Last Name</span>
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
                     onChange={(e) => updateField('last_name', e.target.value)}
                     type="text"
                     value={form.last_name}
@@ -558,9 +558,9 @@ function AdminRegistrationDetailPage() {
                 </label>
 
                 <label className="block">
-                  <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Email</span>
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Email</span>
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
                     onChange={(e) => updateField('email', e.target.value)}
                     type="email"
                     value={form.email}
@@ -568,23 +568,23 @@ function AdminRegistrationDetailPage() {
                 </label>
 
                 <label className="block">
-                  <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Role</span>
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Role</span>
                   <select
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
                     disabled={isPermanentAdmin(user)}
                     onChange={(e) => updateField('role', e.target.value)}
                     value={form.role}
                   >
-                    <option value="operator">student</option>
+                    <option value="operator">operator</option>
                     <option value="developer">developer</option>
                     <option value="admin">admin</option>
                   </select>
                 </label>
 
                 <div className="block">
-                  <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Password</span>
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Password</span>
                   <button
-                    className="rounded-xl mt-2 w-full bg-primary text-on-primary py-3 px-4 font-headline text-xs font-bold tracking-normal"
+                    className="mt-2 w-full bg-primary text-on-primary py-3 px-4 font-headline text-xs font-bold uppercase tracking-widest"
                     onClick={openPasswordModal}
                     type="button"
                   >
@@ -601,22 +601,22 @@ function AdminRegistrationDetailPage() {
                   onChange={(e) => updateField('is_active', e.target.checked)}
                   type="checkbox"
                 />
-                <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Account Active</span>
+                <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Account Active</span>
               </label>
               {isPermanentAdmin(user) ? (
-                <p className="text-xs text-secondary font-bold tracking-normal">
+                <p className="text-xs text-secondary font-bold uppercase tracking-widest">
                   admin01 is a permanent admin. Role and active status are locked.
                 </p>
               ) : null}
             </section>
 
-            <section className="rounded-2xl bg-surface-container-lowest p-6 md:p-8 space-y-4">
-              <h2 className="font-headline text-xl font-bold tracking-tight">Platform profiles</h2>
+            <section className="bg-surface-container-lowest p-6 md:p-8 space-y-4">
+              <h2 className="font-headline text-xl font-bold uppercase tracking-tight">CTF Profiles</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label className="block">
-                  <ProfileLabelWithLogo logo={profileLogos.htb} text="Portfolio Website" />
+                  <ProfileLabelWithLogo logo={profileLogos.htb} text="Hack The Box Profile" />
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
                     onChange={(e) => updateField('hackthebox_profile', e.target.value)}
                     type="url"
                     value={form.hackthebox_profile}
@@ -624,9 +624,9 @@ function AdminRegistrationDetailPage() {
                 </label>
 
                 <label className="block">
-                  <ProfileLabelWithLogo logo={profileLogos.thm} text="Stack Overflow Profile" />
+                  <ProfileLabelWithLogo logo={profileLogos.thm} text="TryHackMe Profile" />
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
                     onChange={(e) => updateField('tryhackme_profile', e.target.value)}
                     type="url"
                     value={form.tryhackme_profile}
@@ -636,7 +636,7 @@ function AdminRegistrationDetailPage() {
                 <label className="block">
                   <ProfileLabelWithLogo logo={profileLogos.pico} text="PicoCTF Profile" />
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
                     onChange={(e) => updateField('picoctf_profile', e.target.value)}
                     type="url"
                     value={form.picoctf_profile}
@@ -646,7 +646,7 @@ function AdminRegistrationDetailPage() {
                 <label className="block">
                   <ProfileLabelWithLogo logo={profileLogos.github} text="GitHub Profile" />
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
                     onChange={(e) => updateField('github_profile', e.target.value)}
                     type="url"
                     value={form.github_profile}
@@ -656,7 +656,7 @@ function AdminRegistrationDetailPage() {
                 <label className="block">
                   <ProfileLabelWithLogo logo={profileLogos.linkedin} text="LinkedIn Profile" />
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
                     onChange={(e) => updateField('linkedin_profile', e.target.value)}
                     type="url"
                     value={form.linkedin_profile}
@@ -666,7 +666,7 @@ function AdminRegistrationDetailPage() {
                 <label className="block md:col-span-2">
                   <ProfileLabelWithLogo logo={profileLogos.resume} text="Resume URL" />
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
                     onChange={(e) => updateField('resume_url', e.target.value)}
                     type="url"
                     value={form.resume_url}
@@ -675,22 +675,22 @@ function AdminRegistrationDetailPage() {
               </div>
             </section>
 
-            <section className="rounded-2xl bg-surface-container-lowest p-6 md:p-8 space-y-4">
-              <h2 className="font-headline text-xl font-bold tracking-tight">About</h2>
+            <section className="bg-surface-container-lowest p-6 md:p-8 space-y-4">
+              <h2 className="font-headline text-xl font-bold uppercase tracking-tight">About</h2>
               <textarea
-                className="rounded-xl w-full min-h-32 bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none resize-y"
+                className="w-full min-h-32 bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none resize-y"
                 onChange={(e) => updateField('about_me', e.target.value)}
                 value={form.about_me}
               />
             </section>
 
-            <section className="rounded-2xl bg-surface-container-lowest p-6 md:p-8 space-y-5">
+            <section className="bg-surface-container-lowest p-6 md:p-8 space-y-5">
               <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
                 <div>
-                  <p className="font-label text-[10px] tracking-normal text-primary font-bold">
+                  <p className="font-label text-[10px] uppercase tracking-[0.35em] text-primary font-bold">
                     Player audit trail
                   </p>
-                  <h2 className="mt-2 font-headline text-xl font-bold tracking-tight">
+                  <h2 className="mt-2 font-headline text-xl font-bold uppercase tracking-tight">
                     Room Activity & Answer Logs
                   </h2>
                   <p className="mt-2 text-sm text-on-surface-variant">
@@ -698,20 +698,20 @@ function AdminRegistrationDetailPage() {
                   </p>
                 </div>
                 <div className="grid grid-cols-3 gap-3 min-w-72">
-                  <div className="rounded-2xl bg-surface-container-high p-4 border-l-2 border-l-outline">
-                    <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                  <div className="bg-surface-container-high p-4 border-l-2 border-l-outline">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                       Total
                     </p>
                     <p className="mt-1 font-headline text-3xl font-black">{roomActivity.total}</p>
                   </div>
-                  <div className="rounded-2xl bg-surface-container-high p-4 border-l-2 border-l-secondary">
-                    <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                  <div className="bg-surface-container-high p-4 border-l-2 border-l-secondary">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                       Done
                     </p>
                     <p className="mt-1 font-headline text-3xl font-black">{roomActivity.completed}</p>
                   </div>
-                  <div className="rounded-2xl bg-surface-container-high p-4 border-l-2 border-l-primary">
-                    <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                  <div className="bg-surface-container-high p-4 border-l-2 border-l-primary">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                       Active
                     </p>
                     <p className="mt-1 font-headline text-3xl font-black">{roomActivity.inProgress}</p>
@@ -729,11 +729,11 @@ function AdminRegistrationDetailPage() {
                       <summary className="flex cursor-pointer list-none flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="font-headline text-lg font-bold tracking-tight text-on-surface">
+                            <h3 className="font-headline text-lg font-bold uppercase tracking-tight text-on-surface">
                               {room.title}
                             </h3>
                             <span
-                              className={`px-2 py-1 font-headline text-[10px] font-bold tracking-normal ${
+                              className={`px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest ${
                                 room.status === 'completed'
                                   ? 'bg-secondary text-background'
                                   : 'bg-primary text-on-primary'
@@ -741,7 +741,7 @@ function AdminRegistrationDetailPage() {
                             >
                               {room.status}
                             </span>
-                            <span className="rounded-full bg-surface-container-highest px-2 py-1 font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">
+                            <span className="bg-surface-container-highest px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                               {room.roomType}
                             </span>
                           </div>
@@ -751,13 +751,13 @@ function AdminRegistrationDetailPage() {
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-xs md:min-w-[360px]">
                           <div>
-                            <p className="font-label text-[10px] tracking-normal text-on-surface-variant">
+                            <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
                               Started
                             </p>
                             <p className="mt-1 text-on-surface">{formatDateTime(room.startedAt)}</p>
                           </div>
                           <div>
-                            <p className="font-label text-[10px] tracking-normal text-on-surface-variant">
+                            <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
                               Completed
                             </p>
                             <p className="mt-1 text-on-surface">{formatDateTime(room.completedAt)}</p>
@@ -767,33 +767,33 @@ function AdminRegistrationDetailPage() {
 
                       <div className="space-y-4 border-t border-outline-variant/30 p-4">
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-                          <div className="rounded-xl bg-surface-container-lowest p-3">
-                            <p className="font-label text-[10px] tracking-normal text-on-surface-variant">
+                          <div className="bg-surface-container-lowest p-3">
+                            <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
                               XP
                             </p>
                             <p className="mt-1 font-headline text-2xl font-black">{room.xp || 0}</p>
                           </div>
-                          <div className="rounded-xl bg-surface-container-lowest p-3">
-                            <p className="font-label text-[10px] tracking-normal text-on-surface-variant">
+                          <div className="bg-surface-container-lowest p-3">
+                            <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
                               Technical
                             </p>
                             <p className="mt-1 font-headline text-2xl font-black">
                               {room.technicalScore ?? 'N/A'}
                             </p>
                           </div>
-                          <div className="rounded-xl bg-surface-container-lowest p-3">
-                            <p className="font-label text-[10px] tracking-normal text-on-surface-variant">
+                          <div className="bg-surface-container-lowest p-3">
+                            <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
                               Grammar
                             </p>
                             <p className="mt-1 font-headline text-2xl font-black">
                               {room.grammarScore ?? 'N/A'}
                             </p>
                           </div>
-                          <div className="rounded-xl bg-surface-container-lowest p-3">
-                            <p className="font-label text-[10px] tracking-normal text-on-surface-variant">
+                          <div className="bg-surface-container-lowest p-3">
+                            <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
                               AI Result
                             </p>
-                            <p className="mt-1 font-headline text-sm font-bold tracking-normal">
+                            <p className="mt-1 font-headline text-sm font-bold uppercase tracking-widest">
                               {room.aiPassed === null || room.aiPassed === undefined
                                 ? 'N/A'
                                 : room.aiPassed
@@ -804,8 +804,8 @@ function AdminRegistrationDetailPage() {
                         </div>
 
                         {room.feedback ? (
-                          <div className="rounded-2xl bg-surface-container-lowest p-4 border-l-2 border-l-primary">
-                            <p className="font-label text-[10px] tracking-normal text-primary font-bold">
+                          <div className="bg-surface-container-lowest p-4 border-l-2 border-l-primary">
+                            <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">
                               AI Analysis
                             </p>
                             <p className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-on-surface-variant">
@@ -815,29 +815,29 @@ function AdminRegistrationDetailPage() {
                         ) : null}
 
                         <div className="space-y-3">
-                          <h4 className="font-headline text-sm font-bold tracking-normal text-on-surface">
+                          <h4 className="font-headline text-sm font-bold uppercase tracking-widest text-on-surface">
                             Submitted Answers
                           </h4>
                           {room.logs?.length ? (
                             room.logs.map((log) => (
                               <div
-                                className="rounded-2xl bg-surface-container-lowest p-4 border border-outline-variant/20"
+                                className="bg-surface-container-lowest p-4 border border-outline-variant/20"
                                 key={`${room.roomId}-${log.type}-${log.id}`}
                               >
                                 <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                                   <div>
                                     <div className="flex flex-wrap items-center gap-2">
-                                      <span className="rounded-full bg-surface-container-highest px-2 py-1 font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">
+                                      <span className="bg-surface-container-highest px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                                         {log.type === 'interview-bonus' ? 'Interview bonus' : log.type}
                                       </span>
                                       {log.company ? (
-                                        <span className="rounded-full bg-secondary/20 px-2 py-1 font-headline text-[10px] font-bold tracking-normal text-secondary">
+                                        <span className="bg-secondary/20 px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
                                           {log.company}
                                         </span>
                                       ) : null}
                                       {log.answeredCorrectly === null || log.answeredCorrectly === undefined ? null : (
                                         <span
-                                          className={`px-2 py-1 font-headline text-[10px] font-bold tracking-normal ${
+                                          className={`px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest ${
                                             log.answeredCorrectly
                                               ? 'bg-secondary text-background'
                                               : 'bg-primary text-on-primary'
@@ -857,26 +857,26 @@ function AdminRegistrationDetailPage() {
                                 </div>
 
                                 {log.sourceInfo || log.interview ? (
-                                  <p className="mt-3 text-xs tracking-normal text-on-surface-variant">
+                                  <p className="mt-3 text-xs uppercase tracking-widest text-on-surface-variant">
                                     Source: {log.sourceInfo || log.interview}
                                   </p>
                                 ) : null}
 
                                 <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
                                   <div>
-                                    <p className="font-label text-[10px] tracking-normal text-on-surface-variant">
+                                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
                                       Player Answer
                                     </p>
-                                    <p className="rounded-xl mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap bg-surface-container-high p-3 text-sm text-on-surface">
+                                    <p className="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap bg-surface-container-high p-3 text-sm text-on-surface">
                                       {log.answer || 'No answer recorded.'}
                                     </p>
                                   </div>
                                   {log.expectedAnswer ? (
                                     <div>
-                                      <p className="font-label text-[10px] tracking-normal text-on-surface-variant">
+                                      <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
                                         Expected Answer
                                       </p>
-                                      <p className="rounded-xl mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap bg-surface-container-high p-3 text-sm text-on-surface">
+                                      <p className="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap bg-surface-container-high p-3 text-sm text-on-surface">
                                         {log.expectedAnswer}
                                       </p>
                                     </div>
@@ -885,7 +885,7 @@ function AdminRegistrationDetailPage() {
                               </div>
                             ))
                           ) : (
-                            <p className="rounded-2xl bg-surface-container-lowest p-4 text-sm text-on-surface-variant">
+                            <p className="bg-surface-container-lowest p-4 text-sm text-on-surface-variant">
                               No answer logs were recorded for this room yet.
                             </p>
                           )}
@@ -895,16 +895,16 @@ function AdminRegistrationDetailPage() {
                   ))}
                 </div>
               ) : (
-                <p className="rounded-2xl bg-surface-container-high p-4 text-sm text-on-surface-variant">
+                <p className="bg-surface-container-high p-4 text-sm text-on-surface-variant">
                   This player has not started any rooms yet.
                 </p>
               )}
             </section>
 
-            <section className="rounded-2xl bg-surface-container-lowest p-6 md:p-8 space-y-5">
+            <section className="bg-surface-container-lowest p-6 md:p-8 space-y-5">
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                 <div>
-                  <h2 className="font-headline text-xl font-bold tracking-tight">
+                  <h2 className="font-headline text-xl font-bold uppercase tracking-tight">
                     Completed Rooms
                   </h2>
                   <p className="mt-2 text-sm text-on-surface-variant">
@@ -912,16 +912,16 @@ function AdminRegistrationDetailPage() {
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 min-w-64">
-                  <div className="rounded-2xl bg-surface-container-high p-4 border-l-2 border-l-primary">
-                    <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                  <div className="bg-surface-container-high p-4 border-l-2 border-l-primary">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                       Completed
                     </p>
                     <p className="mt-1 font-headline text-3xl font-black">
                       {completedRooms.totalCompleted}
                     </p>
                   </div>
-                  <div className="rounded-2xl bg-surface-container-high p-4 border-l-2 border-l-secondary">
-                    <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                  <div className="bg-surface-container-high p-4 border-l-2 border-l-secondary">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                       Earned XP
                     </p>
                     <p className="mt-1 font-headline text-3xl font-black">
@@ -935,7 +935,7 @@ function AdminRegistrationDetailPage() {
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(completedRooms.categoryCounts).map(([category, count]) => (
                     <span
-                      className="rounded-lg bg-surface-container-high px-3 py-2 font-headline text-[10px] font-bold tracking-normal text-on-surface-variant"
+                      className="bg-surface-container-high px-3 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
                       key={category}
                     >
                       {category}: {count}
@@ -949,22 +949,22 @@ function AdminRegistrationDetailPage() {
                   <table className="w-full min-w-[760px] text-left">
                     <thead className="bg-surface-container-high">
                       <tr>
-                        <th className="px-4 py-3 font-label text-[10px] tracking-normal text-on-surface-variant">
+                        <th className="px-4 py-3 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
                           Room
                         </th>
-                        <th className="px-4 py-3 font-label text-[10px] tracking-normal text-on-surface-variant">
+                        <th className="px-4 py-3 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
                           Category
                         </th>
-                        <th className="px-4 py-3 font-label text-[10px] tracking-normal text-on-surface-variant">
+                        <th className="px-4 py-3 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
                           Type
                         </th>
-                        <th className="px-4 py-3 font-label text-[10px] tracking-normal text-on-surface-variant">
+                        <th className="px-4 py-3 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
                           XP
                         </th>
-                        <th className="px-4 py-3 font-label text-[10px] tracking-normal text-on-surface-variant">
+                        <th className="px-4 py-3 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
                           AI Score
                         </th>
-                        <th className="px-4 py-3 font-label text-[10px] tracking-normal text-on-surface-variant">
+                        <th className="px-4 py-3 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
                           Completed
                         </th>
                       </tr>
@@ -973,7 +973,7 @@ function AdminRegistrationDetailPage() {
                       {completedRooms.rooms.map((room) => (
                         <tr className="border-t border-outline-variant/20" key={room.roomId}>
                           <td className="px-4 py-4">
-                            <p className="font-headline text-sm font-bold tracking-wide text-on-surface">
+                            <p className="font-headline text-sm font-bold uppercase tracking-wide text-on-surface">
                               {room.title}
                             </p>
                             <p className="mt-1 text-xs text-on-surface-variant">
@@ -982,7 +982,7 @@ function AdminRegistrationDetailPage() {
                           </td>
                           <td className="px-4 py-4 text-sm text-on-surface-variant">{room.category}</td>
                           <td className="px-4 py-4">
-                            <span className="rounded-full bg-surface-container-high px-2 py-1 font-headline text-[10px] font-bold tracking-normal">
+                            <span className="bg-surface-container-high px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest">
                               {room.roomType}
                             </span>
                           </td>
@@ -1001,15 +1001,15 @@ function AdminRegistrationDetailPage() {
                   </table>
                 </div>
               ) : (
-                <p className="rounded-2xl bg-surface-container-high p-4 text-sm text-on-surface-variant">
+                <p className="bg-surface-container-high p-4 text-sm text-on-surface-variant">
                   This player has not completed any rooms yet.
                 </p>
               )}
             </section>
 
-            <section className="rounded-2xl bg-surface-container-lowest p-6 md:p-8 space-y-4">
+            <section className="bg-surface-container-lowest p-6 md:p-8 space-y-4">
               <div>
-                <h2 className="font-headline text-xl font-bold tracking-tight">Interview Bonus Questions</h2>
+                <h2 className="font-headline text-xl font-bold uppercase tracking-tight">Interview Bonus Questions</h2>
                 <p className="mt-2 text-sm text-on-surface-variant">
                   Optional interview questions shown to this player. Click a question to inspect company/source details and the submitted answer.
                 </p>
@@ -1018,14 +1018,14 @@ function AdminRegistrationDetailPage() {
                 {interviewAttempts.flatMap((attempt) =>
                   attempt.interviewQuestions.map((question) => (
                     <button
-                      className="rounded-2xl w-full text-left bg-surface-container-high p-4 border-l-2 border-l-primary hover:bg-surface-container-highest transition-colors"
+                      className="w-full text-left bg-surface-container-high p-4 border-l-2 border-l-primary hover:bg-surface-container-highest transition-colors"
                       key={`${attempt.roomId}-${question.id}`}
                       onClick={() => setSelectedInterviewQuestion({ ...question, attempt })}
                       type="button"
                     >
                       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                         <div>
-                          <p className="font-headline text-[10px] tracking-normal text-primary font-bold">
+                          <p className="font-headline text-[10px] uppercase tracking-widest text-primary font-bold">
                             {attempt.roomTitle}
                           </p>
                           <p className="mt-2 text-sm font-bold text-on-surface">
@@ -1035,7 +1035,7 @@ function AdminRegistrationDetailPage() {
                             Company: {question.company}
                           </p>
                         </div>
-                        <span className={`shrink-0 px-3 py-1 text-[10px] tracking-normal font-bold ${question.answered ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-lowest text-on-surface-variant'}`}>
+                        <span className={`shrink-0 px-3 py-1 text-[10px] uppercase tracking-widest font-bold ${question.answered ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-lowest text-on-surface-variant'}`}>
                           {question.answered ? 'Answered' : 'Not Answered'}
                         </span>
                       </div>
@@ -1043,18 +1043,18 @@ function AdminRegistrationDetailPage() {
                   )),
                 )}
                 {!interviewAttempts.some((attempt) => attempt.interviewQuestions.length) ? (
-                  <p className="rounded-2xl text-sm text-on-surface-variant bg-surface-container-high p-4">
+                  <p className="text-sm text-on-surface-variant bg-surface-container-high p-4">
                     No interview bonus questions have been generated for this player yet.
                   </p>
                 ) : null}
               </div>
             </section>
 
-            <section className="rounded-2xl bg-surface-container-lowest p-6 md:p-8 space-y-5">
+            <section className="bg-surface-container-lowest p-6 md:p-8 space-y-5">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="font-headline text-xl font-bold tracking-tight">Projects</h2>
+                <h2 className="font-headline text-xl font-bold uppercase tracking-tight">Projects</h2>
                 <button
-                  className="rounded-lg px-3 py-2 bg-primary text-on-primary font-headline text-xs font-bold tracking-normal"
+                  className="px-3 py-2 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest"
                   onClick={addProject}
                   type="button"
                 >
@@ -1064,11 +1064,11 @@ function AdminRegistrationDetailPage() {
 
               <div className="space-y-4">
                 {form.projects.map((project, index) => (
-                  <article key={`project-edit-${index + 1}`} className="rounded-2xl bg-surface-container-high p-4 space-y-3">
+                  <article key={`project-edit-${index + 1}`} className="bg-surface-container-high p-4 space-y-3">
                     <div className="flex items-center justify-between gap-3">
-                      <h3 className="font-headline text-sm font-bold">Project {index + 1}</h3>
+                      <h3 className="font-headline text-sm font-bold uppercase">Project {index + 1}</h3>
                       <button
-                        className="rounded-full px-2 py-1 bg-error/10 text-error text-[10px] tracking-normal font-bold"
+                        className="px-2 py-1 bg-error/10 text-error text-[10px] uppercase tracking-widest font-bold"
                         onClick={() => removeProject(index)}
                         type="button"
                       >
@@ -1077,34 +1077,34 @@ function AdminRegistrationDetailPage() {
                     </div>
 
                     <input
-                      className="rounded-lg w-full bg-surface-container-highest border-l-2 border-l-primary py-2 px-3 outline-none"
+                      className="w-full bg-surface-container-highest border-l-2 border-l-primary py-2 px-3 outline-none"
                       onChange={(e) => updateProjectField(index, 'projectName', e.target.value)}
                       placeholder="Project Name"
                       type="text"
                       value={project.projectName}
                     />
                     <textarea
-                      className="rounded-lg w-full min-h-24 bg-surface-container-highest border-l-2 border-l-primary py-2 px-3 outline-none resize-y"
+                      className="w-full min-h-24 bg-surface-container-highest border-l-2 border-l-primary py-2 px-3 outline-none resize-y"
                       onChange={(e) => updateProjectField(index, 'projectDescription', e.target.value)}
                       placeholder="Project Description"
                       value={project.projectDescription}
                     />
                     <input
-                      className="rounded-lg w-full bg-surface-container-highest border-l-2 border-l-primary py-2 px-3 outline-none"
+                      className="w-full bg-surface-container-highest border-l-2 border-l-primary py-2 px-3 outline-none"
                       onChange={(e) => updateProjectField(index, 'beneficiaries', e.target.value)}
                       placeholder="Beneficiaries"
                       type="text"
                       value={project.beneficiaries}
                     />
                     <input
-                      className="rounded-lg w-full bg-surface-container-highest border-l-2 border-l-primary py-2 px-3 outline-none"
+                      className="w-full bg-surface-container-highest border-l-2 border-l-primary py-2 px-3 outline-none"
                       onChange={(e) => updateProjectField(index, 'stackUsed', e.target.value)}
                       placeholder="Stack Used"
                       type="text"
                       value={project.stackUsed}
                     />
                     <input
-                      className="rounded-lg w-full bg-surface-container-highest border-l-2 border-l-primary py-2 px-3 outline-none"
+                      className="w-full bg-surface-container-highest border-l-2 border-l-primary py-2 px-3 outline-none"
                       onChange={(e) => updateProjectField(index, 'projectLink', e.target.value)}
                       placeholder="Project Link"
                       type="url"
@@ -1115,11 +1115,11 @@ function AdminRegistrationDetailPage() {
               </div>
             </section>
 
-            <section className="rounded-2xl bg-surface-container-lowest p-6 md:p-8 space-y-5">
+            <section className="bg-surface-container-lowest p-6 md:p-8 space-y-5">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="font-headline text-xl font-bold tracking-tight">Achievements</h2>
+                <h2 className="font-headline text-xl font-bold uppercase tracking-tight">Achievements</h2>
                 <button
-                  className="rounded-lg px-3 py-2 bg-primary text-on-primary font-headline text-xs font-bold tracking-normal"
+                  className="px-3 py-2 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest"
                   onClick={addAchievement}
                   type="button"
                 >
@@ -1129,11 +1129,11 @@ function AdminRegistrationDetailPage() {
 
               <div className="space-y-4">
                 {form.achievements.map((achievement, index) => (
-                  <article key={`achievement-edit-${index + 1}`} className="rounded-2xl bg-surface-container-high p-4 space-y-3">
+                  <article key={`achievement-edit-${index + 1}`} className="bg-surface-container-high p-4 space-y-3">
                     <div className="flex items-center justify-between gap-3">
-                      <h3 className="font-headline text-sm font-bold">Achievement {index + 1}</h3>
+                      <h3 className="font-headline text-sm font-bold uppercase">Achievement {index + 1}</h3>
                       <button
-                        className="rounded-full px-2 py-1 bg-error/10 text-error text-[10px] tracking-normal font-bold"
+                        className="px-2 py-1 bg-error/10 text-error text-[10px] uppercase tracking-widest font-bold"
                         onClick={() => removeAchievement(index)}
                         type="button"
                       >
@@ -1142,20 +1142,20 @@ function AdminRegistrationDetailPage() {
                     </div>
 
                     <input
-                      className="rounded-lg w-full bg-surface-container-highest border-l-2 border-l-primary py-2 px-3 outline-none"
+                      className="w-full bg-surface-container-highest border-l-2 border-l-primary py-2 px-3 outline-none"
                       onChange={(e) => updateAchievementField(index, 'awardName', e.target.value)}
                       placeholder="Award Name"
                       type="text"
                       value={achievement.awardName}
                     />
                     <textarea
-                      className="rounded-lg w-full min-h-24 bg-surface-container-highest border-l-2 border-l-primary py-2 px-3 outline-none resize-y"
+                      className="w-full min-h-24 bg-surface-container-highest border-l-2 border-l-primary py-2 px-3 outline-none resize-y"
                       onChange={(e) => updateAchievementField(index, 'description', e.target.value)}
                       placeholder="Description"
                       value={achievement.description}
                     />
                     <input
-                      className="rounded-lg w-full bg-surface-container-highest border-l-2 border-l-primary py-2 px-3 outline-none"
+                      className="w-full bg-surface-container-highest border-l-2 border-l-primary py-2 px-3 outline-none"
                       onChange={(e) => updateAchievementField(index, 'pocLink', e.target.value)}
                       placeholder="Proof of Concept Link"
                       type="url"
@@ -1168,7 +1168,7 @@ function AdminRegistrationDetailPage() {
 
             <div className="flex justify-end">
               <button
-                className="rounded-xl px-6 py-3 bg-primary text-on-primary font-headline text-xs font-bold tracking-normal disabled:opacity-60"
+                className="px-6 py-3 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-60"
                 disabled={saving}
                 type="submit"
               >
@@ -1181,12 +1181,12 @@ function AdminRegistrationDetailPage() {
       {passwordModal ? (
         <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
           <form className="w-full max-w-md bg-surface-container-lowest border border-outline-variant shadow-2xl" onSubmit={changePassword}>
-            <div className="rounded-xl h-1 bg-primary"></div>
+            <div className="h-1 bg-primary"></div>
             <div className="p-7">
-              <p className="font-label text-[10px] tracking-normal font-bold text-primary">
+              <p className="font-label text-[10px] uppercase tracking-[0.25em] font-bold text-primary">
                 Admin Password Reset
               </p>
-              <h2 className="mt-2 font-headline text-2xl font-black tracking-tight text-on-background">
+              <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
                 Change Password
               </h2>
               <p className="mt-3 text-sm text-on-surface-variant">
@@ -1194,9 +1194,9 @@ function AdminRegistrationDetailPage() {
               </p>
               <div className="mt-6 space-y-4">
                 <label className="block">
-                  <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">New Password</span>
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">New Password</span>
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
                     minLength={8}
                     onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))}
                     required
@@ -1205,9 +1205,9 @@ function AdminRegistrationDetailPage() {
                   />
                 </label>
                 <label className="block">
-                  <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Confirm Password</span>
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Confirm Password</span>
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
                     minLength={8}
                     onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))}
                     required
@@ -1218,7 +1218,7 @@ function AdminRegistrationDetailPage() {
               </div>
               <div className="mt-7 flex flex-col sm:flex-row sm:justify-end gap-3">
                 <button
-                  className="rounded-xl px-5 py-3 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal disabled:opacity-50"
+                  className="px-5 py-3 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
                   disabled={changingPassword}
                   onClick={() => setPasswordModal(null)}
                   type="button"
@@ -1226,7 +1226,7 @@ function AdminRegistrationDetailPage() {
                   Cancel
                 </button>
                 <button
-                  className="rounded-xl px-5 py-3 bg-primary text-on-primary font-headline text-xs font-bold tracking-normal disabled:opacity-50"
+                  className="px-5 py-3 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
                   disabled={changingPassword}
                   type="submit"
                 >
@@ -1240,19 +1240,19 @@ function AdminRegistrationDetailPage() {
       {passwordSuccessModal ? (
         <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
           <div className="w-full max-w-md bg-surface-container-lowest border border-outline-variant shadow-2xl">
-            <div className="rounded-xl h-1 bg-secondary"></div>
+            <div className="h-1 bg-secondary"></div>
             <div className="p-7">
-              <p className="font-label text-[10px] tracking-normal font-bold text-secondary">
+              <p className="font-label text-[10px] uppercase tracking-[0.25em] font-bold text-secondary">
                 Password Updated
               </p>
-              <h2 className="mt-2 font-headline text-2xl font-black tracking-tight text-on-background">
+              <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
                 Password Changed Successfully
               </h2>
               <p className="mt-4 text-sm text-on-surface-variant">
                 The password for {passwordSuccessModal.target} has been updated.
               </p>
               <button
-                className="rounded-xl mt-7 w-full px-5 py-3 bg-secondary text-on-secondary font-headline text-xs font-bold tracking-normal"
+                className="mt-7 w-full px-5 py-3 bg-secondary text-on-secondary font-headline text-xs font-bold uppercase tracking-widest"
                 onClick={() => setPasswordSuccessModal(null)}
                 type="button"
               >
@@ -1265,19 +1265,19 @@ function AdminRegistrationDetailPage() {
       {selectedInterviewQuestion ? (
         <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-6">
           <div className="my-6 w-full max-w-2xl bg-surface-container-lowest border border-outline-variant shadow-2xl">
-            <div className="rounded-xl h-1 bg-primary"></div>
+            <div className="h-1 bg-primary"></div>
             <div className="p-7">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="font-label text-[10px] tracking-normal font-bold text-primary">
+                  <p className="font-label text-[10px] uppercase tracking-[0.25em] font-bold text-primary">
                     Interview Bonus Detail
                   </p>
-                  <h2 className="mt-2 font-headline text-2xl font-black tracking-tight text-on-background">
+                  <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
                     {selectedInterviewQuestion.attempt.roomTitle}
                   </h2>
                 </div>
                 <button
-                  className="rounded-xl inline-flex h-10 w-10 items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
+                  className="inline-flex h-10 w-10 items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
                   onClick={() => setSelectedInterviewQuestion(null)}
                   type="button"
                   aria-label="Close interview question details"
@@ -1287,37 +1287,37 @@ function AdminRegistrationDetailPage() {
               </div>
 
               <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-2xl bg-surface-container-high p-4">
-                  <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Company</p>
+                <div className="bg-surface-container-high p-4">
+                  <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Company</p>
                   <p className="mt-1 font-bold text-on-surface">{selectedInterviewQuestion.company}</p>
                 </div>
-                <div className="rounded-2xl bg-surface-container-high p-4">
-                  <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Interview Context</p>
+                <div className="bg-surface-container-high p-4">
+                  <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Interview Context</p>
                   <p className="mt-1 font-bold text-on-surface">{selectedInterviewQuestion.interview || 'Interview-style practice'}</p>
                 </div>
               </div>
 
               {selectedInterviewQuestion.sourceInfo ? (
-                <div className="rounded-2xl mt-4 bg-surface-container-high p-4">
-                  <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Source Info</p>
+                <div className="mt-4 bg-surface-container-high p-4">
+                  <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Source Info</p>
                   <p className="mt-1 text-sm text-on-surface-variant">{selectedInterviewQuestion.sourceInfo}</p>
                 </div>
               ) : null}
 
-              <div className="rounded-2xl mt-4 bg-surface-container-high p-4">
-                <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Question</p>
+              <div className="mt-4 bg-surface-container-high p-4">
+                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Question</p>
                 <p className="mt-2 text-sm text-on-surface">{selectedInterviewQuestion.prompt}</p>
               </div>
 
-              <div className="rounded-2xl mt-4 bg-surface-container-high p-4">
-                <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Player Answer</p>
+              <div className="mt-4 bg-surface-container-high p-4">
+                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Player Answer</p>
                 <p className="mt-2 whitespace-pre-wrap text-sm text-on-surface-variant">
                   {selectedInterviewQuestion.answer || 'No answer submitted for this optional bonus question.'}
                 </p>
               </div>
 
               <button
-                className="rounded-xl mt-7 w-full px-5 py-3 bg-primary text-on-primary font-headline text-xs font-bold tracking-normal"
+                className="mt-7 w-full px-5 py-3 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest"
                 onClick={() => setSelectedInterviewQuestion(null)}
                 type="button"
               >

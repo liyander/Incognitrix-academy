@@ -18,7 +18,7 @@ function formatSize(bytes) {
   return `${Math.max(1, Math.round(size / 1024))} KB`
 }
 
-function AdminTopStudentResumesPage() {
+function AdminTopPlayerResumesPage() {
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -77,11 +77,11 @@ function AdminTopStudentResumesPage() {
   }
 
   return (
-    <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10">
+    <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
       <section className="max-w-6xl mx-auto">
         <div className="mb-6">
           <a
-            className="rounded-lg inline-flex items-center gap-2 bg-surface-container-highest px-4 py-2 font-headline text-xs font-bold tracking-normal hover:bg-surface-container-high"
+            className="inline-flex items-center gap-2 bg-surface-container-highest px-4 py-2 font-headline text-xs font-bold uppercase tracking-widest hover:bg-surface-container-high"
             href="/admin"
           >
             <span className="material-symbols-outlined text-sm">arrow_back</span>
@@ -89,11 +89,11 @@ function AdminTopStudentResumesPage() {
           </a>
         </div>
 
-        <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-8 md:p-10">
-          <p className="font-headline text-[10px] tracking-normal text-secondary font-bold">
+        <header className="bg-surface-container-lowest border-l-4 border-secondary p-8 md:p-10">
+          <p className="font-headline text-[10px] tracking-[0.25em] uppercase text-secondary font-bold">
             Placement Vault
           </p>
-          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight mt-3">
+          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight mt-3 uppercase">
             Top 10 Player Resumes
           </h1>
           <p className="text-sm text-on-surface-variant mt-4 max-w-2xl">
@@ -102,7 +102,7 @@ function AdminTopStudentResumesPage() {
         </header>
 
         {error ? (
-          <div className="rounded-2xl mt-6 bg-error/10 border-l-4 border-error p-4">
+          <div className="mt-6 bg-error/10 border-l-4 border-error p-4">
             <p className="text-error font-headline text-sm font-bold">{error}</p>
           </div>
         ) : null}
@@ -110,7 +110,7 @@ function AdminTopStudentResumesPage() {
         <section className="mt-8 bg-surface-container-lowest border border-outline-variant/40">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-5 border-b border-outline-variant/40">
             <div>
-              <h2 className="font-headline text-xl font-bold tracking-tight">
+              <h2 className="font-headline text-xl font-bold uppercase tracking-tight">
                 Current Scoreboard Cohort
               </h2>
               <p className="text-sm text-on-surface-variant mt-1">
@@ -118,7 +118,7 @@ function AdminTopStudentResumesPage() {
               </p>
             </div>
             <button
-              className="rounded-xl bg-secondary text-on-secondary px-5 py-3 font-headline text-xs font-bold tracking-normal"
+              className="bg-secondary text-on-secondary px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest"
               onClick={loadResumes}
               type="button"
             >
@@ -135,7 +135,7 @@ function AdminTopStudentResumesPage() {
                   <tr>
                     {['Rank', 'Player', 'Score', 'Resume', 'Uploaded', 'Action'].map((heading) => (
                       <th
-                        className="px-5 py-4 font-label text-[10px] tracking-normal text-on-surface-variant"
+                        className="px-5 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant"
                         key={heading}
                       >
                         {heading}
@@ -150,7 +150,7 @@ function AdminTopStudentResumesPage() {
                         <span className="font-headline text-2xl font-black text-secondary">#{player.rank}</span>
                       </td>
                       <td className="px-5 py-5">
-                        <p className="font-headline text-sm font-bold text-on-background">
+                        <p className="font-headline text-sm font-bold uppercase text-on-background">
                           {player.username}
                         </p>
                         <p className="text-xs text-on-surface-variant mt-1">
@@ -170,7 +170,7 @@ function AdminTopStudentResumesPage() {
                             <p className="text-xs text-on-surface-variant mt-1">{formatSize(player.resume.fileSize)}</p>
                           </>
                         ) : (
-                          <span className="font-headline text-xs font-bold tracking-normal text-on-surface-variant">
+                          <span className="font-headline text-xs font-bold uppercase tracking-widest text-on-surface-variant">
                             Pending upload
                           </span>
                         )}
@@ -180,7 +180,7 @@ function AdminTopStudentResumesPage() {
                       </td>
                       <td className="px-5 py-5">
                         <button
-                          className="rounded-xl bg-primary text-on-primary px-5 py-3 font-headline text-xs font-bold tracking-normal disabled:opacity-50"
+                          className="bg-primary text-on-primary px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-50"
                           disabled={!player.resume || downloadingUserId === player.userId}
                           onClick={() => downloadResume(player)}
                           type="button"
@@ -200,4 +200,4 @@ function AdminTopStudentResumesPage() {
   )
 }
 
-export default AdminTopStudentResumesPage
+export default AdminTopPlayerResumesPage

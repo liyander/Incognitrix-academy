@@ -2,23 +2,23 @@ import { useMemo, useRef, useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { sendChatbotMessage } from '../services/chatbot'
 import { parseMarkdownToHtml } from '../utils/markdown'
-import { getResourceById } from '../data/resourcesData'
-import { getCoursesData } from '../data/coursesData'
+import { getCveById } from '../data/cvesData'
+import { getRoomsData } from '../data/roomsData'
 
 const INITIAL_MESSAGE = {
   id: 'welcome',
   role: 'assistant',
   content:
-    'Hi! I can help with your courses, explain a concept, or summarise the page you are on.',
+    'Cyber Assistant online. Ask me anything about cybersecurity, CVEs, secure coding, CTFs, or defensive operations.',
 }
 
 const SITE_SUMMARY =
-  'Minerva Academy is an online learning platform with learning paths, hands-on projects, a resource library, upcoming events, and admin tools for managing the platform.'
+  'Incognitrix Academy is a cybersecurity training platform with learning paths, hands-on labs, a CVE database, upcoming CTF events, and admin tools for managing the platform.'
 
 const EXAMPLE_PROMPTS = [
   'Summarize this page',
   'What is this site?',
-  'Explain this concept simply',
+  'Tell me about XSS',
 ]
 
 function clampText(value, limit = 420) {
@@ -61,7 +61,7 @@ function summarizeCve(cve) {
   }
 
   const parts = [
-    cve.cve_id ? `Resource: ${cve.cve_id}` : '',
+    cve.cve_id ? `CVE: ${cve.cve_id}` : '',
     cve.found_year ? `Found: ${cve.found_year}` : '',
     cve.short_description ? `Description: ${cve.short_description}` : '',
     cve.vulnerability_report ? `Report: ${cve.vulnerability_report}` : '',
@@ -74,9 +74,9 @@ function summarizeCve(cve) {
 function buildRouteContext(pathname) {
   const normalizedPath = String(pathname || '/')
 
-  if (normalizedPath.startsWith('/learn/course/')) {
-    const slug = normalizedPath.split('/learn/course/')[1]?.split('/')[0] || ''
-    const room = getCoursesData().find((item) => item.slug === slug || item.id === slug)
+  if (normalizedPath.startsWith('/learn/lab/')) {
+    const slug = normalizedPath.split('/learn/lab/')[1]?.split('/')[0] || ''
+    const room = getRoomsData().find((item) => item.slug === slug || item.id === slug)
 
     return {
       pageType: 'room',
@@ -84,13 +84,13 @@ function buildRouteContext(pathname) {
       siteSummary: SITE_SUMMARY,
       pageSummary: room
         ? summarizeRoom(room)
-        : `Current page is an course page at ${normalizedPath}.`,
+        : `Current page is a cybersecurity lab room at ${normalizedPath}.`,
     }
   }
 
-  if (normalizedPath.startsWith('/resources/')) {
-    const cveId = normalizedPath.split('/resources/')[1]?.split('/')[0] || ''
-    const cve = getResourceById(cveId)
+  if (normalizedPath.startsWith('/cves/')) {
+    const cveId = normalizedPath.split('/cves/')[1]?.split('/')[0] || ''
+    const cve = getCveById(cveId)
 
     return {
       pageType: 'cve',
@@ -98,7 +98,7 @@ function buildRouteContext(pathname) {
       siteSummary: SITE_SUMMARY,
       pageSummary: cve
         ? summarizeCve(cve)
-        : `Current page is a Resource detail view for ${cveId || 'an unknown resource'}.`,
+        : `Current page is a CVE detail view for ${cveId || 'an unknown CVE'}.`,
     }
   }
 
@@ -243,7 +243,7 @@ function MessageBubble({ message }) {
   )
 }
 
-function AssistantChatbot() {
+function CyberChatbot() {
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
@@ -371,7 +371,7 @@ function AssistantChatbot() {
       const assistantMessageId = `assistant-${Date.now()}`
       const assistantReply =
         response?.content ||
-        'I can only help with course material. Try asking about something on the platform.'
+        'I can only provide cybersecurity-related guidance. Please ask a cybersecurity question.'
 
       setMessages((current) => [
         ...current,
@@ -409,7 +409,7 @@ function AssistantChatbot() {
   return (
     <>
       <button
-        className="rounded-xl fixed bottom-5 right-[7.75rem] z-[90] inline-flex h-11 items-center gap-2 whitespace-nowrap border border-primary bg-primary px-4 text-[11px] font-headline font-bold tracking-normal text-on-primary shadow-xl transition-all hover:brightness-95"
+        className="fixed bottom-5 right-[7.75rem] z-[90] inline-flex h-11 items-center gap-2 whitespace-nowrap border border-primary bg-primary px-4 text-[11px] font-headline font-bold uppercase tracking-wider text-on-primary shadow-xl transition-all hover:brightness-95"
         onClick={() => {
           setIsOpen((value) => {
             const nextValue = !value
@@ -420,11 +420,11 @@ function AssistantChatbot() {
           })
         }}
         type="button"
-        aria-label="Toggle study assistant"
-        title="Study assistant"
+        aria-label="Toggle cybersecurity chatbot"
+        title="Cybersecurity assistant"
       >
         <span className="material-symbols-outlined text-base">smart_toy</span>
-        {isOpen ? 'Close' : 'Ask AI'}
+        {isOpen ? 'Close' : 'Cyber AI'}
       </button>
 
       {isOpen ? (
@@ -435,17 +435,17 @@ function AssistantChatbot() {
               : 'bottom-20 right-3 h-[28rem] w-[22rem] max-w-[calc(100vw-1.5rem)] rounded-2xl md:right-5'
           }`}
         >
-          <header className="rounded-xl flex items-center justify-between gap-3 border-b border-outline-variant bg-surface-container px-4 py-3">
+          <header className="flex items-center justify-between gap-3 border-b border-outline-variant bg-surface-container px-4 py-3">
             <div>
-              <h2 className="font-headline text-sm font-bold tracking-normal text-on-surface">
-                {isExpanded ? 'AI Study Workspace' : 'Study Assistant'}
+              <h2 className="font-headline text-sm font-bold uppercase tracking-wider text-on-surface">
+                {isExpanded ? 'Cybersecurity AI Workspace' : 'Cybersecurity Assistant'}
               </h2>
               <p className="text-[11px] text-on-surface-variant">
                 {isExpanded
                   ? 'Expanded view for longer prompts and deeper analysis'
-                  : 'Answers stay scoped to your courses'}
+                  : 'Scope locked to cybersecurity only'}
               </p>
-              <div className="mt-3 inline-flex overflow-hidden rounded-full border border-outline-variant bg-surface-container-low text-[10px] font-bold tracking-normal">
+              <div className="mt-3 inline-flex overflow-hidden rounded-full border border-outline-variant bg-surface-container-low text-[10px] font-bold uppercase tracking-[0.22em]">
                 <button
                   className={`px-3 py-1.5 transition-colors ${mode === 'brief' ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:text-on-surface'}`}
                   onClick={() => setMode('brief')}
@@ -490,8 +490,8 @@ function AssistantChatbot() {
           </header>
 
           {showExamplePrompts ? (
-            <div className={`rounded-xl border-b border-outline-variant bg-surface-container-low px-4 py-3 ${isExpanded ? 'md:px-6' : ''}`}>
-              <p className="mb-2 text-[10px] font-bold tracking-normal text-on-surface-variant">
+            <div className={`border-b border-outline-variant bg-surface-container-low px-4 py-3 ${isExpanded ? 'md:px-6' : ''}`}>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">
                 Example prompts
               </p>
               <div className="flex flex-wrap gap-2">
@@ -511,7 +511,7 @@ function AssistantChatbot() {
 
           <div
             ref={listRef}
-            className={`rounded-xl flex-1 space-y-3 overflow-y-auto bg-surface px-3 py-3 ${
+            className={`flex-1 space-y-3 overflow-y-auto bg-surface px-3 py-3 ${
               isExpanded ? 'md:px-6 md:py-6' : ''
             }`}
           >
@@ -526,25 +526,25 @@ function AssistantChatbot() {
           </div>
 
           <form
-            className={`rounded-xl border-t border-outline-variant bg-surface-container px-3 py-3 ${
+            className={`border-t border-outline-variant bg-surface-container px-3 py-3 ${
               isExpanded ? 'md:px-6 md:py-4' : ''
             }`}
             onSubmit={handleSubmit}
           >
-            <label className="sr-only" htmlFor="study-assistant-input">
-              Ask a question
+            <label className="sr-only" htmlFor="cyber-chatbot-input">
+              Ask cybersecurity question
             </label>
             <div className="flex flex-col gap-2 md:flex-row md:items-center">
               <input
-                id="study-assistant-input"
-                className="rounded-lg flex-1 border border-outline-variant bg-surface px-3 py-2 text-sm text-on-surface outline-none transition-colors focus:border-primary"
+                id="cyber-chatbot-input"
+                className="flex-1 border border-outline-variant bg-surface px-3 py-2 text-sm text-on-surface outline-none transition-colors focus:border-primary"
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
-                placeholder="Ask a question..."
+                placeholder="Ask a cybersecurity question..."
                 maxLength={1500}
               />
               <button
-                className="rounded-xl inline-flex h-10 w-10 items-center justify-center bg-primary text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-10 w-10 items-center justify-center bg-primary text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
                 type="submit"
                 disabled={!canSend}
                 aria-label="Send message"
@@ -568,4 +568,4 @@ function AssistantChatbot() {
   )
 }
 
-export default AssistantChatbot
+export default CyberChatbot

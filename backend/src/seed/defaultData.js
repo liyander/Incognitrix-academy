@@ -24,7 +24,7 @@ export const defaultPlatformConfig = {
   },
   features: {
     labRooms: true,
-    featuredPath: true,
+    redTeamPath: true,
     newMissionButton: true,
     navbarSearch: true,
     navbarNotifications: true,
@@ -47,7 +47,7 @@ export const defaultPlatformConfig = {
     ctftime: {
       enabled: true,
       baseUrl: 'https://ctftime.org/api/v1',
-      userAgent: 'Minerva-Academy/1.0 upcoming event sync',
+      userAgent: 'Incognitrix-Academy/1.0 CTFtime upcoming event sync',
       limit: 100,
       horizonDays: 365,
     },

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAuthSession } from '../auth'
-import { getCoursesData } from '../data/coursesData'
+import { getRoomsData } from '../data/roomsData'
 import { apiFetch } from '../services/api'
 import { getCareerPathsData, hydrateCareerPathsData } from '../data/careerPathsData'
 import { getLabProgressEvents, getLabProgressMap, getLabProgressSummary } from '../services/labProgress'
@@ -16,19 +16,16 @@ import {
 const NOTIFICATIONS_UPDATED_EVENT = 'incognitrix:notifications-updated'
 const NOTIFICATIONS_UPDATED_KEY = 'incognitrix_notifications_updated_at'
 
-// Rotated across cards so a long catalogue stays visually varied.
-const ACCENTS = ['mint', 'lavender', 'sky', 'butter', 'blush']
-
 function DashboardPage() {
   const authSession = getAuthSession()
-  const dismissedNotificationsKey = `incognitrix_dismissed_notifications_${authSession?.username || 'student'}`
+  const dismissedNotificationsKey = `incognitrix_dismissed_notifications_${authSession?.username || 'operator'}`
   const navigate = useNavigate()
   const [careerPaths, setCareerPaths] = useState([])
   const [notifications, setNotifications] = useState([])
   const [dismissedNotificationIds, setDismissedNotificationIds] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [labProgressTick, setLabProgressTick] = useState(0)
-  const [upcomingEvents, setUpcomingEvents] = useState([])
+  const [upcomingCtfEvents, setUpcomingCtfEvents] = useState([])
   const [isSavingRegistration, setIsSavingRegistration] = useState(false)
   const [dashboardStats, setDashboardStats] = useState({
     rank: null,
@@ -59,22 +56,22 @@ function DashboardPage() {
   useEffect(() => {
     let cancelled = false
 
-    const loadEvents = async () => {
+    const loadCtfEvents = async () => {
       try {
         const response = await fetchCtfEvents()
         if (!cancelled) {
-          setUpcomingEvents(Array.isArray(response) ? response : [])
+          setUpcomingCtfEvents(Array.isArray(response) ? response : [])
         }
       } catch (error) {
-        console.error('Failed to load upcoming events:', error)
+        console.error('Failed to load upcoming CTF events:', error)
         if (!cancelled) {
-          setUpcomingEvents([])
+          setUpcomingCtfEvents([])
         }
       }
     }
 
     const syncEvents = () => {
-      void loadEvents()
+      void loadCtfEvents()
     }
 
     const onStorage = (event) => {
@@ -83,7 +80,7 @@ function DashboardPage() {
       }
     }
 
-    void loadEvents()
+    void loadCtfEvents()
     window.addEventListener(CTF_EVENTS_UPDATED_EVENT, syncEvents)
     window.addEventListener('storage', onStorage)
 
@@ -99,7 +96,7 @@ function DashboardPage() {
 
     const loadDashboardStats = async () => {
       try {
-        const [leaderboard, streak] = await Promise.all([
+        const [scoreboard, streak] = await Promise.all([
           apiFetch('/rooms/scoreboard/summary'),
           apiFetch('/rooms/streaks/me'),
         ])
@@ -108,8 +105,8 @@ function DashboardPage() {
           return
         }
 
-        const leaderboardRows = Array.isArray(leaderboard) ? leaderboard : []
-        const currentUser = leaderboardRows.find(
+        const scoreboardRows = Array.isArray(scoreboard) ? scoreboard : []
+        const currentUser = scoreboardRows.find(
           (row) => String(row.username || '').toLowerCase() === String(authSession?.username || '').toLowerCase(),
         )
 
@@ -258,56 +255,57 @@ function DashboardPage() {
     }
   }, [])
 
+  // Get all modules from all paths
   const visibleNotifications = notifications.filter(
     (notification) => !dismissedNotificationIds.includes(notification.id),
   )
 
-  const allModules = careerPaths.flatMap((path, pathIndex) =>
-    (path.modules || []).map((module, moduleIndex) => ({
+  const allModules = careerPaths.flatMap((path) =>
+    (path.modules || []).map((module) => ({
       ...module,
       pathId: path.id,
       pathTitle: path.title,
-      icon: path.icon || 'school',
-      level: `Level ${pathIndex + 1}`,
-      duration: module.estimatedMinutes
-        ? `${module.estimatedMinutes} min`
-        : `${path.estimatedHours || 6} hours`,
-      image: module.imageData || '',
-      accent: ACCENTS[(pathIndex + moduleIndex) % ACCENTS.length],
-    })),
+      domain: path.icon || 'security',
+      level: `LVL_${String(careerPaths.findIndex((p) => p.id === path.id) + 1).padStart(2, '0')}`,
+      duration: `${Math.floor(Math.random() * 10) + 6}H ${Math.floor(Math.random() * 60)}M`,
+      image: module.imageData || `https://lh3.googleusercontent.com/aida-public/AB6AXuC8_5ZDha9SC5TJAmbyLb97BklndzpfX0yVSbC_46T_FNqiMpp5mLjNTTW0qWWdwA-fRTXD75KEdddSYK-UnNPQnq5RIIgpy0iSlg6Cmx4IE3-QltzybTckCz-JmzD_31oaKSmBzWYRJbX1gVQDcrylar9_3kfaLpUX6t5O5DJEewA6dv3qqTvk1edeyntTdgEh5lBZcijfT4XmOX-Jq5Z4ZGRMiyd4s9UJw_CbJQD3O5SvfawPfcyoRoWWdMkyS6flwYEtuDtjrTo`,
+      tone: path.color === 'primary' ? 'red' : 'cyan',
+    }))
   )
 
+  // Get latest module
   const latestModule = allModules[allModules.length - 1] || null
 
-  const courseProgressSummary = getLabProgressSummary(getCoursesData())
+  const labProgressSummary = getLabProgressSummary(getRoomsData())
   void labProgressTick
-  const courseProgressMap = getLabProgressMap()
+  const labProgressMap = getLabProgressMap()
 
   const pathProgressData = careerPaths.map((path) => {
     const modules = path.modules || []
 
     const moduleProgress = modules.map((module) => {
-      const courseIds = module.rooms || []
-      const completedCourses = courseIds.filter(
-        (courseId) => Boolean(courseProgressMap[courseId]?.completedAt),
-      ).length
-      const totalCourses = courseIds.length
-      const isComplete = totalCourses > 0 ? completedCourses === totalCourses : true
+      const roomIds = module.rooms || []
+      const completedRooms = roomIds.filter((roomId) => Boolean(labProgressMap[roomId]?.completedAt)).length
+      const totalRooms = roomIds.length
+      const isComplete = totalRooms > 0 ? completedRooms === totalRooms : true
 
-      return { module, totalCourses, completedCourses, isComplete }
+      return {
+        module,
+        totalRooms,
+        completedRooms,
+        isComplete,
+      }
     })
 
-    const totalCourses = moduleProgress.reduce((sum, item) => sum + item.totalCourses, 0)
-    const completedCourses = moduleProgress.reduce((sum, item) => sum + item.completedCourses, 0)
-    const completionPercentage =
-      totalCourses > 0 ? Math.round((completedCourses / totalCourses) * 100) : 0
-    const firstIncompleteModule =
-      moduleProgress.find((item) => !item.isComplete)?.module || modules[0] || null
+    const totalRooms = moduleProgress.reduce((sum, item) => sum + item.totalRooms, 0)
+    const completedRooms = moduleProgress.reduce((sum, item) => sum + item.completedRooms, 0)
+    const completionPercentage = totalRooms > 0 ? Math.round((completedRooms / totalRooms) * 100) : 0
+    const firstIncompleteModule = moduleProgress.find((item) => !item.isComplete)?.module || modules[0] || null
 
     return {
       path,
-      totalCourses,
-      completedCourses,
+      totalRooms,
+      completedRooms,
       completionPercentage,
       firstIncompleteModule,
       isComplete: completionPercentage >= 100,
@@ -319,16 +317,16 @@ function DashboardPage() {
 
   const nextResumeModule = activePathProgress?.firstIncompleteModule || null
 
-  const nextEvent = [...upcomingEvents]
+  const nextEvent = [...upcomingCtfEvents]
     .sort((a, b) => new Date(a.live_time).getTime() - new Date(b.live_time).getTime())[0] || null
 
   const msUntilNextEvent = nextEvent ? new Date(nextEvent.live_time).getTime() - Date.now() : 0
   const startsInLabel =
     msUntilNextEvent > 0
-      ? `${Math.floor(msUntilNextEvent / 86400000)}d ${Math.floor((msUntilNextEvent % 86400000) / 3600000)}h ${Math.floor((msUntilNextEvent % 3600000) / 60000)}m`
-      : 'Live now'
+      ? `${Math.floor(msUntilNextEvent / 86400000)}D ${Math.floor((msUntilNextEvent % 86400000) / 3600000)}H ${Math.floor((msUntilNextEvent % 3600000) / 60000)}M`
+      : 'LIVE'
 
-  const handleResumeLearning = () => {
+  const handleResumeProtocol = () => {
     if (!activePathProgress?.path || !nextResumeModule?.id) {
       navigate('/learn/paths')
       return
@@ -337,7 +335,7 @@ function DashboardPage() {
     navigate(`/learn/path/${activePathProgress.path.id}/module/${nextResumeModule.id}`)
   }
 
-  const handleToggleEventRegistration = async () => {
+  const handleToggleCtfRegistration = async () => {
     if (!nextEvent) {
       return
     }
@@ -347,13 +345,15 @@ function DashboardPage() {
     try {
       setIsSavingRegistration(true)
       await setCtfRegistration(nextEvent.id, nextState)
-      setUpcomingEvents((current) =>
+      setUpcomingCtfEvents((current) =>
         current.map((event) =>
-          event.id === nextEvent.id ? { ...event, is_registered: nextState } : event,
+          event.id === nextEvent.id
+            ? { ...event, is_registered: nextState }
+            : event,
         ),
       )
     } catch (error) {
-      console.error('Failed to update event registration:', error)
+      console.error('Failed to update CTF registration:', error)
     } finally {
       setIsSavingRegistration(false)
     }
@@ -362,23 +362,22 @@ function DashboardPage() {
   const userStats = {
     rank: dashboardStats.rank,
     streak: dashboardStats.streak,
+    defenseLevel: localStorage.getItem('userDefenseLevel') || 'V_LEVEL_4',
     progress:
-      Number.isFinite(courseProgressSummary.completionPercentage) && courseProgressSummary.total > 0
-        ? courseProgressSummary.completionPercentage
-        : 0,
+      Number.isFinite(labProgressSummary.completionPercentage) &&
+      labProgressSummary.total > 0
+        ? labProgressSummary.completionPercentage
+        : parseInt(localStorage.getItem('userProgress') || '65'),
   }
 
-  const firstName = String(authSession?.username || 'there').split(/[\s._-]+/)[0]
-
+  // Show loading while fetching paths
   if (isLoading) {
     return (
       <main className="mt-20 p-8 lg:p-12 flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="mx-auto h-10 w-10 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
-          <h1 className="font-headline text-2xl font-extrabold mt-6 mb-1">
-            Setting up your dashboard
-          </h1>
-          <p className="text-on-surface-variant font-body">Loading your courses and progress…</p>
+          <div className="text-6xl mb-4">⚙️</div>
+          <h1 className="font-headline text-3xl font-bold mb-2">Loading Mission Control</h1>
+          <p className="text-on-surface-variant">Synchronizing tactical intelligence...</p>
         </div>
       </main>
     )
@@ -386,36 +385,36 @@ function DashboardPage() {
 
   return (
     <>
-      <div className="mt-20 p-5 sm:p-8 lg:p-10 space-y-8">
+      <div className="mt-20 p-8 lg:p-12 space-y-12">
         {visibleNotifications.length > 0 ? (
-          <section className="rounded-3xl bg-surface-container-lowest p-5 sm:p-6 shadow-soft">
-            <div className="flex items-center gap-2 mb-4">
+          <section className="bg-surface-container-lowest border-l-4 border-l-primary p-6 md:p-8">
+            <div className="flex items-center gap-3 mb-4">
               <span className="material-symbols-outlined text-primary">notifications_active</span>
-              <h3 className="font-headline text-base font-extrabold text-on-background">
-                Announcements
+              <h3 className="font-headline text-lg font-bold uppercase tracking-tight text-on-background">
+                System Notifications
               </h3>
             </div>
             <div className="space-y-3">
               {visibleNotifications.slice(0, 3).map((notification) => (
-                <div className="rounded-2xl bg-surface-container p-4" key={notification.id}>
+                <div key={notification.id} className="bg-surface-container-low p-4 border-l-2 border-l-primary/40">
                   <div className="flex items-start justify-between gap-3 mb-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-headline text-sm font-bold text-on-background">
+                      <span className="font-headline text-xs font-bold uppercase tracking-widest text-on-background">
                         {notification.title}
                       </span>
-                      <span className="text-[10px] font-headline font-bold px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container">
+                      <span className="text-[9px] font-headline font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-primary/10 text-primary">
                         {notification.type}
                       </span>
                     </div>
                     <button
-                      className="rounded-full px-3 py-1 bg-surface-container-high text-on-surface-variant font-headline text-[11px] font-bold hover:text-error transition-colors"
+                      className="px-3 py-1 bg-surface-container-high text-on-surface-variant font-headline text-[10px] font-bold uppercase tracking-widest hover:text-error transition-colors"
                       onClick={() => handleDismissNotification(notification.id)}
                       type="button"
                     >
-                      Dismiss
+                      Terminate
                     </button>
                   </div>
-                  <p className="text-sm text-on-surface-variant font-body">{notification.message}</p>
+                  <p className="text-sm text-on-surface-variant">{notification.message}</p>
                 </div>
               ))}
             </div>
@@ -424,123 +423,120 @@ function DashboardPage() {
 
         <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <h2 className="font-headline text-3xl sm:text-4xl font-extrabold text-on-background">
-              Hi {firstName}, ready to learn?
+            <div className="flex items-center gap-2 mb-2">
+              <div className="h-[2px] w-8 bg-primary"></div>
+              <span className="font-headline text-[10px] tracking-[0.3em] font-bold text-primary uppercase">
+                System Status: Optimal
+              </span>
+            </div>
+            <h2 className="font-headline text-5xl font-bold tracking-tighter text-on-background">
+              MISSION_CONTROL
             </h2>
-            <p className="text-on-surface-variant mt-2 font-body max-w-lg">
-              Pick up where you left off, or explore something new from the catalogue.
+            <p className="text-neutral-500 mt-2 font-body max-w-lg">
+              Welcome back, Operator. Intelligence gathering is currently
+              synchronized across all sub-sectors. Ready for tactical
+              deployment.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
-            <div className="rounded-2xl bg-sky px-5 py-4 min-w-36">
-              <span className="font-headline text-4xl font-extrabold text-on-sky leading-none block">
+            <div className="bg-surface-container-lowest border border-outline-variant/30 px-5 py-4 min-w-36">
+              <span className="font-headline text-[10px] tracking-[0.2em] font-bold text-neutral-400 uppercase block mb-2">
+                Global Rank
+              </span>
+              <span className="font-headline text-3xl font-bold text-secondary leading-none">
                 {userStats.rank ? `#${userStats.rank.toLocaleString()}` : '--'}
               </span>
-              <span className="font-body text-xs text-on-sky/80 mt-2 block">Your rank</span>
             </div>
-            <div className="rounded-2xl bg-butter px-5 py-4 min-w-36">
-              <span className="font-headline text-4xl font-extrabold text-on-butter leading-none block">
-                {userStats.streak}
+            <div className="bg-surface-container-lowest border border-outline-variant/30 px-5 py-4 min-w-36">
+              <span className="font-headline text-[10px] tracking-[0.2em] font-bold text-neutral-400 uppercase block mb-2">
+                Daily Streak
               </span>
-              <span className="font-body text-xs text-on-butter/80 mt-2 block">Day streak</span>
+              <div className="flex items-baseline gap-2 leading-none">
+                <span
+                  className="material-symbols-outlined text-primary text-xl translate-y-0.5"
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  local_fire_department
+                </span>
+                <span className="font-headline text-3xl font-bold text-on-background">
+                  {userStats.streak}
+                </span>
+                <span className="font-headline text-sm font-bold tracking-widest text-on-surface-variant uppercase">
+                  Days
+                </span>
+              </div>
             </div>
           </div>
         </section>
 
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="rounded-3xl lg:col-span-8 bg-surface-container-lowest p-6 sm:p-8 flex flex-col justify-between min-h-[340px] shadow-soft">
-            <div>
-              <div className="flex flex-wrap items-center gap-3 mb-6">
-                <span className="rounded-full px-3 py-1 bg-primary-container text-on-primary-container font-headline text-xs font-bold">
-                  Continue learning
-                </span>
-                <span className="text-on-surface-variant font-body text-xs">
-                  About {activePathProgress?.path?.estimatedHours || 0} hours total
-                </span>
+          <div className="lg:col-span-8 bg-surface-container-lowest p-8 flex flex-col justify-between min-h-[400px] relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-1/2 h-full bg-surface-container-low -skew-x-12 translate-x-1/4 transition-transform group-hover:translate-x-1/3 duration-500"></div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-8">
+                <span className="px-3 py-1 bg-primary text-on-primary font-headline text-[10px] font-bold tracking-widest uppercase">Active_Path</span>
+                <span className="text-neutral-400 font-headline text-[10px] tracking-widest">EST_TIME: {activePathProgress?.path?.estimatedHours || 0}H</span>
               </div>
-              <h3 className="font-headline text-2xl sm:text-3xl font-extrabold mb-3 max-w-md">
-                {activePathProgress?.path?.title || 'Choose a learning path'}
-              </h3>
-              <p className="text-on-surface-variant font-body max-w-md mb-8">
-                {activePathProgress?.path?.description ||
-                  'Browse the catalogue and enrol in a path to get a guided, step-by-step curriculum.'}
-              </p>
+              <h3 className="font-headline text-4xl font-bold tracking-tight mb-4 max-w-md uppercase">{activePathProgress?.path?.title || 'Loading...'}</h3>
+              <p className="text-neutral-500 font-body max-w-sm mb-12">{activePathProgress?.path?.description || 'Synchronizing path details...'}</p>
             </div>
-            <div className="flex flex-col gap-5">
-              <div className="w-full h-2 rounded-full bg-surface-container-high overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-secondary transition-all"
-                  style={{
-                    width: `${activePathProgress?.completionPercentage || userStats.progress}%`,
-                  }}
-                ></div>
+            <div className="relative z-10 flex flex-col gap-6">
+              <div className="w-full h-1 bg-surface-container-highest">
+                <div className="h-full bg-primary" style={{ width: `${activePathProgress?.completionPercentage || userStats.progress}%` }}></div>
               </div>
-              <div className="flex flex-wrap justify-between items-end gap-4">
+              <div className="flex justify-between items-end">
                 <div className="flex flex-col">
-                  <span className="font-headline text-xl font-extrabold text-on-background">
-                    {activePathProgress?.completionPercentage || userStats.progress}% complete
-                  </span>
-                  <span className="font-body text-xs text-on-surface-variant mt-1">
+                  <span className="font-headline text-[10px] font-bold text-neutral-400 uppercase">Progress</span>
+                  <span className="font-headline text-xl font-bold text-on-background">{activePathProgress?.completionPercentage || userStats.progress}%_COMPLETE</span>
+                  <span className="font-headline text-[10px] text-neutral-500 uppercase tracking-widest mt-1">
                     {activePathProgress
-                      ? `${activePathProgress.completedCourses} of ${activePathProgress.totalCourses} courses finished`
-                      : `${courseProgressSummary.completed} of ${courseProgressSummary.total} courses finished`}
+                      ? `${activePathProgress.completedRooms}/${activePathProgress.totalRooms} Labs Completed`
+                      : `${labProgressSummary.completed}/${labProgressSummary.total} Labs Completed`}
                   </span>
                 </div>
-                <button
-                  className="rounded-full px-8 py-3.5 bg-primary text-on-primary font-headline text-sm font-bold hover:opacity-90 transition-opacity"
-                  onClick={handleResumeLearning}
-                  type="button"
-                >
-                  Resume
+                <button className="px-10 py-4 bg-primary text-on-primary font-headline text-xs font-bold tracking-widest uppercase hover:bg-primary-container transition-colors" onClick={handleResumeProtocol} type="button">
+                  RESUME_PROTOCOL
                 </button>
               </div>
             </div>
           </div>
 
           <div className="lg:col-span-4 space-y-6">
-            <div className="rounded-3xl bg-mint p-6 flex flex-col gap-3">
-              <span className="material-symbols-outlined text-on-mint">workspace_premium</span>
-              <span className="font-headline text-3xl font-extrabold text-on-mint">
-                {courseProgressSummary.completed}
-              </span>
-              <p className="font-body text-sm text-on-mint/80 leading-relaxed">
-                Courses completed so far. Keep going to earn your next certificate.
-              </p>
+            <div className="bg-surface-container-lowest p-6 flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-secondary">security</span>
+                <span className="font-headline text-[10px] font-bold tracking-widest text-neutral-400 uppercase">Defense_Level</span>
+              </div>
+              <span className="font-headline text-4xl font-bold text-on-background">{userStats.defenseLevel}</span>
+              <p className="text-[11px] text-neutral-500 leading-relaxed font-body">Your defensive perimeter has successfully mitigated {Math.floor(Math.random() * 20) + 5} simulated attacks in the last 24h.</p>
             </div>
 
-            <div className="rounded-3xl bg-lavender p-6 text-on-lavender flex flex-col justify-between min-h-[216px]">
+            <div className="bg-secondary p-6 text-on-secondary flex flex-col justify-between h-[216px]">
               {nextEvent ? (
                 <>
                   <div>
-                    <span className="font-headline text-xs font-bold opacity-70">Next event</span>
-                    <h4 className="font-headline text-xl font-extrabold mt-2">{nextEvent.name}</h4>
+                    <span className="font-headline text-[10px] font-bold tracking-widest uppercase opacity-70">Next Event</span>
+                    <h4 className="font-headline text-xl font-bold uppercase mt-2">{nextEvent.name}</h4>
                   </div>
                   <div className="flex flex-col gap-4">
-                    <div className="flex justify-between items-center font-headline text-xs font-bold border-b border-current/20 pb-2">
-                      <span>Starts in</span>
+                    <div className="flex justify-between items-center text-[10px] font-headline font-bold uppercase tracking-widest border-b border-white/20 pb-2">
+                      <span>Starts In</span>
                       <span>{startsInLabel}</span>
                     </div>
-                    <button
-                      className="rounded-full w-full py-3 bg-surface-container-lowest text-on-lavender font-headline text-sm font-bold hover:opacity-90 transition-opacity"
-                      disabled={isSavingRegistration}
-                      onClick={handleToggleEventRegistration}
-                      type="button"
-                    >
+                    <button className="w-full py-3 bg-white text-secondary font-headline text-[10px] font-bold tracking-widest uppercase hover:bg-secondary-fixed transition-colors" disabled={isSavingRegistration} onClick={handleToggleCtfRegistration} type="button">
                       {isSavingRegistration
-                        ? 'Saving…'
+                        ? 'SAVING...'
                         : nextEvent.is_registered
-                          ? 'You are registered'
-                          : 'Register'}
+                          ? 'REGISTERED'
+                          : 'REGISTER_INTEL'}
                     </button>
                   </div>
                 </>
               ) : (
                 <div className="h-full flex flex-col justify-center">
-                  <span className="font-headline text-xs font-bold opacity-70">Next event</span>
-                  <h4 className="font-headline text-xl font-extrabold mt-2">Nothing scheduled</h4>
-                  <p className="font-body text-sm opacity-80 mt-3">
-                    There are no events open for registration right now.
-                  </p>
+                  <span className="font-headline text-[10px] font-bold tracking-widest uppercase opacity-70">Next Event</span>
+                  <h4 className="font-headline text-xl font-bold uppercase mt-2">No Upcoming CTF</h4>
+                  <p className="text-xs opacity-80 mt-3">No events with open registration are currently available.</p>
                 </div>
               )}
             </div>
@@ -548,163 +544,125 @@ function DashboardPage() {
         </section>
 
         {latestModule && (
-          <section className="rounded-3xl bg-surface-container-lowest p-6 sm:p-8 shadow-soft space-y-6">
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-secondary">new_releases</span>
-              <h3 className="font-headline text-xl font-extrabold text-on-background">Newly added</h3>
+          <section className="space-y-8">
+            <div className="border-b border-neutral-200/50 pb-4">
+              <div className="flex items-center gap-4">
+                <span className="material-symbols-outlined text-secondary text-2xl">new_releases</span>
+                <h3 className="font-headline text-2xl font-bold tracking-tight text-on-background uppercase">LATEST_RELEASE</h3>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div
-                className={`aspect-video relative overflow-hidden rounded-2xl bg-${latestModule.accent} flex items-center justify-center`}
-              >
-                {latestModule.image ? (
-                  <img
-                    alt={latestModule.title}
-                    className="w-full h-full object-cover"
-                    src={latestModule.image}
-                  />
-                ) : (
-                  <span
-                    className={`material-symbols-outlined text-6xl text-on-${latestModule.accent}`}
-                  >
-                    {latestModule.icon}
-                  </span>
-                )}
+              <div className="aspect-video relative overflow-hidden rounded-lg">
+                <img
+                  className="w-full h-full object-cover"
+                  src={latestModule.image}
+                  alt={latestModule.description}
+                />
+                <div className={`absolute inset-0 ${latestModule.tone === 'red' ? 'bg-primary/20' : 'bg-secondary/20'}`}></div>
               </div>
 
-              <div className="flex flex-col justify-between gap-6">
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="rounded-full px-3 py-1 bg-secondary-container text-on-secondary-container font-headline text-xs font-bold">
-                      {latestModule.pathTitle}
-                    </span>
-                    <span className="font-body text-xs text-on-surface-variant">
-                      {latestModule.level}
-                    </span>
+              <div className="flex flex-col justify-between py-4">
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <span className={`px-3 py-1 text-on-primary font-headline text-[10px] font-bold tracking-widest uppercase ${latestModule.tone === 'red' ? 'bg-primary' : 'bg-secondary'}`}>
+                        {latestModule.phase}
+                      </span>
+                      <span className={`font-headline text-[9px] font-bold tracking-widest ${latestModule.tone === 'red' ? 'text-primary' : 'text-secondary'} uppercase`}>
+                        {latestModule.pathTitle}
+                      </span>
+                    </div>
+                    <h4 className="font-headline text-3xl font-bold tracking-tight text-on-background uppercase">
+                      {latestModule.title}
+                    </h4>
                   </div>
-                  <h4 className="font-headline text-2xl font-extrabold text-on-background">
-                    {latestModule.title}
-                  </h4>
-                  <p className="text-on-surface-variant font-body">{latestModule.description}</p>
-                  <div className="flex items-center gap-2 text-sm font-body text-on-surface-variant">
-                    <span className="material-symbols-outlined text-base">timer</span>
-                    {latestModule.duration}
+                  <p className="text-neutral-500 font-body">{latestModule.description}</p>
+                  <div className="flex items-center gap-4 text-sm font-headline font-bold text-neutral-400">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-base">timer</span>
+                      {latestModule.duration}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-base">school</span>
+                      {latestModule.level}
+                    </div>
                   </div>
                 </div>
 
-                <button
-                  className="rounded-full w-full px-8 py-3.5 bg-primary text-on-primary font-headline text-sm font-bold hover:opacity-90 transition-opacity"
-                  onClick={() =>
-                    navigate(`/learn/path/${latestModule.pathId}/module/${latestModule.id}`)
-                  }
+                <button 
+                  onClick={() => navigate(`/learn/path/${latestModule.pathId}/module/${latestModule.id}`)}
+                  className={`w-full px-10 py-4 font-headline text-xs font-bold tracking-widest uppercase transition-all ${latestModule.tone === 'red' ? 'bg-primary text-on-primary hover:bg-primary-container' : 'bg-secondary text-on-secondary hover:bg-secondary-container'}`} 
                   type="button"
                 >
-                  Start module
+                  LAUNCH_MODULE
                 </button>
               </div>
             </div>
           </section>
         )}
 
-        <section className="space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <h3 className="font-headline text-xl font-extrabold text-on-background">
-                Recommended for you
-              </h3>
-              <span className="rounded-full px-3 py-1 bg-surface-container-high text-on-surface-variant font-headline text-xs font-bold">
-                {allModules.length} modules
-              </span>
+        <section className="space-y-8">
+          <div className="flex items-center justify-between border-b border-neutral-200/50 pb-4">
+            <div className="flex items-center gap-4">
+              <h3 className="font-headline text-2xl font-bold tracking-tight text-on-background uppercase">NEW_DEPLOYMENTS</h3>
+              <span className="px-2 py-0.5 bg-secondary-container text-on-secondary-container font-headline text-[10px] font-bold uppercase">{allModules.length} New Modules</span>
             </div>
-            <button
-              className="font-headline text-sm font-bold text-primary hover:opacity-80 transition-opacity flex items-center gap-1"
-              onClick={() => navigate('/learn/paths')}
-              type="button"
-            >
-              View all
+            <a className="font-headline text-xs font-bold text-neutral-400 hover:text-primary transition-colors uppercase tracking-widest flex items-center gap-2" href="#">
+              View_All_Intel
               <span className="material-symbols-outlined text-sm">arrow_forward</span>
-            </button>
+            </a>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {allModules.length > 0 ? (
               allModules.map((module) => (
-                <button
-                  className="rounded-3xl bg-surface-container-lowest overflow-hidden text-left shadow-soft hover:shadow-card transition-shadow group"
+                <div
+                  className={`bg-surface-container-lowest border-l-2 ${module.tone === 'red' ? 'border-primary' : 'border-secondary'} group cursor-pointer hover:bg-white transition-all`}
                   key={`${module.pathId}-${module.id}`}
                   onClick={() => navigate(`/learn/path/${module.pathId}/module/${module.id}`)}
-                  type="button"
                 >
-                  <div
-                    className={`aspect-video relative overflow-hidden bg-${module.accent} flex items-center justify-center`}
-                  >
-                    {module.image ? (
-                      <img
-                        alt={module.title}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        src={module.image}
-                      />
-                    ) : (
-                      <span className={`material-symbols-outlined text-4xl text-on-${module.accent}`}>
-                        {module.icon}
-                      </span>
-                    )}
+                  <div className="aspect-video relative overflow-hidden">
+                    <img
+                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                      src={module.image}
+                      alt={module.description}
+                    />
+                    <div className={`absolute inset-0 ${module.tone === 'red' ? 'bg-primary/10' : 'bg-secondary/10'} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
                   </div>
-                  <div className="p-5 space-y-3">
-                    <div className="flex justify-between items-center gap-2">
-                      <span className="font-headline text-xs font-bold text-secondary truncate">
-                        {module.pathTitle}
+                  <div className="p-6 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className={`font-headline text-[9px] font-bold tracking-widest ${module.tone === 'red' ? 'text-primary' : 'text-secondary'} uppercase`}>
+                        {module.pathTitle.split(' ')[0]}
                       </span>
-                      <span className="font-body text-xs text-on-surface-variant shrink-0">
-                        {module.level}
-                      </span>
+                      <span className="text-neutral-400 font-headline text-[9px]">{module.level}</span>
                     </div>
-                    <h4 className="font-headline text-base font-extrabold leading-snug group-hover:text-primary transition-colors">
+                    <h4 className={`font-headline text-lg font-bold leading-tight uppercase ${module.tone === 'red' ? 'group-hover:text-primary' : 'group-hover:text-secondary'} transition-colors`}>
                       {module.title}
                     </h4>
-                    <p className="text-sm text-on-surface-variant font-body line-clamp-2">
-                      {module.description}
-                    </p>
-                    <div className="flex items-center gap-2 text-xs font-body text-on-surface-variant pt-1">
+                    <p className="text-xs text-neutral-500 font-body line-clamp-2">{module.description}</p>
+                    <div className="flex items-center gap-2 text-[10px] font-headline font-bold text-neutral-400 pt-2">
                       <span className="material-symbols-outlined text-sm">timer</span>
                       {module.duration}
                     </div>
                   </div>
-                </button>
+                </div>
               ))
             ) : (
-              <div className="col-span-full rounded-3xl bg-surface-container-lowest py-12 text-center">
-                <p className="text-on-surface-variant font-body">No modules available yet</p>
+              <div className="col-span-4 text-center py-12">
+                <p className="text-neutral-400">No modules available</p>
               </div>
             )}
           </div>
         </section>
       </div>
 
-      <footer className="w-full py-6 mt-auto bg-surface-container-low flex flex-col md:flex-row justify-between items-center gap-4 px-6 sm:px-12">
-        <span className="font-body text-xs text-on-surface-variant">
-          © {new Date().getFullYear()} Minerva Academy
-        </span>
-        <div className="flex flex-wrap justify-center gap-6">
-          <a
-            className="font-body text-xs text-on-surface-variant hover:text-primary transition-colors"
-            href="#"
-          >
-            Privacy
-          </a>
-          <a
-            className="font-body text-xs text-on-surface-variant hover:text-primary transition-colors"
-            href="#"
-          >
-            Terms
-          </a>
-          <a
-            className="font-body text-xs text-on-surface-variant hover:text-primary transition-colors"
-            href="#"
-          >
-            Accessibility
-          </a>
+      <footer className="w-full py-6 mt-auto bg-neutral-50 border-t border-neutral-200/50 flex flex-col md:flex-row justify-between items-center px-12">
+        <span className="font-headline text-[10px] tracking-widest uppercase text-neutral-400">© 2024 INCOGNITRIX ACADEMY // SURGICAL INTEL UNIT</span>
+        <div className="flex gap-8 mt-4 md:mt-0">
+          <a className="font-headline text-[10px] tracking-widest uppercase text-neutral-400 hover:text-red-600 opacity-80 hover:opacity-100 transition-colors" href="#">Privacy Protocol</a>
+          <a className="font-headline text-[10px] tracking-widest uppercase text-neutral-400 hover:text-red-600 opacity-80 hover:opacity-100 transition-colors" href="#">Terms of Engagement</a>
+          <a className="font-headline text-[10px] tracking-widest uppercase text-neutral-400 hover:text-red-600 opacity-80 hover:opacity-100 transition-colors" href="#">Liability Waiver</a>
         </div>
       </footer>
     </>

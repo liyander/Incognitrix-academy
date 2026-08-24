@@ -4,7 +4,7 @@ import {
   getCareerPathsData,
   hydrateCareerPathsData,
 } from '../data/careerPathsData'
-import { getCoursesData, hydrateCoursesData } from '../data/coursesData'
+import { getRoomsData, hydrateRoomsData } from '../data/roomsData'
 import { apiFetch } from '../services/api'
 
 function normalizeDifficulty(value) {
@@ -46,7 +46,7 @@ function getRoomTone(room, index) {
       }
 }
 
-function LearningPathsPage({ allowFeaturedPath = true }) {
+function LearningPathsPage({ allowRedTeamPath = true }) {
   const [careerPaths, setCareerPaths] = useState([])
   const [rooms, setRooms] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -73,7 +73,7 @@ function LearningPathsPage({ allowFeaturedPath = true }) {
           
           // Hydrate localStorage with backend data
           hydrateCareerPathsData(paths)
-          hydrateCoursesData(fetchedRooms)
+          hydrateRoomsData(fetchedRooms)
           
           // Directly set state with fresh data
           setCareerPaths(paths)
@@ -87,7 +87,7 @@ function LearningPathsPage({ allowFeaturedPath = true }) {
           const fallback = getCareerPathsData()
           console.log('⚠️ Using fallback data. Count:', fallback.length)
           setCareerPaths(fallback)
-          setRooms(getCoursesData())
+          setRooms(getRoomsData())
         }
       } finally {
         if (!cancelled) {
@@ -103,8 +103,8 @@ function LearningPathsPage({ allowFeaturedPath = true }) {
     }
   }, [])
 
-  const featuredPath = careerPaths.find((p) => p.id === 'full-stack-developer')
-  const otherPaths = careerPaths.filter((p) => p.id !== 'full-stack-developer')
+  const redTeamPath = careerPaths.find((p) => p.id === 'red-team-operator')
+  const otherPaths = careerPaths.filter((p) => p.id !== 'red-team-operator')
   const roomsById = new Map(rooms.map((room) => [room.id, room]))
   const linkedCurriculumRooms = careerPaths.flatMap((path) =>
     (path.modules || []).flatMap((module) =>
@@ -138,7 +138,7 @@ function LearningPathsPage({ allowFeaturedPath = true }) {
   return (
     <>
       <main className="pt-20">
-        <section className="relative flex items-center px-6 sm:px-10 lg:px-12 py-14 overflow-hidden bg-secondary-container">
+        <section className="relative h-[400px] flex items-center px-12 overflow-hidden bg-surface-container-low">
           <div
             className="absolute right-0 top-0 w-1/2 h-full opacity-10 mix-blend-multiply pointer-events-none"
             style={{
@@ -147,36 +147,29 @@ function LearningPathsPage({ allowFeaturedPath = true }) {
             }}
           ></div>
           <div className="relative z-10 max-w-2xl">
-            <span className="font-headline text-on-secondary-container/70 font-bold text-xs mb-4 block">
-              Guided curricula
+            <span className="font-headline text-primary font-bold tracking-[0.4em] uppercase text-xs mb-4 block">
+              Institutional Protocol
             </span>
-            <h1 className="font-headline text-4xl sm:text-5xl font-extrabold text-on-secondary-container mb-5 leading-tight">
-              Learn one path
-              <br />
-              at a time
+            <h1 className="font-headline text-6xl font-bold tracking-tighter text-on-surface mb-6 leading-[0.9]">
+              ASCEND THE <br />HIERARCHY
             </h1>
-            <p className="text-on-secondary-container/80 max-w-md text-lg leading-relaxed mb-8 font-body">
-              Structured, self-paced curricula that take you from fundamentals to job-ready, with
-              every module and course laid out in order.
+            <p className="text-on-surface-variant max-w-md text-lg leading-relaxed mb-8">
+              Surgical training modules for elite cyber-intelligence operatives.
+              Standardize your skillset across the offensive and defensive
+              spectrum.
             </p>
             <div className="flex gap-4">
-              <a
-                className="rounded-full bg-primary text-on-primary px-8 py-3 font-headline text-sm font-bold hover:opacity-90 transition-opacity"
-                href="#paths"
-              >
-                Browse paths
-              </a>
-              <a
-                className="rounded-full bg-surface-container-lowest text-on-surface px-8 py-3 font-headline text-sm font-bold hover:opacity-90 transition-opacity"
-                href="#modules"
-              >
-                See modules
-              </a>
+              <button className="surgical-gradient text-white px-8 py-3 font-headline text-xs tracking-widest uppercase" type="button" style={{ backgroundImage: 'linear-gradient(90deg, #ff416c, #ff4b2b)' }}>
+                Initiate Evaluation
+              </button>
+              <button className="bg-surface-container-highest px-8 py-3 font-headline text-xs tracking-widest uppercase border-l-2 border-primary" type="button">
+                Review Syllabus
+              </button>
             </div>
           </div>
         </section>
 
-        <div className="sticky top-[72px] z-30 glass-nav px-6 sm:px-12 py-3 flex gap-8 font-headline text-sm font-bold">
+        <div className="sticky top-[72px] z-30 bg-surface-container-low/80 backdrop-blur-md px-12 py-3 flex gap-8 font-headline text-[11px] font-bold tracking-widest uppercase">
           <a className="text-primary border-b-2 border-primary pb-1" href="#roadmap">
             Roadmap
           </a>
@@ -188,24 +181,24 @@ function LearningPathsPage({ allowFeaturedPath = true }) {
           </a>
         </div>
 
-        <section className="px-6 sm:px-10 lg:px-12 py-14" id="paths">
+        <section className="px-12 py-20" id="paths">
           <div className="flex justify-between items-end mb-12">
             <div>
               <h2 className="font-headline text-3xl font-bold tracking-tight mb-2">
-                Learning paths
+                OPERATIONAL_PATHS
               </h2>
-              <p className="text-on-surface-variant font-label text-xs tracking-normal">
-                Choose the track that matches your goal
+              <p className="text-on-surface-variant font-label text-xs uppercase tracking-widest">
+                Select your specialization vector
               </p>
             </div>
             <div className="h-[2px] flex-1 mx-12 bg-outline-variant opacity-20"></div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {featuredPath && (allowFeaturedPath ? (
+            {redTeamPath && (allowRedTeamPath ? (
               <Link
-                className="rounded-2xl bg-surface-container-lowest p-8 flex flex-col h-[400px] relative group hover:bg-white transition-all duration-300"
-                to={`/learn/path/${featuredPath.slug}`}
+                className="bg-surface-container-lowest p-8 flex flex-col h-[400px] relative group hover:bg-white transition-all duration-300"
+                to={`/learn/path/${redTeamPath.slug}`}
               >
                 <div className="absolute top-0 right-0 p-4 font-headline text-primary-container font-black text-4xl opacity-10">
                   01
@@ -214,24 +207,24 @@ function LearningPathsPage({ allowFeaturedPath = true }) {
                   className="material-symbols-outlined text-primary mb-6"
                   style={{ fontSize: '40px', fontVariationSettings: "'FILL' 1" }}
                 >
-                  {featuredPath.icon || 'security'}
+                  {redTeamPath.icon || 'security'}
                 </span>
-                <h3 className="font-headline text-xl font-bold mb-4">{featuredPath.title}</h3>
+                <h3 className="font-headline text-xl font-bold mb-4">{redTeamPath.title}</h3>
                 <p className="text-sm text-on-surface-variant flex-1 leading-relaxed">
-                  {featuredPath.description}
+                  {redTeamPath.description}
                 </p>
                 <div className="mt-8 flex flex-col gap-3">
-                  <div className="flex justify-between text-[10px] font-headline font-bold text-neutral-400">
+                  <div className="flex justify-between text-[10px] font-headline font-bold uppercase text-neutral-400">
                     <span>Mastery</span>
-                    <span>{featuredPath.mastery}%</span>
+                    <span>{redTeamPath.mastery}%</span>
                   </div>
-                  <div className="rounded-xl w-full h-1 bg-surface-container">
-                    <div className="h-full bg-primary" style={{ width: `${featuredPath.mastery}%` }}></div>
+                  <div className="w-full h-1 bg-surface-container">
+                    <div className="h-full bg-primary" style={{ width: `${redTeamPath.mastery}%` }}></div>
                   </div>
                 </div>
               </Link>
             ) : (
-              <div className="rounded-2xl bg-surface-container-lowest p-8 flex flex-col h-[400px] relative opacity-50 grayscale cursor-not-allowed">
+              <div className="bg-surface-container-lowest p-8 flex flex-col h-[400px] relative opacity-50 grayscale cursor-not-allowed">
                 <div className="absolute top-0 right-0 p-4 font-headline text-primary-container font-black text-4xl opacity-10">
                   01
                 </div>
@@ -239,13 +232,13 @@ function LearningPathsPage({ allowFeaturedPath = true }) {
                   className="material-symbols-outlined text-primary mb-6"
                   style={{ fontSize: '40px', fontVariationSettings: "'FILL' 1" }}
                 >
-                  {featuredPath.icon || 'security'}
+                  {redTeamPath.icon || 'security'}
                 </span>
-                <h3 className="font-headline text-xl font-bold mb-4">{featuredPath.title}</h3>
+                <h3 className="font-headline text-xl font-bold mb-4">{redTeamPath.title}</h3>
                 <p className="text-sm text-on-surface-variant flex-1 leading-relaxed">
-                  {featuredPath.description}
+                  {redTeamPath.description}
                 </p>
-                <div className="mt-8 text-[10px] font-headline font-bold tracking-normal text-outline">
+                <div className="mt-8 text-[10px] font-headline font-bold uppercase tracking-widest text-outline">
                   Access Disabled By Admin
                 </div>
               </div>
@@ -254,7 +247,7 @@ function LearningPathsPage({ allowFeaturedPath = true }) {
             {otherPaths.map((path, index) => (
               <Link
                 key={path.id}
-                className="rounded-2xl bg-surface-container-lowest p-8 flex flex-col h-[400px] relative group hover:bg-white transition-all duration-300"
+                className="bg-surface-container-lowest p-8 flex flex-col h-[400px] relative group hover:bg-white transition-all duration-300"
                 to={`/learn/path/${path.slug || path.id}`}
               >
                 <div className="absolute top-0 right-0 p-4 font-headline text-secondary-container font-black text-4xl opacity-10">
@@ -271,11 +264,11 @@ function LearningPathsPage({ allowFeaturedPath = true }) {
                   {path.description}
                 </p>
                 <div className="mt-8 flex flex-col gap-3">
-                  <div className="flex justify-between text-[10px] font-headline font-bold text-neutral-400">
+                  <div className="flex justify-between text-[10px] font-headline font-bold uppercase text-neutral-400">
                     <span>Mastery</span>
                     <span>{path.mastery}%</span>
                   </div>
-                  <div className="rounded-xl w-full h-1 bg-surface-container">
+                  <div className="w-full h-1 bg-surface-container">
                     <div className="h-full bg-secondary" style={{ width: `${path.mastery}%` }}></div>
                   </div>
                 </div>
@@ -284,12 +277,12 @@ function LearningPathsPage({ allowFeaturedPath = true }) {
           </div>
         </section>
 
-        <section className="rounded-xl px-12 py-20 bg-surface-container-low" id="modules">
+        <section className="px-12 py-20 bg-surface-container-low" id="modules">
           <div className="mb-12">
             <h2 className="font-headline text-3xl font-bold tracking-tight mb-2">
-              Curriculum modules
+              CURRICULUM_MODULES
             </h2>
-            <p className="text-on-surface-variant font-label text-xs tracking-normal">
+            <p className="text-on-surface-variant font-label text-xs uppercase tracking-widest">
               Surgical skill blocks for deep technical immersion
             </p>
           </div>
@@ -303,21 +296,21 @@ function LearningPathsPage({ allowFeaturedPath = true }) {
 
                 return (
                   <Link
-                    className={`rounded-2xl bg-surface-container-lowest p-6 flex flex-col border-l-4 ${tone.border} hover:bg-white transition-all ${
+                    className={`bg-surface-container-lowest p-6 flex flex-col border-l-4 ${tone.border} hover:bg-white transition-all ${
                       isFeatured ? 'md:col-span-2' : ''
                     }`}
                     key={`${room.id}-${index}`}
-                    to={`/learn/course/${roomSlug}`}
+                    to={`/learn/lab/${roomSlug}`}
                   >
                     <div className="flex justify-between items-start mb-8">
-                      <span className={`font-headline text-[10px] font-bold tracking-normal px-3 py-1 ${tone.badge}`}>
+                      <span className={`font-headline text-[10px] font-bold tracking-widest uppercase px-3 py-1 ${tone.badge}`}>
                         {room.categoryTag || room.category || room.moduleTitle || 'Room'}
                       </span>
                       <span className={`material-symbols-outlined ${isFeatured ? 'text-neutral-300' : tone.text}`}>
                         {isFeatured ? 'star' : tone.icon}
                       </span>
                     </div>
-                    <h4 className={`font-headline font-bold mb-2 ${isFeatured ? 'text-lg' : 'text-base'}`}>
+                    <h4 className={`font-headline font-bold mb-2 uppercase ${isFeatured ? 'text-lg' : 'text-base'}`}>
                       {room.title}
                     </h4>
                     <p className={`text-xs text-on-surface-variant leading-relaxed ${isFeatured ? 'mb-6' : 'mb-5'}`}>
@@ -325,16 +318,16 @@ function LearningPathsPage({ allowFeaturedPath = true }) {
                     </p>
                     <div className="mt-auto flex items-end justify-between gap-4">
                       <div className="flex flex-wrap gap-4">
-                        <div className="text-[10px] font-headline text-neutral-400">
+                        <div className="text-[10px] font-headline uppercase text-neutral-400">
                           <p>Duration</p>
                           <p className="text-on-surface">{room.estimateTime || 'TBD'}</p>
                         </div>
-                        <div className="text-[10px] font-headline text-neutral-400">
+                        <div className="text-[10px] font-headline uppercase text-neutral-400">
                           <p>Difficulty</p>
                           <p className={tone.text}>{normalizeDifficulty(room.difficulty || room.level).toUpperCase()}</p>
                         </div>
                         {!isFeatured ? (
-                          <div className="text-[10px] font-headline text-neutral-400">
+                          <div className="text-[10px] font-headline uppercase text-neutral-400">
                             <p>XP</p>
                             <p className="text-on-surface">{room.xp || 'N/A'}</p>
                           </div>
@@ -345,7 +338,7 @@ function LearningPathsPage({ allowFeaturedPath = true }) {
                       </span>
                     </div>
                     <div className="mt-5 border-t border-outline-variant/20 pt-3">
-                      <p className="text-[9px] font-headline tracking-normal text-neutral-400 truncate">
+                      <p className="text-[9px] font-headline uppercase tracking-widest text-neutral-400 truncate">
                         {room.pathTitle} / {room.modulePhase || room.moduleTitle}
                       </p>
                     </div>
@@ -353,8 +346,8 @@ function LearningPathsPage({ allowFeaturedPath = true }) {
                 )
               })
             ) : (
-              <div className="rounded-2xl md:col-span-4 bg-surface-container-lowest border border-dashed border-outline-variant/40 p-10 text-center">
-                <p className="font-headline text-xs tracking-normal text-on-surface-variant">
+              <div className="md:col-span-4 bg-surface-container-lowest border border-dashed border-outline-variant/40 p-10 text-center">
+                <p className="font-headline text-xs uppercase tracking-widest text-on-surface-variant">
                   {emptyModulesMessage}
                 </p>
               </div>
@@ -364,13 +357,13 @@ function LearningPathsPage({ allowFeaturedPath = true }) {
       </main>
 
       <footer className="w-full py-6 mt-auto bg-neutral-50 border-t border-neutral-200/50 flex flex-col md:flex-row justify-between items-center px-12">
-        <div className="font-headline text-[10px] tracking-normal text-neutral-400 mb-4 md:mb-0">
-          © 2026 Minerva Academy
+        <div className="font-headline text-[10px] tracking-widest uppercase text-neutral-400 mb-4 md:mb-0">
+          © 2024 INCOGNITRIX ACADEMY // SURGICAL INTEL UNIT
         </div>
         <div className="flex gap-8">
-          <a className="font-headline text-[10px] tracking-normal text-neutral-400 hover:text-primary opacity-80 hover:opacity-100 transition-all" href="#">Privacy</a>
-          <a className="font-headline text-[10px] tracking-normal text-neutral-400 hover:text-primary opacity-80 hover:opacity-100 transition-all" href="#">Terms</a>
-          <a className="font-headline text-[10px] tracking-normal text-neutral-400 hover:text-primary opacity-80 hover:opacity-100 transition-all" href="#">Accessibility</a>
+          <a className="font-headline text-[10px] tracking-widest uppercase text-neutral-400 hover:text-red-600 opacity-80 hover:opacity-100 transition-all" href="#">Privacy Protocol</a>
+          <a className="font-headline text-[10px] tracking-widest uppercase text-neutral-400 hover:text-red-600 opacity-80 hover:opacity-100 transition-all" href="#">Terms of Engagement</a>
+          <a className="font-headline text-[10px] tracking-widest uppercase text-neutral-400 hover:text-red-600 opacity-80 hover:opacity-100 transition-all" href="#">Liability Waiver</a>
         </div>
       </footer>
     </>

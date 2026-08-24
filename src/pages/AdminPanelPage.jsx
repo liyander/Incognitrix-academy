@@ -4,7 +4,7 @@ function ToggleRow({ checked, description, label, onChange }) {
   return (
     <label className="flex items-start justify-between gap-6 py-4 border-b border-outline-variant/20">
       <div>
-        <p className="font-headline text-sm font-bold tracking-normal text-on-background">
+        <p className="font-headline text-sm font-bold uppercase tracking-wider text-on-background">
           {label}
         </p>
         <p className="text-xs text-on-surface-variant mt-1">{description}</p>
@@ -65,21 +65,21 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
   const apiConfig = config.api || {}
 
   return (
-    <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10">
+    <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
       <section className="max-w-5xl mx-auto">
-        <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10">
-          <p className="font-headline text-[10px] tracking-normal text-primary font-bold">
+        <header className="bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10">
+          <p className="font-headline text-[10px] tracking-[0.25em] uppercase text-primary font-bold">
             Administrative Control Center
           </p>
-          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight mt-3">
-            Minerva Admin Panel
+          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight mt-3 uppercase">
+            Incognitrix Admin Panel
           </h1>
           <p className="text-sm text-on-surface-variant mt-4 max-w-2xl">
             Signed in as {username}. Manage all platform content, configuration, access controls, and operator features in real time.
           </p>
           <div className="mt-6 flex gap-3">
             <button
-              className="rounded-lg bg-primary text-on-primary px-5 py-2.5 font-headline text-xs font-bold tracking-normal"
+              className="bg-primary text-on-primary px-5 py-2.5 font-headline text-xs font-bold uppercase tracking-widest"
               onClick={onLogout}
               type="button"
             >
@@ -90,24 +90,24 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
 
         {/* Content Management Section */}
         <section className="mt-8">
-          <h2 className="font-headline text-2xl font-bold tracking-tight mb-6 text-primary flex items-center gap-2">
+          <h2 className="font-headline text-2xl font-bold uppercase tracking-tight mb-6 text-primary flex items-center gap-2">
             <span className="material-symbols-outlined">manage_accounts</span>
             Content Management
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Experimental Rooms */}
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
-              <a className="block" href="/admin/courses">
+            <div className="bg-surface-container-lowest border-l-4 border-primary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+              <a className="block" href="/admin/rooms">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-primary" style={{ fontSize: '32px' }}>
                       flask_2
                     </span>
                     <div>
-                      <h3 className="font-headline text-lg font-bold">
+                      <h3 className="font-headline text-lg font-bold uppercase">
                         Experimental Rooms
                       </h3>
-                      <p className="text-xs text-on-surface-variant tracking-normal">
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
                         Manage Lab Content
                       </p>
                     </div>
@@ -122,7 +122,7 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
               </a>
             </div>
 
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+            <div className="bg-surface-container-lowest border-l-4 border-primary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
               <a className="block" href="/admin/categories">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -130,10 +130,10 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                       category
                     </span>
                     <div>
-                      <h3 className="font-headline text-lg font-bold">
+                      <h3 className="font-headline text-lg font-bold uppercase">
                         Room Categories
                       </h3>
-                      <p className="text-xs text-on-surface-variant tracking-normal">
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
                         Manage Specializations
                       </p>
                     </div>
@@ -148,19 +148,19 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
               </a>
             </div>
 
-            {/* Resource Database Management */}
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-error p-6 hover:bg-surface-container-high transition-all cursor-pointer">
-              <a className="block" href="/admin/resources">
+            {/* CVE Database Management */}
+            <div className="bg-surface-container-lowest border-l-4 border-error p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+              <a className="block" href="/admin/cves">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-error" style={{ fontSize: '32px' }}>
                       bug_report
                     </span>
                     <div>
-                      <h3 className="font-headline text-lg font-bold">
-                        Resource Database
+                      <h3 className="font-headline text-lg font-bold uppercase">
+                        CVE Database
                       </h3>
-                      <p className="text-xs text-on-surface-variant tracking-normal">
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
                         Manage Vulnerabilities
                       </p>
                     </div>
@@ -170,13 +170,13 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                   </span>
                 </div>
                 <p className="text-sm text-on-surface-variant">
-                  Configure Common Vulnerabilities and Exposures (Resources), manage vulnerability reports, found date and research references.
+                  Configure Common Vulnerabilities and Exposures (CVEs), manage vulnerability reports, found date and research references.
                 </p>
               </a>
             </div>
 
             {/* Career Paths */}
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+            <div className="bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
               <a className="block" href="/admin/career-paths">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -184,10 +184,10 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                       school
                     </span>
                     <div>
-                      <h3 className="font-headline text-lg font-bold">
+                      <h3 className="font-headline text-lg font-bold uppercase">
                         Career Paths
                       </h3>
-                      <p className="text-xs text-on-surface-variant tracking-normal">
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
                         Manage Learning Paths
                       </p>
                     </div>
@@ -202,7 +202,7 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
               </a>
             </div>
 
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+            <div className="bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
               <a className="block" href="/admin/roadmap">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -210,10 +210,10 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                       account_tree
                     </span>
                     <div>
-                      <h3 className="font-headline text-lg font-bold">
+                      <h3 className="font-headline text-lg font-bold uppercase">
                         Roadmap Builder
                       </h3>
-                      <p className="text-xs text-on-surface-variant tracking-normal">
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
                         Wireframe Module Flow
                       </p>
                     </div>
@@ -229,7 +229,7 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
             </div>
 
             {/* Notifications */}
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+            <div className="bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
               <a className="block" href="/admin/notifications">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -237,10 +237,10 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                       notifications_active
                     </span>
                     <div>
-                      <h3 className="font-headline text-lg font-bold">
+                      <h3 className="font-headline text-lg font-bold uppercase">
                         Notifications
                       </h3>
-                      <p className="text-xs text-on-surface-variant tracking-normal">
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
                         Manage System Notifications
                       </p>
                     </div>
@@ -256,7 +256,7 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
             </div>
 
             {/* Registrations */}
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+            <div className="bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
               <a className="block" href="/admin/registrations">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -264,10 +264,10 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                       badge
                     </span>
                     <div>
-                      <h3 className="font-headline text-lg font-bold">
+                      <h3 className="font-headline text-lg font-bold uppercase">
                         Registrations
                       </h3>
-                      <p className="text-xs text-on-surface-variant tracking-normal">
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
                         Manage User Accounts
                       </p>
                     </div>
@@ -283,18 +283,18 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
             </div>
 
             {/* Lab Research */}
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
-              <a className="block" href="/admin/projects">
+            <div className="bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+              <a className="block" href="/admin/lab-research">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-secondary" style={{ fontSize: '32px' }}>
                       biotech
                     </span>
                     <div>
-                      <h3 className="font-headline text-lg font-bold">
+                      <h3 className="font-headline text-lg font-bold uppercase">
                         Lab Research
                       </h3>
-                      <p className="text-xs text-on-surface-variant tracking-normal">
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
                         Project Knowledge Transfer
                       </p>
                     </div>
@@ -309,19 +309,19 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
               </a>
             </div>
 
-            {/* Upcoming Event */}
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
-              <a className="block" href="/admin/events">
+            {/* Upcoming CTF */}
+            <div className="bg-surface-container-lowest border-l-4 border-primary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+              <a className="block" href="/admin/upcoming-ctf">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-primary" style={{ fontSize: '32px' }}>
                       event_upcoming
                     </span>
                     <div>
-                      <h3 className="font-headline text-lg font-bold">
-                        Upcoming Event
+                      <h3 className="font-headline text-lg font-bold uppercase">
+                        Upcoming CTF
                       </h3>
-                      <p className="text-xs text-on-surface-variant tracking-normal">
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
                         Manage Event Timeline
                       </p>
                     </div>
@@ -337,7 +337,7 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
             </div>
 
             {/* Docker Config */}
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+            <div className="bg-surface-container-lowest border-l-4 border-primary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
               <a className="block" href="/admin/docker">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -345,10 +345,10 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                       deployed_code
                     </span>
                     <div>
-                      <h3 className="font-headline text-lg font-bold">
+                      <h3 className="font-headline text-lg font-bold uppercase">
                         Docker Config
                       </h3>
-                      <p className="text-xs text-on-surface-variant tracking-normal">
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
                         Container Runtime
                       </p>
                     </div>
@@ -363,18 +363,18 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
               </a>
             </div>
 
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
-              <a className="block" href="/admin/environments">
+            <div className="bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+              <a className="block" href="/admin/docker-machines">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-secondary" style={{ fontSize: '32px' }}>
                       dns
                     </span>
                     <div>
-                      <h3 className="font-headline text-lg font-bold">
+                      <h3 className="font-headline text-lg font-bold uppercase">
                         Running Machines
                       </h3>
-                      <p className="text-xs text-on-surface-variant tracking-normal">
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
                         Active Lab Containers
                       </p>
                     </div>
@@ -389,7 +389,7 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
               </a>
             </div>
 
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+            <div className="bg-surface-container-lowest border-l-4 border-primary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
               <a className="block" href="/developer">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -397,10 +397,10 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                       data_object
                     </span>
                     <div>
-                      <h3 className="font-headline text-lg font-bold">
+                      <h3 className="font-headline text-lg font-bold uppercase">
                         Developer Panel
                       </h3>
-                      <p className="text-xs text-on-surface-variant tracking-normal">
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
                         API Keys and Monitoring
                       </p>
                     </div>
@@ -415,7 +415,7 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
               </a>
             </div>
 
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+            <div className="bg-surface-container-lowest border-l-4 border-primary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
               <a className="block" href="/admin/interview-questions">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -423,10 +423,10 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                       record_voice_over
                     </span>
                     <div>
-                      <h3 className="font-headline text-lg font-bold">
+                      <h3 className="font-headline text-lg font-bold uppercase">
                         Interview Questions
                       </h3>
-                      <p className="text-xs text-on-surface-variant tracking-normal">
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
                         AI Room Matching
                       </p>
                     </div>
@@ -442,7 +442,7 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
             </div>
 
             {/* Admin AI */}
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+            <div className="bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
               <a className="block" href="/admin/ai-control">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -450,10 +450,10 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                       smart_toy
                     </span>
                     <div>
-                      <h3 className="font-headline text-lg font-bold">
+                      <h3 className="font-headline text-lg font-bold uppercase">
                         Admin AI Control
                       </h3>
-                      <p className="text-xs text-on-surface-variant tracking-normal">
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
                         Monitor and Automate
                       </p>
                     </div>
@@ -468,7 +468,7 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
               </a>
             </div>
 
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+            <div className="bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
               <a className="block" href="/admin/jobs">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -476,10 +476,10 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                       work
                     </span>
                     <div>
-                      <h3 className="font-headline text-lg font-bold">
+                      <h3 className="font-headline text-lg font-bold uppercase">
                         Job Recommendations
                       </h3>
-                      <p className="text-xs text-on-surface-variant tracking-normal">
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
                         Student Placement Matrix
                       </p>
                     </div>
@@ -494,7 +494,7 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
               </a>
             </div>
 
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
+            <div className="bg-surface-container-lowest border-l-4 border-secondary p-6 hover:bg-surface-container-high transition-all cursor-pointer">
               <a className="block" href="/admin/top-resumes">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -502,10 +502,10 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                       description
                     </span>
                     <div>
-                      <h3 className="font-headline text-lg font-bold">
+                      <h3 className="font-headline text-lg font-bold uppercase">
                         Top Player Resumes
                       </h3>
-                      <p className="text-xs text-on-surface-variant tracking-normal">
+                      <p className="text-xs text-on-surface-variant uppercase tracking-widest">
                         Placement Download Vault
                       </p>
                     </div>
@@ -524,16 +524,16 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
 
         {/* Platform Access Controls */}
         <section className="mt-8">
-          <h2 className="font-headline text-2xl font-bold tracking-tight mb-6 text-primary flex items-center gap-2">
+          <h2 className="font-headline text-2xl font-bold uppercase tracking-tight mb-6 text-primary flex items-center gap-2">
             <span className="material-symbols-outlined">settings</span>
             Platform Access Controls
           </h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="rounded-2xl bg-surface-container-lowest p-6 md:p-8">
-              <h2 className="font-headline text-xl font-bold tracking-tight">
+            <div className="bg-surface-container-lowest p-6 md:p-8">
+              <h2 className="font-headline text-xl font-bold uppercase tracking-tight">
                 Route Access Control
               </h2>
-              <p className="text-xs text-on-surface-variant tracking-normal mt-1 mb-4">
+              <p className="text-xs text-on-surface-variant uppercase tracking-widest mt-1 mb-4">
                 Enable or disable user pages
               </p>
 
@@ -551,14 +551,14 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
               />
               <ToggleRow
                 checked={config.routes.practiceLabs}
-                description="Controls access to labs and module routes (/learn and /learn/course/:courseId)."
+                description="Controls access to labs and module routes (/learn and /learn/lab/:labId)."
                 label="Practice Labs Route"
                 onChange={(v) => setRouteValue('practiceLabs', v)}
               />
               <ToggleRow
                 checked={config.routes.upcomingCtf}
-                description="Controls access to player upcoming CTF route (/events)."
-                label="Upcoming Event Route"
+                description="Controls access to player upcoming CTF route (/upcoming-ctf)."
+                label="Upcoming CTF Route"
                 onChange={(v) => setRouteValue('upcomingCtf', v)}
               />
               <ToggleRow
@@ -569,30 +569,30 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
               />
             </div>
 
-            <div className="rounded-2xl bg-surface-container-lowest p-6 md:p-8">
-              <h2 className="font-headline text-xl font-bold tracking-tight">
+            <div className="bg-surface-container-lowest p-6 md:p-8">
+              <h2 className="font-headline text-xl font-bold uppercase tracking-tight">
                 Feature Control
               </h2>
-              <p className="text-xs text-on-surface-variant tracking-normal mt-1 mb-4">
+              <p className="text-xs text-on-surface-variant uppercase tracking-widest mt-1 mb-4">
                 Toggle core platform actions
               </p>
 
               <ToggleRow
                 checked={config.features.labRooms}
                 description="Controls whether users can open specific lab room pages."
-                label="Lab Course Access"
+                label="Lab Room Access"
                 onChange={(v) => setFeatureValue('labRooms', v)}
               />
               <ToggleRow
-                checked={config.features.featuredPath}
-                description="Controls access from Learning Paths to Full-Stack Developer page."
-                label="Core Track Path Access"
-                onChange={(v) => setFeatureValue('featuredPath', v)}
+                checked={config.features.redTeamPath}
+                description="Controls access from Learning Paths to Red Team Operator page."
+                label="Red Team Path Access"
+                onChange={(v) => setFeatureValue('redTeamPath', v)}
               />
               <ToggleRow
                 checked={config.features.newMissionButton}
                 description="Shows or hides the sidebar NEW_MISSION action."
-                label="Sidebar New Lesson"
+                label="Sidebar New Mission"
                 onChange={(v) => setFeatureValue('newMissionButton', v)}
               />
               <ToggleRow
@@ -621,11 +621,11 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
               />
               <div className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2">
                 <label className="block">
-                  <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                     Registration Range Min
                   </span>
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary py-3 px-4 outline-none"
                     min="0"
                     onChange={(event) => setFeatureValue('registrationDynamicMin', Number(event.target.value))}
                     type="number"
@@ -633,11 +633,11 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                   />
                 </label>
                 <label className="block">
-                  <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                     Registration Range Max
                   </span>
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary py-3 px-4 outline-none"
                     min="0"
                     onChange={(event) => setFeatureValue('registrationDynamicMax', Number(event.target.value))}
                     type="number"
@@ -653,27 +653,27 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
         </section>
 
         <section className="mt-8">
-          <h2 className="font-headline text-2xl font-bold tracking-tight mb-6 text-primary flex items-center gap-2">
+          <h2 className="font-headline text-2xl font-bold uppercase tracking-tight mb-6 text-primary flex items-center gap-2">
             <span className="material-symbols-outlined">psychology</span>
             AI Runtime Control
           </h2>
-          <div className="rounded-2xl bg-surface-container-lowest p-6 md:p-8 border-l-4 border-secondary">
+          <div className="bg-surface-container-lowest p-6 md:p-8 border-l-4 border-secondary">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-xl">
-                <h3 className="font-headline text-xl font-bold tracking-tight">
+                <h3 className="font-headline text-xl font-bold uppercase tracking-tight">
                   Active AI Model
                 </h3>
                 <p className="mt-2 text-sm text-on-surface-variant">
-                  Choose the model used by course question generation, evaluation, profile analysis, the study assistant, and Admin AI. Runtime API settings can be controlled below.
+                  Choose the model used by room question generation, evaluation, profile analysis, Cyber AI, and Admin AI. Runtime API settings can be controlled below.
                 </p>
               </div>
 
               <label className="block w-full lg:max-w-md">
-                <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                   Available Models
                 </span>
                 <select
-                  className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
+                  className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary border-t-0 border-r-0 border-b-0 py-3 px-4 outline-none"
                   onChange={(event) => setAiValue('model', event.target.value)}
                   value={selectedAiModel}
                 >
@@ -690,17 +690,17 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
             </div>
 
             <div className="mt-8 grid grid-cols-1 xl:grid-cols-3 gap-4">
-              <div className="rounded-2xl bg-surface-container-high p-5">
-                <p className="font-label text-[10px] tracking-normal text-secondary font-bold">
+              <div className="bg-surface-container-high p-5">
+                <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">
                   AI API
                 </p>
-                <h4 className="mt-1 font-headline text-lg font-black">Runtime Settings</h4>
+                <h4 className="mt-1 font-headline text-lg font-black uppercase">Runtime Settings</h4>
                 <label className="mt-4 block">
-                  <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                     Base URL
                   </span>
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-4 outline-none"
                     onChange={(event) => setApiValue('ai', 'baseUrl', event.target.value)}
                     placeholder="https://integrate.api.nvidia.com/v1"
                     type="text"
@@ -708,11 +708,11 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                   />
                 </label>
                 <label className="mt-4 block">
-                  <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                     API Key
                   </span>
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-4 outline-none"
                     onBlur={(event) => {
                       setApiValue('ai', 'apiKey', event.target.value)
                       setAiApiKeyDraft('')
@@ -728,11 +728,11 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                 </label>
                 <div className="mt-4 grid grid-cols-3 gap-3">
                   <label className="block">
-                    <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                    <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                       Temp
                     </span>
                     <input
-                      className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-3 outline-none"
+                      className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-3 outline-none"
                       max="2"
                       min="0"
                       onChange={(event) => setApiValue('ai', 'temperature', event.target.value)}
@@ -742,11 +742,11 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                     />
                   </label>
                   <label className="block">
-                    <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                    <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                       Top P
                     </span>
                     <input
-                      className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-3 outline-none"
+                      className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-3 outline-none"
                       max="1"
                       min="0"
                       onChange={(event) => setApiValue('ai', 'topP', event.target.value)}
@@ -756,11 +756,11 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                     />
                   </label>
                   <label className="block">
-                    <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                    <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                       Tokens
                     </span>
                     <input
-                      className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-3 outline-none"
+                      className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-3 outline-none"
                       min="256"
                       onChange={(event) => setApiValue('ai', 'maxTokens', event.target.value)}
                       step="256"
@@ -771,11 +771,11 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-surface-container-high p-5">
-                <p className="font-label text-[10px] tracking-normal text-secondary font-bold">
-                  the events feed API
+              <div className="bg-surface-container-high p-5">
+                <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">
+                  CTFtime API
                 </p>
-                <h4 className="mt-1 font-headline text-lg font-black">Event sync</h4>
+                <h4 className="mt-1 font-headline text-lg font-black uppercase">Event Sync</h4>
                 <label className="mt-4 flex items-center gap-3">
                   <input
                     checked={apiConfig.ctftime?.enabled !== false}
@@ -783,16 +783,16 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                     onChange={(event) => setApiValue('ctftime', 'enabled', event.target.checked)}
                     type="checkbox"
                   />
-                  <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                     Enable Sync
                   </span>
                 </label>
                 <label className="mt-4 block">
-                  <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                     Base URL
                   </span>
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-4 outline-none"
                     onChange={(event) => setApiValue('ctftime', 'baseUrl', event.target.value)}
                     placeholder="https://ctftime.org/api/v1"
                     type="text"
@@ -800,11 +800,11 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                   />
                 </label>
                 <label className="mt-4 block">
-                  <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                     User Agent
                   </span>
                   <input
-                    className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-4 outline-none"
+                    className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-4 outline-none"
                     onChange={(event) => setApiValue('ctftime', 'userAgent', event.target.value)}
                     type="text"
                     value={apiConfig.ctftime?.userAgent || ''}
@@ -812,11 +812,11 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                 </label>
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <label className="block">
-                    <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                    <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                       Limit
                     </span>
                     <input
-                      className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-3 outline-none"
+                      className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-3 outline-none"
                       max="500"
                       min="1"
                       onChange={(event) => setApiValue('ctftime', 'limit', event.target.value)}
@@ -825,11 +825,11 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                     />
                   </label>
                   <label className="block">
-                    <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                    <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                       Horizon Days
                     </span>
                     <input
-                      className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-3 outline-none"
+                      className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-3 outline-none"
                       max="1095"
                       min="1"
                       onChange={(event) => setApiValue('ctftime', 'horizonDays', event.target.value)}
@@ -840,17 +840,17 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-surface-container-high p-5">
-                <p className="font-label text-[10px] tracking-normal text-secondary font-bold">
+              <div className="bg-surface-container-high p-5">
+                <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">
                   Public API
                 </p>
-                <h4 className="mt-1 font-headline text-lg font-black">Access Keys</h4>
+                <h4 className="mt-1 font-headline text-lg font-black uppercase">Access Keys</h4>
                 <label className="mt-4 block">
-                  <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                  <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                     API Keys
                   </span>
                   <textarea
-                    className="rounded-xl mt-2 min-h-32 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-4 outline-none"
+                    className="mt-2 min-h-32 w-full bg-surface-container-highest border-l-2 border-l-secondary py-3 px-4 outline-none"
                     onBlur={(event) => {
                       setApiValue('publicApi', 'keys', event.target.value)
                       setPublicApiKeysDraft('')
@@ -884,12 +884,12 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-headline text-sm font-bold tracking-wide">
+                        <p className="font-headline text-sm font-bold uppercase tracking-wide">
                           {model.label || model.id}
                         </p>
                         <p className="mt-1 text-xs text-on-surface-variant break-all">{model.id}</p>
                       </div>
-                      <span className="rounded-full bg-surface-container-highest px-2 py-1 font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">
+                      <span className="bg-surface-container-highest px-2 py-1 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                         {model.provider || 'AI'}
                       </span>
                     </div>
@@ -900,7 +900,7 @@ function AdminPanelPage({ config, onConfigChange, onLogout, username }) {
                 ))}
               </div>
             ) : (
-              <p className="rounded-2xl mt-6 bg-surface-container-high p-4 text-sm text-on-surface-variant">
+              <p className="mt-6 bg-surface-container-high p-4 text-sm text-on-surface-variant">
                 No model list was returned by the backend.
               </p>
             )}

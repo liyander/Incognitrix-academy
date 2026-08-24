@@ -103,21 +103,21 @@ function AdminDockerConfigPage() {
   }
 
   return (
-    <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10">
+    <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
       <section className="max-w-7xl mx-auto space-y-8">
         <button
-          className="rounded-lg px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal"
+          className="px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest"
           onClick={() => navigate('/admin')}
           type="button"
         >
           Back
         </button>
 
-        <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10">
-          <p className="font-headline text-[10px] tracking-normal text-primary font-bold">
+        <header className="bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10">
+          <p className="font-headline text-[10px] tracking-[0.25em] uppercase text-primary font-bold">
             Container Runtime
           </p>
-          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight mt-3">
+          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight mt-3 uppercase">
             Docker Configuration
           </h1>
           <p className="text-sm text-on-surface-variant mt-4 max-w-3xl">
@@ -126,20 +126,20 @@ function AdminDockerConfigPage() {
         </header>
 
         <section className="grid grid-cols-1 xl:grid-cols-[0.9fr_1.1fr] gap-6">
-          <form className="rounded-2xl bg-surface-container-lowest p-6 border-l-4 border-l-primary space-y-5" onSubmit={saveConfig}>
+          <form className="bg-surface-container-lowest p-6 border-l-4 border-l-primary space-y-5" onSubmit={saveConfig}>
             <div>
-              <p className="font-label text-[10px] tracking-normal text-primary font-bold">
+              <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">
                 Connection
               </p>
-              <h2 className="mt-1 font-headline text-2xl font-black">Docker Host</h2>
+              <h2 className="mt-1 font-headline text-2xl font-black uppercase">Docker Host</h2>
             </div>
 
             <label className="block">
-              <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+              <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                 Hostname
               </span>
               <input
-                className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary py-3 px-4 outline-none"
+                className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary py-3 px-4 outline-none"
                 onChange={(event) => updateConfig('hostname', event.target.value)}
                 placeholder="tcp://110.172.151.108:2375 or unix:///var/run/docker.sock"
                 type="text"
@@ -151,11 +151,11 @@ function AdminDockerConfigPage() {
             </label>
 
             <label className="block">
-              <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+              <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                 Display Host
               </span>
               <input
-                className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary py-3 px-4 outline-none"
+                className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary py-3 px-4 outline-none"
                 onChange={(event) => updateConfig('displayHost', event.target.value)}
                 placeholder="IP or DNS shown to players, e.g. 110.172.151.108"
                 type="text"
@@ -170,26 +170,26 @@ function AdminDockerConfigPage() {
                 onChange={(event) => updateConfig('tlsEnabled', event.target.checked)}
                 type="checkbox"
               />
-              <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+              <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                 TLS Enabled
               </span>
             </label>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <label className="rounded-2xl block bg-surface-container-high p-4">
-                <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+              <label className="block bg-surface-container-high p-4">
+                <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                   CA Cert
                 </span>
                 <input className="mt-3 text-xs" onChange={(event) => readCertFile('caCert', event.target.files?.[0])} type="file" />
               </label>
-              <label className="rounded-2xl block bg-surface-container-high p-4">
-                <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+              <label className="block bg-surface-container-high p-4">
+                <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                   Client Cert
                 </span>
                 <input className="mt-3 text-xs" onChange={(event) => readCertFile('clientCert', event.target.files?.[0])} type="file" />
               </label>
-              <label className="rounded-2xl block bg-surface-container-high p-4">
-                <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+              <label className="block bg-surface-container-high p-4">
+                <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                   Client Key
                 </span>
                 <input className="mt-3 text-xs" onChange={(event) => readCertFile('clientKey', event.target.files?.[0])} type="file" />
@@ -197,7 +197,7 @@ function AdminDockerConfigPage() {
             </div>
 
             <button
-              className="rounded-xl w-full bg-primary text-on-primary px-4 py-3 font-headline text-xs font-bold tracking-normal disabled:opacity-60"
+              className="w-full bg-primary text-on-primary px-4 py-3 font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-60"
               disabled={saving}
               type="submit"
             >
@@ -206,8 +206,8 @@ function AdminDockerConfigPage() {
             {message ? <p className="text-sm text-on-surface-variant">{message}</p> : null}
           </form>
 
-          <div className="rounded-2xl bg-surface-container-lowest p-6 border-l-4 border-l-secondary">
-            <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+          <div className="bg-surface-container-lowest p-6 border-l-4 border-l-secondary">
+            <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
               Connection Status
             </p>
             <div className="mt-5 flex items-center gap-4">
@@ -215,7 +215,7 @@ function AdminDockerConfigPage() {
                 <span className="material-symbols-outlined text-3xl">{status.connected ? 'check_circle' : 'error'}</span>
               </span>
               <div>
-                <h2 className="font-headline text-2xl font-black">
+                <h2 className="font-headline text-2xl font-black uppercase">
                   {loading ? 'Checking...' : status.connected ? 'Connected' : 'Not Connected'}
                 </h2>
                 <p className="mt-1 text-sm text-on-surface-variant">
@@ -225,22 +225,22 @@ function AdminDockerConfigPage() {
             </div>
 
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="rounded-2xl bg-surface-container-high p-4">
-                <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Images</p>
+              <div className="bg-surface-container-high p-4">
+                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Images</p>
                 <p className="mt-1 font-headline text-3xl font-black">{status.images.length}</p>
               </div>
-              <div className="rounded-2xl bg-surface-container-high p-4">
-                <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Containers</p>
+              <div className="bg-surface-container-high p-4">
+                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Containers</p>
                 <p className="mt-1 font-headline text-3xl font-black">{status.containers || 0}</p>
               </div>
-              <div className="rounded-2xl bg-surface-container-high p-4">
-                <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">Active Labs</p>
+              <div className="bg-surface-container-high p-4">
+                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Active Labs</p>
                 <p className="mt-1 font-headline text-3xl font-black">{containers.length}</p>
               </div>
             </div>
 
             <button
-              className="rounded-xl mt-6 w-full bg-secondary text-on-secondary px-4 py-3 font-headline text-xs font-bold tracking-normal disabled:opacity-60"
+              className="mt-6 w-full bg-secondary text-on-secondary px-4 py-3 font-headline text-xs font-bold uppercase tracking-widest disabled:opacity-60"
               disabled={loading}
               onClick={() => {
                 void loadDockerStatus()
@@ -254,24 +254,24 @@ function AdminDockerConfigPage() {
         </section>
 
         <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <div className="rounded-2xl bg-surface-container-lowest p-6">
-            <h2 className="font-headline text-2xl font-black tracking-tight">Available Images</h2>
+          <div className="bg-surface-container-lowest p-6">
+            <h2 className="font-headline text-2xl font-black uppercase tracking-tight">Available Images</h2>
             <div className="mt-5 space-y-3">
               {status.images.map((image) => (
-                <article className="rounded-2xl bg-surface-container-high p-4 border-l-2 border-l-primary" key={`${image.id}-${image.name}`}>
+                <article className="bg-surface-container-high p-4 border-l-2 border-l-primary" key={`${image.id}-${image.name}`}>
                   <p className="font-headline text-sm font-bold break-all">{image.name}</p>
                   <p className="mt-1 text-xs text-on-surface-variant">{image.size || 'Unknown size'} {image.createdSince ? `- ${image.createdSince}` : ''}</p>
                 </article>
               ))}
-              {!status.images.length ? <p className="rounded-2xl bg-surface-container-high p-4 text-sm text-on-surface-variant">No Docker images found.</p> : null}
+              {!status.images.length ? <p className="bg-surface-container-high p-4 text-sm text-on-surface-variant">No Docker images found.</p> : null}
             </div>
           </div>
 
-          <div className="rounded-2xl bg-surface-container-lowest p-6">
-            <h2 className="font-headline text-2xl font-black tracking-tight">Active Containers</h2>
+          <div className="bg-surface-container-lowest p-6">
+            <h2 className="font-headline text-2xl font-black uppercase tracking-tight">Active Containers</h2>
             <div className="mt-5 space-y-3">
               {containers.map((container) => (
-                <article className="rounded-2xl bg-surface-container-high p-4 border-l-2 border-l-secondary" key={container.id || container.names}>
+                <article className="bg-surface-container-high p-4 border-l-2 border-l-secondary" key={container.id || container.names}>
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                     <div>
                       <p className="font-headline text-sm font-bold break-all">{container.names}</p>
@@ -280,7 +280,7 @@ function AdminDockerConfigPage() {
                       <p className="mt-1 text-xs text-on-surface-variant break-all">{container.ports}</p>
                     </div>
                     <button
-                      className="rounded-lg shrink-0 bg-error text-on-error px-3 py-2 font-headline text-[10px] font-bold tracking-normal"
+                      className="shrink-0 bg-error text-on-error px-3 py-2 font-headline text-[10px] font-bold uppercase tracking-widest"
                       onClick={() => {
                         void stopContainer(container.names)
                       }}
@@ -291,7 +291,7 @@ function AdminDockerConfigPage() {
                   </div>
                 </article>
               ))}
-              {!containers.length ? <p className="rounded-2xl bg-surface-container-high p-4 text-sm text-on-surface-variant">No active Minerva containers.</p> : null}
+              {!containers.length ? <p className="bg-surface-container-high p-4 text-sm text-on-surface-variant">No active Incognitrix containers.</p> : null}
             </div>
           </div>
         </section>

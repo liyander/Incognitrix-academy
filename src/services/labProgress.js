@@ -52,7 +52,7 @@ async function persistStatusToBackend(roomId, status) {
     if (/invalid or expired token|unauthorized/i.test(error?.message || '')) {
       return false
     }
-    console.error('Failed to persist course progress:', error)
+    console.error('Failed to persist room progress:', error)
     return false
   }
 }
@@ -67,7 +67,7 @@ export async function syncLabProgressFromBackend() {
     if (/invalid or expired token|unauthorized/i.test(error?.message || '')) {
       return getLabProgressMap()
     }
-    console.error('Failed to sync course progress from backend:', error)
+    console.error('Failed to sync room progress from backend:', error)
     return getLabProgressMap()
   }
 }

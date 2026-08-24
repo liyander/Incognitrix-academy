@@ -38,7 +38,7 @@ function ContentBlock({ text }) {
   )
 }
 
-function ProjectDetailPage() {
+function LabResearchProjectPage() {
   const { projectId } = useParams()
   const [project, setProject] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -380,7 +380,7 @@ function ProjectDetailPage() {
   if (loading) {
     return (
       <div className="flex-1 px-6 md:px-10 pt-24 pb-10">
-        <div className="rounded-2xl bg-surface-container-lowest p-8 text-center">
+        <div className="bg-surface-container-lowest p-8 text-center">
           <p className="text-on-surface-variant">Loading research project...</p>
         </div>
       </div>
@@ -390,13 +390,13 @@ function ProjectDetailPage() {
   if (!project) {
     return (
       <div className="flex-1 px-6 md:px-10 pt-24 pb-10">
-        <div className="rounded-2xl bg-error/10 border-l-4 border-error p-6">
-          <p className="text-error font-headline text-xs font-bold tracking-normal">
+        <div className="bg-error/10 border-l-4 border-error p-6">
+          <p className="text-error font-headline text-xs font-bold uppercase tracking-widest">
             {error || 'Research project not found'}
           </p>
           <Link
-            className="rounded-lg inline-flex items-center gap-2 mt-4 px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-primary transition-colors"
-            to="/projects"
+            className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors"
+            to="/lab-research"
           >
             <span className="material-symbols-outlined text-sm">arrow_back</span>
             Back to Lab Research
@@ -407,7 +407,7 @@ function ProjectDetailPage() {
   }
 
   const tabButtonClass = (tab) =>
-    `px-5 py-3 font-headline text-xs font-bold tracking-normal transition-colors border-b-4 ${
+    `px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest transition-colors border-b-4 ${
       activeTab === tab
         ? 'border-primary text-primary bg-surface-container-lowest'
         : 'border-transparent text-on-surface-variant hover:text-on-surface'
@@ -416,18 +416,18 @@ function ProjectDetailPage() {
   return (
     <div className="flex-1 px-6 md:px-10 pt-24 pb-24 md:pb-10">
       <Link
-        className="rounded-lg inline-flex items-center gap-2 mb-6 px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold tracking-normal hover:text-primary transition-colors"
-        to="/projects"
+        className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-surface-container-high text-on-surface font-headline text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors"
+        to="/lab-research"
       >
         <span className="material-symbols-outlined text-sm">arrow_back</span>
         Back to Lab Research
       </Link>
 
-      <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 mb-6">
-        <p className="font-headline text-[10px] tracking-normal text-primary font-bold">
+      <header className="bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 mb-6">
+        <p className="font-headline text-[10px] tracking-[0.25em] uppercase text-primary font-bold">
           {project.projectType === 'web' ? 'Web-Based Project' : project.projectType === 'program' ? 'Program-Based Project' : 'Research Project'}
         </p>
-        <h1 className="font-headline text-3xl md:text-4xl font-black tracking-tight mt-3">
+        <h1 className="font-headline text-3xl md:text-4xl font-black tracking-tight mt-3 uppercase">
           {project.title}
         </h1>
         {project.summary ? (
@@ -435,24 +435,24 @@ function ProjectDetailPage() {
         ) : null}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
           {project.stack ? (
-            <div className="rounded-2xl bg-surface-container-high p-4">
-              <p className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">Stack Used</p>
+            <div className="bg-surface-container-high p-4">
+              <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Stack Used</p>
               <p className="text-sm mt-1">{project.stack}</p>
             </div>
           ) : null}
           {project.contributors ? (
-            <div className="rounded-2xl bg-surface-container-high p-4">
-              <p className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">Persons Contributed</p>
+            <div className="bg-surface-container-high p-4">
+              <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Persons Contributed</p>
               <p className="text-sm mt-1">{project.contributors}</p>
             </div>
           ) : null}
         </div>
         <div className="flex flex-wrap gap-2 mt-6">
-          <span className={`px-3 py-1.5 text-[10px] font-headline font-bold tracking-normal ${project.progress.quizCompleted ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
+          <span className={`px-3 py-1.5 text-[10px] font-headline font-bold uppercase tracking-widest ${project.progress.quizCompleted ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
             Knowledge Check: {project.progress.quizCompleted ? 'Completed 100/100' : `${project.progress.quizScore}/100`}
           </span>
           {project.codingEnabled ? (
-            <span className={`px-3 py-1.5 text-[10px] font-headline font-bold tracking-normal ${project.progress.codeAccepted ? 'bg-secondary/15 text-secondary' : 'bg-primary/15 text-primary'}`}>
+            <span className={`px-3 py-1.5 text-[10px] font-headline font-bold uppercase tracking-widest ${project.progress.codeAccepted ? 'bg-secondary/15 text-secondary' : 'bg-primary/15 text-primary'}`}>
               Code Lab: {project.progress.codeAccepted ? 'Accepted' : 'Pending'}
             </span>
           ) : null}
@@ -475,16 +475,16 @@ function ProjectDetailPage() {
 
       {activeTab === TABS.research ? (
         <div className="space-y-6">
-          <section className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-8">
-            <h2 className="font-headline text-xl font-bold tracking-tight mb-4 text-secondary flex items-center gap-2">
+          <section className="bg-surface-container-lowest border-l-4 border-secondary p-8">
+            <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-4 text-secondary flex items-center gap-2">
               <span className="material-symbols-outlined">construction</span>
               How We Implemented It
             </h2>
             <ContentBlock text={project.explanation} />
           </section>
           {project.topics ? (
-            <section className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8">
-              <h2 className="font-headline text-xl font-bold tracking-tight mb-4 text-primary flex items-center gap-2">
+            <section className="bg-surface-container-lowest border-l-4 border-primary p-8">
+              <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-4 text-primary flex items-center gap-2">
                 <span className="material-symbols-outlined">school</span>
                 Topics to Learn to Build This
               </h2>
@@ -498,12 +498,12 @@ function ProjectDetailPage() {
               </ul>
             </section>
           ) : null}
-          <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="bg-surface-container-lowest border-l-4 border-primary p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <p className="text-sm text-on-surface-variant">
               Ready? Attend the proctored AI assessment — it runs in fullscreen with fresh questions every attempt, and answering every question correctly scores 100/100.
             </p>
             <button
-              className="rounded-xl bg-primary text-on-primary px-6 py-3 font-headline text-xs font-bold tracking-normal hover:bg-primary-container transition-colors disabled:opacity-60"
+              className="bg-primary text-on-primary px-6 py-3 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors disabled:opacity-60"
               disabled={quizLoading}
               onClick={() => handleStartQuiz()}
               type="button"
@@ -517,14 +517,14 @@ function ProjectDetailPage() {
       {activeTab === TABS.quiz ? (
         <div className="space-y-6">
           {quizError ? (
-            <div className="rounded-2xl bg-error/10 border-l-4 border-error p-4">
-              <p className="text-error font-headline text-xs font-bold tracking-normal">{quizError}</p>
+            <div className="bg-error/10 border-l-4 border-error p-4">
+              <p className="text-error font-headline text-xs font-bold uppercase tracking-widest">{quizError}</p>
             </div>
           ) : null}
 
           {project.progress.quizCompleted && !attempt ? (
-            <div className="rounded-2xl bg-secondary/10 border-l-4 border-secondary p-6">
-              <p className="font-headline text-sm font-bold tracking-normal text-secondary">
+            <div className="bg-secondary/10 border-l-4 border-secondary p-6">
+              <p className="font-headline text-sm font-bold uppercase tracking-widest text-secondary">
                 Knowledge check completed — 100/100
               </p>
               <p className="text-sm text-on-surface-variant mt-2">
@@ -534,14 +534,14 @@ function ProjectDetailPage() {
           ) : null}
 
           {!attempt ? (
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8 text-center">
-              <p className="font-headline text-lg font-bold">Proctored AI Assessment</p>
+            <div className="bg-surface-container-lowest border-l-4 border-primary p-8 text-center">
+              <p className="font-headline text-lg font-bold uppercase">Proctored AI Assessment</p>
               <p className="text-sm text-on-surface-variant mt-2 max-w-xl mx-auto">
                 The AI generates a completely new set of questions from this project&apos;s research write-up on every attempt.
                 Answer every question correctly to score 100 and mark this project as completed. Incorrect answers can be retried within the attempt.
               </p>
-              <div className="rounded-2xl mt-4 mx-auto max-w-xl bg-error/10 border-l-4 border-error p-4 text-left">
-                <p className="font-headline text-[10px] font-bold tracking-normal text-error mb-1">Proctoring Rules</p>
+              <div className="mt-4 mx-auto max-w-xl bg-error/10 border-l-4 border-error p-4 text-left">
+                <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-error mb-1">Proctoring Rules</p>
                 <ul className="text-xs space-y-1 text-on-surface">
                   <li>• The assessment runs in fullscreen mode.</li>
                   <li>• Switching tabs, minimizing, or leaving the window auto-submits it instantly.</li>
@@ -550,7 +550,7 @@ function ProjectDetailPage() {
                 </ul>
               </div>
               <button
-                className="rounded-xl mt-6 bg-primary text-on-primary px-8 py-3 font-headline text-xs font-bold tracking-normal hover:bg-primary-container transition-colors disabled:opacity-60"
+                className="mt-6 bg-primary text-on-primary px-8 py-3 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors disabled:opacity-60"
                 disabled={quizLoading}
                 onClick={() => handleStartQuiz()}
                 type="button"
@@ -560,9 +560,9 @@ function ProjectDetailPage() {
             </div>
           ) : (
             <>
-              <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="bg-surface-container-lowest border-l-4 border-primary p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <p className="font-headline text-sm font-bold tracking-normal">
+                  <p className="font-headline text-sm font-bold uppercase tracking-widest">
                     Score: {attempt.score}/100 · {attempt.correctCount}/{attempt.totalQuestions} correct
                   </p>
                   <p className="text-xs text-on-surface-variant mt-1">
@@ -575,18 +575,18 @@ function ProjectDetailPage() {
                 </div>
                 <div className="flex gap-2">
                   {attempt.status === 'completed' ? (
-                    <span className="rounded-lg px-4 py-2 bg-secondary/15 text-secondary font-headline text-xs font-bold tracking-normal">
+                    <span className="px-4 py-2 bg-secondary/15 text-secondary font-headline text-xs font-bold uppercase tracking-widest">
                       Completed
                     </span>
                   ) : null}
                   {attempt.status === 'terminated' ? (
-                    <span className="rounded-lg px-4 py-2 bg-error/15 text-error font-headline text-xs font-bold tracking-normal">
+                    <span className="px-4 py-2 bg-error/15 text-error font-headline text-xs font-bold uppercase tracking-widest">
                       Auto-Submitted
                     </span>
                   ) : null}
                   {attempt.status !== 'active' && !project.progress.quizCompleted ? (
                     <button
-                      className="rounded-lg px-4 py-2 bg-primary text-on-primary font-headline text-xs font-bold tracking-normal hover:bg-primary-container transition-colors disabled:opacity-60"
+                      className="px-4 py-2 bg-primary text-on-primary font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors disabled:opacity-60"
                       disabled={quizLoading}
                       onClick={() => handleStartQuiz()}
                       type="button"
@@ -600,15 +600,15 @@ function ProjectDetailPage() {
               <div className="space-y-4">
                 {attempt.questions.map((question) => (
                   <div
-                    className={`rounded-2xl bg-surface-container-lowest border-l-4 p-6 ${question.isCorrect ? 'border-secondary' : question.answered ? 'border-error' : 'border-outline-variant'}`}
+                    className={`bg-surface-container-lowest border-l-4 p-6 ${question.isCorrect ? 'border-secondary' : question.answered ? 'border-error' : 'border-outline-variant'}`}
                     key={question.id}
                   >
                     <div className="flex items-start justify-between gap-4">
-                      <p className="font-headline text-xs font-bold tracking-normal text-on-surface-variant">
+                      <p className="font-headline text-xs font-bold uppercase tracking-widest text-on-surface-variant">
                         Question {question.position}
                       </p>
                       {question.answered ? (
-                        <span className={`px-2 py-1 text-[10px] font-headline font-bold tracking-normal ${question.isCorrect ? 'bg-secondary/15 text-secondary' : 'bg-error/15 text-error'}`}>
+                        <span className={`px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest ${question.isCorrect ? 'bg-secondary/15 text-secondary' : 'bg-error/15 text-error'}`}>
                           {question.isCorrect ? 'Correct' : 'Incorrect — retry'}
                         </span>
                       ) : null}
@@ -616,8 +616,8 @@ function ProjectDetailPage() {
                     <p className="text-sm leading-7 mt-3">{question.prompt}</p>
 
                     {question.isCorrect ? (
-                      <div className="rounded-2xl mt-4 bg-surface-container-high p-4">
-                        <p className="font-headline text-[10px] font-bold tracking-normal text-secondary mb-2">Your Answer</p>
+                      <div className="mt-4 bg-surface-container-high p-4">
+                        <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-secondary mb-2">Your Answer</p>
                         <p className="text-sm whitespace-pre-line">{question.answer}</p>
                         {question.feedback ? (
                           <p className="text-xs text-on-surface-variant mt-3">{question.feedback}</p>
@@ -626,13 +626,13 @@ function ProjectDetailPage() {
                     ) : (
                       <div className="mt-4 space-y-3">
                         {question.answered && question.feedback ? (
-                          <div className="rounded-2xl bg-error/10 p-4">
-                            <p className="font-headline text-[10px] font-bold tracking-normal text-error mb-1">AI Feedback</p>
+                          <div className="bg-error/10 p-4">
+                            <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-error mb-1">AI Feedback</p>
                             <p className="text-sm">{question.feedback}</p>
                           </div>
                         ) : null}
                         <textarea
-                          className="rounded-xl w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none min-h-[110px]"
+                          className="w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none min-h-[110px]"
                           onChange={(event) =>
                             setAnswers((current) => ({ ...current, [question.id]: event.target.value }))
                           }
@@ -640,7 +640,7 @@ function ProjectDetailPage() {
                           value={answers[question.id] ?? question.answer ?? ''}
                         />
                         <button
-                          className="rounded-lg bg-primary text-on-primary px-6 py-2.5 font-headline text-xs font-bold tracking-normal hover:bg-primary-container transition-colors disabled:opacity-60"
+                          className="bg-primary text-on-primary px-6 py-2.5 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors disabled:opacity-60"
                           disabled={submittingQuestionId === question.id || attempt.status !== 'active'}
                           onClick={() => handleAnswerSubmit(question)}
                           type="button"
@@ -660,19 +660,19 @@ function ProjectDetailPage() {
       {activeTab === TABS.code && project.codingEnabled ? (
         <div className="space-y-6">
           {codeError ? (
-            <div className="rounded-2xl bg-error/10 border-l-4 border-error p-4">
-              <p className="text-error font-headline text-xs font-bold tracking-normal">{codeError}</p>
+            <div className="bg-error/10 border-l-4 border-error p-4">
+              <p className="text-error font-headline text-xs font-bold uppercase tracking-widest">{codeError}</p>
             </div>
           ) : null}
 
           {!challenge ? (
-            <div className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8 text-center">
-              <p className="font-headline text-lg font-bold">AI Code Lab</p>
+            <div className="bg-surface-container-lowest border-l-4 border-primary p-8 text-center">
+              <p className="font-headline text-lg font-bold uppercase">AI Code Lab</p>
               <p className="text-sm text-on-surface-variant mt-2 max-w-xl mx-auto">
                 The AI will generate a coding scenario based on this project. Implement the solution and pass every test case to get it accepted.
               </p>
               <button
-                className="rounded-xl mt-6 bg-primary text-on-primary px-8 py-3 font-headline text-xs font-bold tracking-normal hover:bg-primary-container transition-colors disabled:opacity-60"
+                className="mt-6 bg-primary text-on-primary px-8 py-3 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors disabled:opacity-60"
                 disabled={codeLoading}
                 onClick={() => handleLoadChallenge()}
                 type="button"
@@ -682,23 +682,23 @@ function ProjectDetailPage() {
             </div>
           ) : (
             <>
-              <section className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-8">
+              <section className="bg-surface-container-lowest border-l-4 border-secondary p-8">
                 <div className="flex items-start justify-between gap-4 mb-4">
-                  <h2 className="font-headline text-xl font-bold tracking-tight text-secondary flex items-center gap-2">
+                  <h2 className="font-headline text-xl font-bold uppercase tracking-tight text-secondary flex items-center gap-2">
                     <span className="material-symbols-outlined">terminal</span>
                     Scenario
                   </h2>
                   <div className="flex gap-2 shrink-0">
-                    <span className="rounded-full px-2 py-1 text-[10px] font-headline font-bold tracking-normal bg-surface-container-high text-on-surface-variant">
+                    <span className="px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest bg-surface-container-high text-on-surface-variant">
                       {challenge.language}
                     </span>
                     {challenge.status === 'accepted' ? (
-                      <span className="rounded-full px-2 py-1 text-[10px] font-headline font-bold tracking-normal bg-secondary/15 text-secondary">
+                      <span className="px-2 py-1 text-[10px] font-headline font-bold uppercase tracking-widest bg-secondary/15 text-secondary">
                         Accepted
                       </span>
                     ) : (
                       <button
-                        className="rounded-full px-3 py-1 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold tracking-normal hover:text-primary transition-colors disabled:opacity-60"
+                        className="px-3 py-1 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold uppercase tracking-widest hover:text-primary transition-colors disabled:opacity-60"
                         disabled={codeLoading}
                         onClick={() => handleLoadChallenge({ regenerate: true })}
                         type="button"
@@ -711,7 +711,7 @@ function ProjectDetailPage() {
                 <ContentBlock text={challenge.scenario} />
                 {isUiChallenge && challenge.testCases.length ? (
                   <div className="mt-6">
-                    <p className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant mb-3">
+                    <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">
                       UI Requirements ({challenge.testCases.length}) — all must pass in your rendered page
                     </p>
                     <ul className="space-y-2">
@@ -726,12 +726,12 @@ function ProjectDetailPage() {
                 ) : null}
                 {!isUiChallenge && challenge.testCases.length ? (
                   <div className="mt-6 overflow-x-auto">
-                    <p className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant mb-3">
+                    <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">
                       Test Cases ({challenge.testCases.length}) — all must pass
                     </p>
                     <table className="w-full text-left text-xs">
                       <thead>
-                        <tr className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant border-b border-outline-variant">
+                        <tr className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant border-b border-outline-variant">
                           <th className="py-2 pr-4">#</th>
                           <th className="py-2 pr-4">Input</th>
                           <th className="py-2 pr-4">Expected Output</th>
@@ -753,8 +753,8 @@ function ProjectDetailPage() {
                 ) : null}
               </section>
 
-              <section className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8">
-                <h2 className="font-headline text-xl font-bold tracking-tight mb-4 text-primary flex items-center gap-2">
+              <section className="bg-surface-container-lowest border-l-4 border-primary p-8">
+                <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-4 text-primary flex items-center gap-2">
                   <span className="material-symbols-outlined">code</span>
                   Code Editor
                 </h2>
@@ -775,7 +775,7 @@ function ProjectDetailPage() {
                   <div className="flex flex-col sm:flex-row gap-2 shrink-0">
                     {isUiChallenge || isRunnableInBrowser(challenge.language) ? (
                       <button
-                        className="rounded-xl bg-surface-container-high text-on-surface px-6 py-3 font-headline text-xs font-bold tracking-normal hover:text-secondary transition-colors disabled:opacity-60"
+                        className="bg-surface-container-high text-on-surface px-6 py-3 font-headline text-xs font-bold uppercase tracking-widest hover:text-secondary transition-colors disabled:opacity-60"
                         disabled={runningTests || submittingCode || challenge.status === 'accepted'}
                         onClick={handleRunTests}
                         type="button"
@@ -784,7 +784,7 @@ function ProjectDetailPage() {
                       </button>
                     ) : null}
                     <button
-                      className="rounded-xl bg-primary text-on-primary px-8 py-3 font-headline text-xs font-bold tracking-normal hover:bg-primary-container transition-colors disabled:opacity-60"
+                      className="bg-primary text-on-primary px-8 py-3 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors disabled:opacity-60"
                       disabled={submittingCode || runningTests || challenge.status === 'accepted'}
                       onClick={handleCodeSubmit}
                       type="button"
@@ -794,15 +794,15 @@ function ProjectDetailPage() {
                   </div>
                 </div>
                 {runStatus ? (
-                  <p className="mt-3 font-headline text-[10px] font-bold tracking-normal text-secondary">
+                  <p className="mt-3 font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
                     {runStatus}
                   </p>
                 ) : null}
               </section>
 
               {isUiChallenge && preview ? (
-                <section className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-8">
-                  <h2 className="font-headline text-xl font-bold tracking-tight mb-4 text-secondary flex items-center gap-2">
+                <section className="bg-surface-container-lowest border-l-4 border-secondary p-8">
+                  <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-4 text-secondary flex items-center gap-2">
                     <span className="material-symbols-outlined">preview</span>
                     Rendered Page
                   </h2>
@@ -822,14 +822,14 @@ function ProjectDetailPage() {
               ) : null}
 
               {screenshotNote ? (
-                <div className="rounded-2xl bg-error/10 border-l-4 border-error p-4">
-                  <p className="text-error font-headline text-xs font-bold tracking-normal">{screenshotNote}</p>
+                <div className="bg-error/10 border-l-4 border-error p-4">
+                  <p className="text-error font-headline text-xs font-bold uppercase tracking-widest">{screenshotNote}</p>
                 </div>
               ) : null}
 
               {submission || localRun ? (
-                <section className={`rounded-2xl bg-surface-container-lowest border-l-4 p-8 ${(submission ? submission.accepted : localRun.passed) ? 'border-secondary' : 'border-error'}`}>
-                  <h2 className={`font-headline text-xl font-bold tracking-tight mb-4 flex items-center gap-2 ${(submission ? submission.accepted : localRun.passed) ? 'text-secondary' : 'text-error'}`}>
+                <section className={`bg-surface-container-lowest border-l-4 p-8 ${(submission ? submission.accepted : localRun.passed) ? 'border-secondary' : 'border-error'}`}>
+                  <h2 className={`font-headline text-xl font-bold uppercase tracking-tight mb-4 flex items-center gap-2 ${(submission ? submission.accepted : localRun.passed) ? 'text-secondary' : 'text-error'}`}>
                     <span className="material-symbols-outlined">
                       {(submission ? submission.accepted : localRun.passed) ? 'verified' : 'report'}
                     </span>
@@ -854,7 +854,7 @@ function ProjectDetailPage() {
                           <span className={`material-symbols-outlined text-base ${result.passed ? 'text-secondary' : 'text-error'}`}>
                             {result.passed ? 'check_circle' : 'cancel'}
                           </span>
-                          <p className="font-headline text-xs font-bold tracking-normal">
+                          <p className="font-headline text-xs font-bold uppercase tracking-widest">
                             Test {result.index}: {result.passed ? 'Passed' : 'Failed'}
                           </p>
                         </div>
@@ -880,4 +880,4 @@ function ProjectDetailPage() {
   )
 }
 
-export default ProjectDetailPage
+export default LabResearchProjectPage

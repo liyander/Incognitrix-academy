@@ -14,7 +14,7 @@ const STARTER_PROMPTS = [
   'Give me platform insights and top risks right now.',
   'Add a new room for phishing incident response at Medium level.',
   'Create a career path for Cloud Security Operations.',
-  'Add a module to full-stack-developer about web payload validation.',
+  'Add a module to red-team-operator about web payload validation.',
 ]
 
 function AdminAiControlPage() {
@@ -251,9 +251,9 @@ function AdminAiControlPage() {
   }
 
   return (
-    <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10">
+    <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
       <section className="max-w-7xl mx-auto">
-        <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 mb-8">
+        <header className="bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 mb-8">
           <div className="flex items-center gap-4 mb-4">
             <button
               className="text-primary hover:text-on-surface transition-colors"
@@ -262,11 +262,11 @@ function AdminAiControlPage() {
             >
               <span className="material-symbols-outlined">arrow_back</span>
             </button>
-            <span className="font-headline text-[10px] tracking-normal text-primary font-bold">
+            <span className="font-headline text-[10px] tracking-[0.25em] uppercase text-primary font-bold">
               AI Governance
             </span>
           </div>
-          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight">
+          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight uppercase">
             Admin AI Control Center
           </h1>
           <p className="text-sm text-on-surface-variant mt-4 max-w-3xl">
@@ -275,11 +275,11 @@ function AdminAiControlPage() {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-[22rem,1fr] gap-6">
-          <aside className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-6 h-fit shadow-lg shadow-black/10">
+          <aside className="bg-surface-container-lowest border-l-4 border-secondary p-6 h-fit shadow-lg shadow-black/10">
             <div className="flex items-center justify-between gap-3 mb-4">
-              <h2 className="font-headline text-lg font-bold tracking-tight text-secondary">History</h2>
+              <h2 className="font-headline text-lg font-bold uppercase tracking-tight text-secondary">History</h2>
               <button
-                className="rounded-full border border-outline-variant bg-surface px-3 py-1.5 text-xs font-headline tracking-normal hover:border-primary transition-colors disabled:opacity-60"
+                className="border border-outline-variant bg-surface px-3 py-1.5 text-xs font-headline uppercase tracking-wider hover:border-primary transition-colors disabled:opacity-60"
                 onClick={handleCreateSession}
                 type="button"
                 disabled={isCreatingSession}
@@ -299,7 +299,7 @@ function AdminAiControlPage() {
                 {sessions.map((session) => (
                   <article
                     key={session.id}
-                    className={`rounded-lg border px-3 py-2 transition-colors ${
+                    className={`border px-3 py-2 transition-colors ${
                       session.id === activeSessionId
                         ? 'border-primary bg-surface text-on-surface'
                         : 'border-outline-variant bg-surface-container-high'
@@ -314,7 +314,7 @@ function AdminAiControlPage() {
                         }}
                         type="button"
                       >
-                        <p className="text-xs tracking-normal text-on-surface-variant font-headline">Session #{session.id}</p>
+                        <p className="text-xs uppercase tracking-wider text-on-surface-variant font-headline">Session #{session.id}</p>
                         <p className="text-sm font-semibold mt-1 line-clamp-1">{session.title || 'New Session'}</p>
                         <p className="text-xs text-on-surface-variant mt-1 line-clamp-2">
                           {session.preview || 'No prompt yet'}
@@ -322,7 +322,7 @@ function AdminAiControlPage() {
                       </button>
 
                       <button
-                        className="rounded-xl h-8 w-8 inline-flex items-center justify-center border border-outline-variant bg-surface text-on-surface-variant hover:text-error hover:border-error/70 transition-colors disabled:opacity-50"
+                        className="h-8 w-8 inline-flex items-center justify-center border border-outline-variant bg-surface text-on-surface-variant hover:text-red-400 hover:border-red-400/70 transition-colors disabled:opacity-50"
                         onClick={() => {
                           void handleDeleteSession(session.id)
                         }}
@@ -341,7 +341,7 @@ function AdminAiControlPage() {
               </div>
             )}
 
-            <h2 className="font-headline text-lg font-bold tracking-tight mb-4 text-secondary">
+            <h2 className="font-headline text-lg font-bold uppercase tracking-tight mb-4 text-secondary">
               Platform Insights
             </h2>
             {isLoadingInsights ? (
@@ -349,31 +349,31 @@ function AdminAiControlPage() {
             ) : (
               <div className="space-y-4 text-sm">
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-xl bg-surface-container-high p-3">
-                    <p className="text-[10px] tracking-normal text-on-surface-variant">Courses</p>
+                  <div className="bg-surface-container-high p-3">
+                    <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">Rooms</p>
                     <p className="font-headline text-xl font-bold">{insights?.metrics?.rooms ?? 0}</p>
                   </div>
-                  <div className="rounded-xl bg-surface-container-high p-3">
-                    <p className="text-[10px] tracking-normal text-on-surface-variant">Paths</p>
+                  <div className="bg-surface-container-high p-3">
+                    <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">Paths</p>
                     <p className="font-headline text-xl font-bold">{insights?.metrics?.careerPaths ?? 0}</p>
                   </div>
-                  <div className="rounded-xl bg-surface-container-high p-3">
-                    <p className="text-[10px] tracking-normal text-on-surface-variant">Modules</p>
+                  <div className="bg-surface-container-high p-3">
+                    <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">Modules</p>
                     <p className="font-headline text-xl font-bold">{insights?.metrics?.modules ?? 0}</p>
                   </div>
-                  <div className="rounded-xl bg-surface-container-high p-3">
-                    <p className="text-[10px] tracking-normal text-on-surface-variant">Resources</p>
+                  <div className="bg-surface-container-high p-3">
+                    <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">CVEs</p>
                     <p className="font-headline text-xl font-bold">{insights?.metrics?.cves ?? 0}</p>
                   </div>
                 </div>
 
                 <div>
-                  <p className="text-[10px] tracking-normal text-on-surface-variant mb-2">Starter Prompts</p>
+                  <p className="text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">Starter Prompts</p>
                   <div className="flex flex-wrap gap-2">
                     {STARTER_PROMPTS.map((prompt) => (
                       <button
                         key={prompt}
-                        className="rounded-full text-left border border-outline-variant bg-surface px-2.5 py-1.5 text-xs hover:border-primary transition-colors"
+                        className="text-left border border-outline-variant bg-surface px-2.5 py-1.5 text-xs hover:border-primary transition-colors"
                         onClick={() => {
                           void sendMessage(prompt)
                         }}
@@ -385,8 +385,8 @@ function AdminAiControlPage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-outline-variant/40 bg-surface p-3">
-                  <p className="text-[10px] tracking-normal text-on-surface-variant mb-1">Conversation</p>
+                <div className="border border-outline-variant/40 bg-surface p-3">
+                  <p className="text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Conversation</p>
                   <p className="font-headline text-sm font-bold text-on-surface">
                     {isLoadingMessages ? 'Loading history...' : `${messages.length} messages visible`}
                   </p>
@@ -401,15 +401,15 @@ function AdminAiControlPage() {
           </aside>
 
           <section className="bg-surface-container-lowest border-l-4 border-primary flex flex-col min-h-[38rem] shadow-lg shadow-black/10">
-            <div className="rounded-xl flex items-center justify-between gap-3 px-5 py-3 border-b border-outline-variant/40 bg-gradient-to-r from-surface-container to-surface-container-lowest">
+            <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-outline-variant/40 bg-gradient-to-r from-surface-container to-surface-container-lowest">
               <div>
-                <p className="font-headline text-xs tracking-normal text-primary font-bold">Admin AI Session</p>
+                <p className="font-headline text-xs uppercase tracking-[0.2em] text-primary font-bold">Admin AI Session</p>
                 <p className="text-xs text-on-surface-variant">
                   {activeSession ? `Session #${activeSession.id}` : 'No active session selected.'}
                 </p>
               </div>
               <button
-                className="rounded-full border border-outline-variant bg-surface px-3 py-1.5 text-xs font-headline tracking-normal hover:border-primary transition-colors"
+                className="border border-outline-variant bg-surface px-3 py-1.5 text-xs font-headline uppercase tracking-wider hover:border-primary transition-colors"
                 onClick={handleClearLocalConversation}
                 type="button"
               >
@@ -417,15 +417,15 @@ function AdminAiControlPage() {
               </button>
             </div>
 
-            <div ref={listRef} className="rounded-2xl flex-1 overflow-y-auto p-6 space-y-4 bg-surface">
+            <div ref={listRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-surface">
               {isLoadingMessages ? (
-                <article className="rounded-xl mr-auto max-w-[90%] px-4 py-3 border border-outline-variant/40 bg-surface-container-high text-sm text-on-surface-variant">
+                <article className="mr-auto max-w-[90%] px-4 py-3 border border-outline-variant/40 bg-surface-container-high text-sm text-on-surface-variant">
                   Loading selected session history...
                 </article>
               ) : null}
 
               {!isLoadingMessages && messages.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-outline-variant/40 bg-surface-container-high/40 p-5">
+                <div className="border border-dashed border-outline-variant/40 bg-surface-container-high/40 p-5">
                   <p className="text-sm text-on-surface">No messages in this session yet.</p>
                   <p className="text-xs text-on-surface-variant mt-1">
                     Send a prompt to begin this thread.
@@ -442,7 +442,7 @@ function AdminAiControlPage() {
                       : 'mr-auto bg-surface-container-high text-on-surface border border-outline-variant/30'
                   }`}
                 >
-                  <p className={`text-[10px] tracking-normal mb-2 font-headline ${message.role === 'user' ? 'text-on-primary/80' : 'text-on-surface-variant'}`}>
+                  <p className={`text-[10px] uppercase tracking-[0.18em] mb-2 font-headline ${message.role === 'user' ? 'text-on-primary/80' : 'text-on-surface-variant'}`}>
                     {message.role === 'user' ? 'You' : 'Admin AI'}
                   </p>
                   {message.role === 'assistant' ? (
@@ -462,16 +462,16 @@ function AdminAiControlPage() {
               ))}
 
               {isSending ? (
-                <article className="rounded-xl mr-auto max-w-[90%] px-4 py-3 bg-surface-container-high text-sm text-on-surface-variant">
+                <article className="mr-auto max-w-[90%] px-4 py-3 bg-surface-container-high text-sm text-on-surface-variant">
                   Admin AI is working...
                 </article>
               ) : null}
             </div>
 
-            <form className="rounded-2xl border-t border-outline-variant p-4 bg-surface-container" onSubmit={handleSubmit}>
+            <form className="border-t border-outline-variant p-4 bg-surface-container" onSubmit={handleSubmit}>
               <div className="flex items-center gap-2">
                 <input
-                  className="rounded-lg flex-1 border border-outline-variant bg-surface px-3 py-2 text-sm text-on-surface outline-none focus:border-primary"
+                  className="flex-1 border border-outline-variant bg-surface px-3 py-2 text-sm text-on-surface outline-none focus:border-primary"
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
                   placeholder="Ask Admin AI to monitor or control platform content..."
@@ -479,7 +479,7 @@ function AdminAiControlPage() {
                   disabled={!activeSessionId}
                 />
                 <button
-                  className="rounded-xl h-10 w-10 inline-flex items-center justify-center bg-primary text-on-primary disabled:opacity-60"
+                  className="h-10 w-10 inline-flex items-center justify-center bg-primary text-on-primary disabled:opacity-60"
                   disabled={!canSend || !activeSessionId}
                   type="submit"
                   aria-label="Send admin AI message"

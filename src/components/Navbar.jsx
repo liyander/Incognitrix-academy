@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { getCareerPathsData } from '../data/careerPathsData'
-import { getCoursesData } from '../data/coursesData'
+import { getRoomsData } from '../data/roomsData'
 import { apiFetch } from '../services/api'
 
 const NOTIFICATIONS_UPDATED_EVENT = 'incognitrix:notifications-updated'
@@ -26,7 +26,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
   const navItemClass = ({ isActive }) =>
     `transition-colors duration-200 ${
       isActive
-        ? 'text-primary border-b-2 border-primary pb-1'
+        ? 'text-red-600 border-b-2 border-red-600 pb-1'
         : 'text-on-surface-variant hover:text-on-surface'
     }`
 
@@ -131,7 +131,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
 
     const query = value.trim().toLowerCase()
     const careerPaths = getCareerPathsData()
-    const rooms = getCoursesData()
+    const rooms = getRoomsData()
 
     const results = []
 
@@ -189,7 +189,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
     } else if (result.type === 'module') {
       navigate(`/learn/path/${result.pathId}/module/${result.id}`)
     } else if (result.type === 'room') {
-      navigate(`/learn/lesson/${result.slug}`)
+      navigate(`/learn/lab/${result.slug}`)
     }
     setSearchQuery('')
     setShowResults(false)
@@ -202,7 +202,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
       >
       <div className="flex min-w-0 items-center gap-3 xl:gap-6">
         <button
-          className="rounded-xl inline-flex h-11 w-11 shrink-0 items-center justify-center border border-outline-variant bg-surface-container-low text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center border border-outline-variant bg-surface-container-low text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
           onClick={onToggleSidebar}
           type="button"
           aria-label="Toggle sidebar"
@@ -212,14 +212,14 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
           </span>
         </button>
         <div className="flex min-w-0 flex-col">
-          <h1 className="truncate text-xl md:text-2xl font-headline font-extrabold tracking-tight text-on-surface leading-none">
-            Minerva
+          <h1 className="truncate text-xl md:text-2xl font-headline font-bold tracking-tighter text-neutral-900 leading-none">
+            INCOGNITRIX
           </h1>
-          <span className="hidden sm:block truncate font-body text-[11px] text-on-surface-variant mt-1">
-            Online Learning Academy
+          <span className="hidden sm:block truncate font-headline text-[11px] tracking-[0.2em] text-neutral-400 uppercase mt-1">
+            Cybersecurity Academy
           </span>
         </div>
-        <nav className="hidden xl:flex items-center gap-6 font-headline tracking-tight text-[15px] whitespace-nowrap">
+        <nav className="hidden xl:flex items-center gap-6 font-headline tracking-tight text-[15px] uppercase whitespace-nowrap">
           {config.routes.learningPaths ? (
             <NavLink className={navItemClass} to="/learn/paths">
               Learning Paths
@@ -227,28 +227,31 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
           ) : null}
           {config.routes.practiceLabs ? (
             <NavLink className={navItemClass} to="/learn">
-              Courses
+              Knowledge hub
             </NavLink>
           ) : null}
-          <NavLink className={navItemClass} to="/resources">
-            Resources
+          <NavLink className={navItemClass} to="/cves">
+            CVE Database
           </NavLink>
           <NavLink className={navItemClass} to="/roadmap">
             Roadmap
           </NavLink>
-          <NavLink className={navItemClass} to="/projects">
-            Projects
-          </NavLink>
+          <a
+            className="text-on-surface-variant hover:text-on-surface transition-colors duration-200"
+            href="http://110.172.151.108"
+          >
+            CTF Arena
+          </a>
         </nav>
       </div>
       <div className="flex shrink-0 items-center gap-3 xl:gap-4">
         {config.features.navbarSearch ? (
           <div ref={searchRef} className="relative hidden 2xl:block">
-            <div className="flex items-center gap-2 px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-full shadow-soft hover:border-outline transition-all duration-200 focus-within:border-primary">
-              <span className="material-symbols-outlined text-on-surface-variant text-lg">search</span>
+            <div className="flex items-center gap-2 px-3 py-2.5 bg-gradient-to-br from-surface-container-low to-surface-container-highest border border-primary/20 rounded-lg shadow-sm hover:border-primary/40 hover:shadow-md transition-all duration-200 focus-within:border-primary focus-within:shadow-lg focus-within:ring-1 focus-within:ring-primary/20">
+              <span className="material-symbols-outlined text-primary text-lg">search</span>
               <input
                 type="text"
-                placeholder="Search courses, lessons..."
+                placeholder="Search paths, modules..."
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
                 onFocus={() => searchQuery && setShowResults(true)}
@@ -259,8 +262,8 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
             {/* Search Results Dropdown */}
             {showResults && searchResults.length > 0 && (
               <div className="absolute top-full mt-3 w-96 bg-surface-container-lowest border border-primary/20 rounded-xl shadow-2xl z-50 overflow-hidden backdrop-blur-sm">
-                <div className="rounded-lg px-3 py-2 border-b border-primary/10 bg-primary/5">
-                  <p className="text-[10px] font-headline font-bold text-primary tracking-normal">
+                <div className="px-3 py-2 border-b border-primary/10 bg-primary/5">
+                  <p className="text-[10px] font-headline font-bold text-primary uppercase tracking-widest">
                     Search Results ({searchResults.length})
                   </p>
                 </div>
@@ -269,14 +272,14 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
                     <button
                       key={`${result.type}-${result.id}`}
                       onClick={() => handleSelectResult(result)}
-                      className="rounded-xl w-full text-left px-4 py-3.5 hover:bg-primary/8 transition-colors border-b border-primary/5 last:border-b-0 flex items-start gap-4 group"
+                      className="w-full text-left px-4 py-3.5 hover:bg-primary/8 transition-colors border-b border-primary/5 last:border-b-0 flex items-start gap-4 group"
                       type="button"
                     >
                       <span className="material-symbols-outlined text-base text-primary flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
                         {result.icon}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <div className="font-headline text-sm font-bold text-on-background group-hover:text-primary transition-colors truncate">
+                        <div className="font-headline text-sm font-bold uppercase text-on-background group-hover:text-primary transition-colors truncate">
                           {result.title}
                         </div>
                         <div className="text-xs text-on-surface-variant truncate mt-1">
@@ -289,10 +292,10 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
                             <span>{result.description}</span>
                           )}
                         </div>
-                        <div className="text-[9px] font-headline text-primary tracking-normal mt-2 inline-block px-2 py-1 bg-primary/10 rounded">
-                          {result.type === 'path' && 'Learning path'}
+                        <div className="text-[9px] font-headline text-primary uppercase tracking-widest mt-2 inline-block px-2 py-1 bg-primary/10 rounded">
+                          {result.type === 'path' && 'Path'}
                           {result.type === 'module' && 'Module'}
-                          {result.type === 'room' && 'Lesson'}
+                          {result.type === 'room' && 'Lab'}
                         </div>
                       </div>
                       <span className="material-symbols-outlined text-sm text-primary/40 group-hover:text-primary flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all">
@@ -310,17 +313,17 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
                   <span className="material-symbols-outlined text-4xl text-neutral-300">search_off</span>
                   <div>
                     <p className="text-sm font-headline font-bold text-on-background">No results found</p>
-                    <p className="text-xs text-on-surface-variant mt-1">Try a different course, path or lesson</p>
+                    <p className="text-xs text-on-surface-variant mt-1">Try searching for a different path or module</p>
                   </div>
                 </div>
               </div>
             )}
           </div>
         ) : null}
-        <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-butter rounded-full whitespace-nowrap">
-          <span className="material-symbols-outlined text-on-butter text-base">local_fire_department</span>
-          <span className="font-headline text-xs font-bold text-on-butter">
-            {Number(streak.currentStreak || 0)}-day streak
+        <div className="hidden lg:flex items-center gap-2 px-3 py-2 bg-surface-container-low rounded-full whitespace-nowrap">
+          <span className="material-symbols-outlined text-primary text-base">local_fire_department</span>
+          <span className="font-headline text-[10px] font-bold tracking-widest text-on-background uppercase">
+            {Number(streak.currentStreak || 0)} Day Streak
           </span>
         </div>
         <div className="flex items-center gap-3 text-on-surface-variant">
@@ -333,16 +336,16 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
               >
                 <span className="material-symbols-outlined">notifications</span>
                 {notifications.length > 0 && (
-                  <span className="absolute top-0 right-0 w-2 h-2 bg-error rounded-full animate-pulse"></span>
+                  <span className="absolute top-0 right-0 w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
                 )}
               </button>
 
               {/* Notifications Dropdown */}
               {showNotifications && (
                 <div className="absolute top-full mt-3 right-0 w-96 bg-surface-container-lowest border border-primary/20 rounded-xl shadow-2xl z-50 overflow-hidden backdrop-blur-sm">
-                  <div className="rounded-xl px-4 py-3 border-b border-primary/10 bg-primary/5">
-                    <p className="text-[10px] font-headline font-bold text-primary tracking-normal">
-                      Notifications ({notifications.length})
+                  <div className="px-4 py-3 border-b border-primary/10 bg-primary/5">
+                    <p className="text-[10px] font-headline font-bold text-primary uppercase tracking-widest">
+                      System Notifications ({notifications.length})
                     </p>
                   </div>
                   {notifications.length === 0 ? (
@@ -355,15 +358,15 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
                   ) : (
                     <div className="max-h-96 overflow-y-auto divide-y divide-primary/10">
                       {notifications.map((notification) => (
-                        <div key={notification.id} className="rounded-xl px-4 py-3.5 hover:bg-primary/8 transition-colors">
+                        <div key={notification.id} className="px-4 py-3.5 hover:bg-primary/8 transition-colors">
                           <div className="flex items-start gap-3">
                             <div>
                               <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-headline text-sm font-bold text-on-background">
+                                <h4 className="font-headline text-sm font-bold uppercase text-on-background">
                                   {notification.title}
                                 </h4>
                                 <span
-                                  className={`text-[8px] font-headline font-bold tracking-normal px-2 py-0.5 rounded ${
+                                  className={`text-[8px] font-headline font-bold uppercase tracking-widest px-2 py-0.5 rounded ${
                                     notification.type === 'info'
                                       ? 'bg-primary/10 text-primary'
                                       : notification.type === 'success'
@@ -404,7 +407,7 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
           ) : null}
         </div>
         <button
-          className="rounded-full hidden sm:inline-flex px-4 xl:px-5 py-2.5 border border-outline-variant bg-surface-container-lowest text-on-surface-variant font-headline text-xs font-bold hover:bg-surface-container-high hover:text-on-surface transition-colors"
+          className="hidden sm:inline-flex px-3 xl:px-4 py-2 border border-outline text-on-surface-variant font-headline text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container-high hover:text-on-surface transition-colors"
           onClick={() => setConfirmLogoutOpen(true)}
           type="button"
         >
@@ -415,32 +418,34 @@ function Navbar({ config, isSidebarOpen, onLogout, onToggleSidebar }) {
 
       {confirmLogoutOpen ? (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
-          <section className="w-full max-w-md rounded-3xl border border-outline-variant bg-surface-container-lowest shadow-lift overflow-hidden">
-            <div className="p-6">
-              <p className="font-headline text-xs font-bold text-primary">Account</p>
-              <h2 className="mt-2 font-headline text-2xl font-extrabold text-on-background">
-                Sign out of Minerva?
+          <section className="w-full max-w-md border border-outline-variant bg-surface-container-lowest shadow-2xl">
+            <div className="border-t-4 border-primary p-6">
+              <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-primary">
+                Session Control
+              </p>
+              <h2 className="mt-3 font-headline text-3xl font-black uppercase text-on-background">
+                Confirm Logout
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-on-surface-variant">
-                Any unsaved lesson answers, notes or workspace changes may be lost.
+                Are you sure you want to leave the platform? Any unsaved room answers, notes, or terminal context may be lost.
               </p>
               <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button
-                  className="rounded-full bg-surface-container-high px-5 py-3 font-headline text-sm font-bold text-on-background hover:bg-surface-container-highest"
+                  className="bg-surface-container-high px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-background hover:bg-surface-container-highest"
                   onClick={() => setConfirmLogoutOpen(false)}
                   type="button"
                 >
-                  Stay signed in
+                  Stay Logged In
                 </button>
                 <button
-                  className="rounded-full bg-primary px-5 py-3 font-headline text-sm font-bold text-on-primary hover:bg-primary/90"
+                  className="bg-primary px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-primary hover:bg-primary/90"
                   onClick={() => {
                     setConfirmLogoutOpen(false)
                     onLogout()
                   }}
                   type="button"
                 >
-                  Sign out
+                  Logout
                 </button>
               </div>
             </div>

@@ -15,7 +15,7 @@ const markdownPreviewClassName =
   '[&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary-container [&_hr]:my-6 [&_hr]:border-outline-variant/40 ' +
   '[&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:bg-surface-container-low [&_blockquote]:px-4 [&_blockquote]:py-3 [&_blockquote]:my-4 [&_blockquote]:italic ' +
   '[&_img]:max-w-full [&_img]:my-5 [&_img]:border [&_img]:border-outline-variant/30 ' +
-  '[&_table]:w-full [&_table]:border-collapse [&_table]:my-5 [&_th]:text-left [&_th]:text-xs [&_th]:tracking-normal [&_th]:font-headline [&_th]:bg-surface-container-high [&_th]:p-3 [&_th]:border [&_th]:border-outline-variant/30 [&_td]:p-3 [&_td]:border [&_td]:border-outline-variant/30'
+  '[&_table]:w-full [&_table]:border-collapse [&_table]:my-5 [&_th]:text-left [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-widest [&_th]:font-headline [&_th]:bg-surface-container-high [&_th]:p-3 [&_th]:border [&_th]:border-outline-variant/30 [&_td]:p-3 [&_td]:border [&_td]:border-outline-variant/30'
 
 function createLocalNote() {
   return {
@@ -274,11 +274,11 @@ function NotesPage() {
   }
 
   return (
-    <div className="rounded-2xl bg-surface min-h-screen p-6 lg:p-10 mt-16 md:mt-20">
+    <div className="bg-surface min-h-screen p-6 lg:p-10 mt-16 md:mt-20">
       <div className="flex flex-col gap-6 h-[calc(100vh-8rem)] min-h-[680px]">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <span className="font-label text-xs tracking-normal text-primary font-bold">
+            <span className="font-label text-xs tracking-[0.3em] text-primary font-bold uppercase">
               Operator Notebook
             </span>
             <h1 className="text-4xl font-black tracking-tight text-on-background font-headline mt-2">
@@ -286,11 +286,11 @@ function NotesPage() {
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+            <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
               {isSaving ? 'Saving...' : 'Synced to database'}
             </span>
             <button
-              className="rounded-xl inline-flex items-center gap-2 px-4 py-3 bg-primary text-on-primary font-label text-xs tracking-normal font-bold hover:bg-primary-container transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-3 bg-primary text-on-primary font-label uppercase text-xs tracking-widest font-bold hover:bg-primary-container transition-colors"
               onClick={handleCreateNote}
               type="button"
             >
@@ -301,18 +301,18 @@ function NotesPage() {
         </div>
 
         {error ? (
-          <div className="rounded-xl border-l-4 border-l-error bg-error/10 px-4 py-3 text-error font-body text-sm">
+          <div className="border-l-4 border-l-error bg-error/10 px-4 py-3 text-error font-body text-sm">
             {error}
           </div>
         ) : null}
 
         <div className="grid grid-cols-1 xl:grid-cols-[18rem_minmax(0,1fr)] gap-6 flex-1 min-h-0">
-          <aside className="rounded-xl bg-surface-container-low border border-outline-variant/40 flex flex-col min-h-0">
-            <div className="rounded-xl px-4 py-3 border-b border-outline-variant/40 flex items-center justify-between">
-              <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+          <aside className="bg-surface-container-low border border-outline-variant/40 flex flex-col min-h-0">
+            <div className="px-4 py-3 border-b border-outline-variant/40 flex items-center justify-between">
+              <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                 Notes
               </span>
-              <span className="font-headline text-xs text-primary font-bold">{notes.length}</span>
+              <span className="font-space text-xs text-primary font-bold">{notes.length}</span>
             </div>
             <div className="overflow-y-auto flex-1">
               {isLoading ? (
@@ -320,7 +320,7 @@ function NotesPage() {
               ) : notes.length ? (
                 notes.map((note) => (
                   <button
-                    className={`rounded-2xl w-full text-left px-4 py-4 border-b border-outline-variant/30 transition-colors ${
+                    className={`w-full text-left px-4 py-4 border-b border-outline-variant/30 transition-colors ${
                       note.id === activeNoteId
                         ? 'bg-surface-container-highest text-on-background'
                         : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
@@ -331,13 +331,13 @@ function NotesPage() {
                     }}
                     type="button"
                   >
-                    <span className="block font-headline text-sm font-bold truncate">
+                    <span className="block font-headline text-sm font-bold uppercase truncate">
                       {note.title || 'Untitled note'}
                     </span>
                     <span className="block font-body text-xs mt-1 truncate">
                       {String(note.content || '').replace(/\s+/g, ' ').slice(0, 90) || 'Empty note'}
                     </span>
-                    <span className="block font-label text-[9px] tracking-normal mt-2 text-primary">
+                    <span className="block font-label text-[9px] uppercase tracking-widest mt-2 text-primary">
                       {formatDate(note.updatedAt)}
                     </span>
                   </button>
@@ -350,8 +350,8 @@ function NotesPage() {
             </div>
           </aside>
 
-          <section className="rounded-xl bg-surface-container-lowest border border-outline-variant/40 flex flex-col min-h-0">
-            <div className="rounded-2xl px-5 py-4 border-b border-outline-variant/40 flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
+          <section className="bg-surface-container-lowest border border-outline-variant/40 flex flex-col min-h-0">
+            <div className="px-5 py-4 border-b border-outline-variant/40 flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
               <input
                 className="bg-transparent outline-none font-headline text-2xl lg:text-3xl font-black tracking-tight text-on-background min-w-0 flex-1"
                 onBlur={() => {
@@ -363,9 +363,9 @@ function NotesPage() {
                 value={draft.title}
               />
               <div className="flex items-center gap-2 shrink-0">
-                <div className="rounded-xl bg-surface-container-low p-1 flex">
+                <div className="bg-surface-container-low p-1 flex">
                   <button
-                    className={`px-3 py-2 font-label text-[10px] tracking-normal font-bold ${
+                    className={`px-3 py-2 font-label text-[10px] uppercase tracking-widest font-bold ${
                       mode === 'edit' ? 'bg-surface-container-lowest text-primary' : 'text-on-surface-variant'
                     }`}
                     onClick={() => setMode('edit')}
@@ -374,7 +374,7 @@ function NotesPage() {
                     Edit
                   </button>
                   <button
-                    className={`px-3 py-2 font-label text-[10px] tracking-normal font-bold ${
+                    className={`px-3 py-2 font-label text-[10px] uppercase tracking-widest font-bold ${
                       mode === 'preview' ? 'bg-surface-container-lowest text-primary' : 'text-on-surface-variant'
                     }`}
                     onClick={() => setMode('preview')}
@@ -384,7 +384,7 @@ function NotesPage() {
                   </button>
                 </div>
                 <button
-                  className="rounded-xl inline-flex items-center justify-center h-10 w-10 text-error hover:bg-error/10 transition-colors"
+                  className="inline-flex items-center justify-center h-10 w-10 text-error hover:bg-error/10 transition-colors"
                   onClick={handleDeleteNote}
                   title="Delete note"
                   type="button"
@@ -397,7 +397,7 @@ function NotesPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 flex-1 min-h-0">
               <textarea
                 ref={contentEditorRef}
-                className={`rounded-2xl w-full h-full min-h-[420px] resize-none bg-surface-container-lowest border-0 outline-none p-6 font-headline text-sm leading-7 text-on-background ${
+                className={`w-full h-full min-h-[420px] resize-none bg-surface-container-lowest border-0 outline-none p-6 font-space text-sm leading-7 text-on-background ${
                   mode === 'preview' ? 'hidden lg:block' : 'block'
                 }`}
                 onBlur={() => {

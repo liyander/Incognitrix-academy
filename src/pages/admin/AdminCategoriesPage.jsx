@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import { createRoomCategory, fetchRoomCategories, getRoomCategories, removeRoomCategory } from '../../data/categoriesData'
-import { getCoursesData } from '../../data/coursesData'
+import { getRoomsData } from '../../data/roomsData'
 
 function AdminCategoriesPage() {
   const navigate = useNavigate()
@@ -10,11 +10,11 @@ function AdminCategoriesPage() {
   const [categoryToDelete, setCategoryToDelete] = useState(null)
   const [deleteError, setDeleteError] = useState('')
   const [categories, setCategories] = useState(() =>
-    getRoomCategories(getCoursesData().map((room) => room.category)),
+    getRoomCategories(getRoomsData().map((room) => room.category)),
   )
   const roomCounts = useMemo(() => {
     const counts = new Map()
-    getCoursesData().forEach((room) => {
+    getRoomsData().forEach((room) => {
       const category = room.category || 'Uncategorized'
       counts.set(category, (counts.get(category) || 0) + 1)
     })
@@ -22,12 +22,12 @@ function AdminCategoriesPage() {
   }, [])
 
   const refreshCategories = async () => {
-    setCategories(await fetchRoomCategories(getCoursesData().map((room) => room.category)))
+    setCategories(await fetchRoomCategories(getRoomsData().map((room) => room.category)))
   }
 
   useEffect(() => {
     let cancelled = false
-    fetchRoomCategories(getCoursesData().map((room) => room.category)).then((nextCategories) => {
+    fetchRoomCategories(getRoomsData().map((room) => room.category)).then((nextCategories) => {
       if (!cancelled) {
         setCategories(nextCategories)
       }
@@ -73,9 +73,9 @@ function AdminCategoriesPage() {
   }
 
   return (
-    <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10">
+    <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
       <section className="max-w-5xl mx-auto">
-        <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 mb-8">
+        <header className="bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 mb-8">
           <div className="flex items-center gap-4 mb-4">
             <button
               className="text-primary hover:text-on-surface transition-colors"
@@ -84,11 +84,11 @@ function AdminCategoriesPage() {
             >
               <span className="material-symbols-outlined">arrow_back</span>
             </button>
-            <span className="font-headline text-[10px] tracking-normal text-primary font-bold">
+            <span className="font-headline text-[10px] tracking-[0.25em] uppercase text-primary font-bold">
               Category Control
             </span>
           </div>
-          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight">
+          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight uppercase">
             Room Categories
           </h1>
           <p className="text-sm text-on-surface-variant mt-4 max-w-2xl">
@@ -96,13 +96,13 @@ function AdminCategoriesPage() {
           </p>
         </header>
 
-        <section className="rounded-2xl bg-surface-container-lowest p-8 mb-8">
-          <h2 className="font-headline text-xl font-bold tracking-tight mb-6">
+        <section className="bg-surface-container-lowest p-8 mb-8">
+          <h2 className="font-headline text-xl font-bold uppercase tracking-tight mb-6">
             Add Category
           </h2>
           <div className="flex flex-col md:flex-row gap-4">
             <input
-              className="rounded-xl flex-1 bg-surface-container-highest border-l-2 border-l-primary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+              className="flex-1 bg-surface-container-highest border-l-2 border-l-primary focus:ring-0 font-body text-sm py-3 px-4 outline-none"
               onChange={(event) => setCategoryInput(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
@@ -114,7 +114,7 @@ function AdminCategoriesPage() {
               value={categoryInput}
             />
             <button
-              className="rounded-xl bg-primary text-on-primary px-6 py-3 font-headline text-xs font-bold tracking-normal"
+              className="bg-primary text-on-primary px-6 py-3 font-headline text-xs font-bold uppercase tracking-widest"
               onClick={() => void handleAddCategory()}
               type="button"
             >
@@ -123,23 +123,23 @@ function AdminCategoriesPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl bg-surface-container-lowest p-8">
+        <section className="bg-surface-container-lowest p-8">
           <div className="flex items-end justify-between gap-4 mb-6">
             <div>
-              <h2 className="font-headline text-xl font-bold tracking-tight">
+              <h2 className="font-headline text-xl font-bold uppercase tracking-tight">
                 Available Categories
               </h2>
               <p className="text-xs text-on-surface-variant mt-1">
                 Categories assigned to rooms are locked until those rooms are reassigned.
               </p>
             </div>
-            <span className="font-label text-[10px] tracking-normal text-primary font-bold">
+            <span className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">
               {categories.length} Total
             </span>
           </div>
 
           {deleteError ? (
-            <div className="rounded-xl mb-5 border-l-4 border-l-error bg-error/10 px-4 py-3 text-sm text-error">
+            <div className="mb-5 border-l-4 border-l-error bg-error/10 px-4 py-3 text-sm text-error">
               {deleteError}
             </div>
           ) : null}
@@ -149,14 +149,14 @@ function AdminCategoriesPage() {
               const roomCount = roomCounts.get(category) || 0
               return (
                 <div
-                  className="rounded-2xl bg-surface-container-high p-5 flex items-center justify-between gap-4"
+                  className="bg-surface-container-high p-5 flex items-center justify-between gap-4"
                   key={category}
                 >
                   <div>
-                    <p className="font-headline text-sm font-bold tracking-wide">
+                    <p className="font-headline text-sm font-bold uppercase tracking-wide">
                       {category}
                     </p>
-                    <p className="text-[10px] text-on-surface-variant mt-1 tracking-normal">
+                    <p className="text-[10px] text-on-surface-variant mt-1 uppercase tracking-widest">
                       {roomCount} room{roomCount === 1 ? '' : 's'}
                     </p>
                   </div>

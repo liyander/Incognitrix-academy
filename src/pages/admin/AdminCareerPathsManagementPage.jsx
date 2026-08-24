@@ -76,20 +76,20 @@ function AdminCareerPathsManagementPage() {
       case 'Intermediate':
         return 'bg-amber-500/20 text-amber-600'
       case 'Expert':
-        return 'bg-error/20 text-error'
+        return 'bg-red-500/20 text-red-600'
       case 'Critical':
-        return 'bg-error/20 text-error'
+        return 'bg-red-700/20 text-red-700'
       case 'Advanced':
-        return 'bg-error/20 text-error'
+        return 'bg-red-500/20 text-red-600'
       default:
         return 'bg-primary/20 text-primary'
     }
   }
 
   return (
-    <main className="rounded-2xl min-h-screen bg-surface px-6 md:px-10 py-10">
+    <main className="min-h-screen bg-surface px-6 md:px-10 py-10">
       <section className="max-w-6xl mx-auto">
-        <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-8 md:p-10 mb-8">
+        <header className="bg-surface-container-lowest border-l-4 border-secondary p-8 md:p-10 mb-8">
           <div className="flex items-center gap-4 mb-4">
             <button
               className="text-secondary hover:text-on-surface transition-colors"
@@ -98,11 +98,11 @@ function AdminCareerPathsManagementPage() {
             >
               <span className="material-symbols-outlined">arrow_back</span>
             </button>
-            <span className="font-headline text-[10px] tracking-normal text-secondary font-bold">
+            <span className="font-headline text-[10px] tracking-[0.25em] uppercase text-secondary font-bold">
               Content Management
             </span>
           </div>
-          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight">
+          <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight uppercase">
             Manage Career Paths
           </h1>
           <p className="text-sm text-on-surface-variant mt-4 max-w-2xl">
@@ -110,7 +110,7 @@ function AdminCareerPathsManagementPage() {
           </p>
           <div className="mt-6">
             <button
-              className="rounded-lg bg-secondary text-on-secondary px-5 py-2.5 font-headline text-xs font-bold tracking-normal"
+              className="bg-secondary text-on-secondary px-5 py-2.5 font-headline text-xs font-bold uppercase tracking-widest"
               onClick={() => navigate('/admin/career-paths/new')}
               type="button"
             >
@@ -121,7 +121,7 @@ function AdminCareerPathsManagementPage() {
 
         <div className="mb-6">
           <input
-            className="rounded-xl w-full bg-surface-container-lowest border-l-2 border-l-secondary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+            className="w-full bg-surface-container-lowest border-l-2 border-l-secondary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search career paths..."
             type="text"
@@ -132,23 +132,23 @@ function AdminCareerPathsManagementPage() {
         <div className="grid grid-cols-1 gap-4">
           {filteredPaths.map((path) => (
             <div
-              className="rounded-2xl bg-surface-container-lowest p-6 hover:bg-surface-container-high transition-colors text-left border-l-4 border-secondary/30 hover:border-secondary flex items-start justify-between cursor-pointer"
+              className="bg-surface-container-lowest p-6 hover:bg-surface-container-high transition-colors text-left border-l-4 border-secondary/30 hover:border-secondary flex items-start justify-between cursor-pointer"
               key={path.id}
               onClick={() => navigate(`/admin/career-paths/${path.id}`)}
             >
               <div className="flex-1">
                 <div className="flex flex-wrap gap-2 mb-3">
                   <span
-                    className={`px-2 py-1 font-label text-[10px] font-bold tracking-normal rounded ${getDifficultyColor(path.difficulty)}`}
+                    className={`px-2 py-1 font-label text-[10px] font-bold uppercase tracking-wider rounded ${getDifficultyColor(path.difficulty)}`}
                   >
                     {path.learningPathLevel || path.difficulty || 'N/A'}
                   </span>
-                  <span className="bg-secondary-container text-on-secondary-container px-2 py-1 font-label text-[10px] font-bold tracking-normal rounded flex items-center gap-1">
+                  <span className="bg-secondary-container text-on-secondary-container px-2 py-1 font-label text-[10px] font-bold uppercase tracking-wider rounded flex items-center gap-1">
                     <span className="material-symbols-outlined text-xs">{path.icon}</span>
                     {path.modules.length} Module{path.modules.length !== 1 ? 's' : ''}
                   </span>
                 </div>
-                <h3 className="font-headline text-lg font-bold mb-2">{path.title}</h3>
+                <h3 className="font-headline text-lg font-bold uppercase mb-2">{path.title}</h3>
                 <p className="text-sm text-on-surface-variant max-w-2xl line-clamp-2">
                   {path.description}
                 </p>
@@ -184,7 +184,7 @@ function AdminCareerPathsManagementPage() {
           ))}
 
           {filteredPaths.length === 0 && (
-            <div className="rounded-2xl bg-surface-container-lowest p-12 text-center">
+            <div className="bg-surface-container-lowest p-12 text-center">
               <p className="text-on-surface-variant">No career paths found matching your search.</p>
             </div>
           )}

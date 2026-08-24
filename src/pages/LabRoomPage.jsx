@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
-import { getCoursesData } from '../data/coursesData'
+import { getRoomsData } from '../data/roomsData'
 import { API_BASE_URL, apiFetch, getAuthToken } from '../services/api'
 import {
   getLabStatus,
@@ -89,9 +89,9 @@ function toYouTubeEmbedUrl(input) {
   return ''
 }
 
-function CoursePage() {
-  const { courseId } = useParams()
-  const [room, setRoom] = useState(() => getCoursesData().find((item) => item.slug === courseId) || null)
+function LabRoomPage() {
+  const { labId } = useParams()
+  const [room, setRoom] = useState(() => getRoomsData().find((item) => item.slug === labId) || null)
   const [isLoadingRoom, setIsLoadingRoom] = useState(true)
   const [labStatus, setLabStatus] = useState('in-progress')
   const [questionStatus, setQuestionStatus] = useState({
@@ -149,13 +149,13 @@ function CoursePage() {
 
     const loadRoom = async () => {
       try {
-        const response = await apiFetch(`/rooms/${encodeURIComponent(courseId)}`)
+        const response = await apiFetch(`/rooms/${encodeURIComponent(labId)}`)
         if (!cancelled && response) {
           setRoom(response)
         }
       } catch {
         if (!cancelled) {
-          const fallback = getCoursesData().find((item) => item.slug === courseId) || null
+          const fallback = getRoomsData().find((item) => item.slug === labId) || null
           setRoom(fallback)
         }
       } finally {
@@ -170,7 +170,7 @@ function CoursePage() {
     return () => {
       cancelled = true
     }
-  }, [courseId])
+  }, [labId])
 
   useEffect(() => {
     if (!roomId) {
@@ -371,7 +371,7 @@ function CoursePage() {
       button.type = 'button'
       button.dataset.copyCode = 'true'
       button.className =
-        'absolute right-3 top-3 bg-surface-container-lowest border border-outline-variant/40 px-3 py-1.5 font-headline text-[9px] font-bold tracking-normal text-on-surface-variant opacity-0 transition-opacity group-hover:opacity-100 hover:text-primary'
+        'absolute right-3 top-3 bg-surface-container-lowest border border-outline-variant/40 px-3 py-1.5 font-headline text-[9px] font-bold uppercase tracking-widest text-on-surface-variant opacity-0 transition-opacity group-hover:opacity-100 hover:text-primary'
       button.textContent = 'Copy'
 
       const handleClick = async () => {
@@ -539,7 +539,7 @@ function CoursePage() {
     if (terminalTranscriptRef.current) {
       terminal.write(terminalTranscriptRef.current, settleTerminalView)
     } else {
-      writeLine('Welcome to Minerva Academy')
+      writeLine('Welcome to Incognitrix Academy')
       writeLine('Opening interactive sandbox shell...')
     }
     xtermRef.current = terminal
@@ -600,7 +600,7 @@ function CoursePage() {
   if (isLoadingRoom) {
     return (
       <main className="pt-16 md:pt-20 min-h-screen flex items-center justify-center">
-        <p className="text-on-surface-variant font-headline text-xs tracking-normal">
+        <p className="text-on-surface-variant font-headline text-xs uppercase tracking-widest">
           Loading room content...
         </p>
       </main>
@@ -867,26 +867,26 @@ function CoursePage() {
       {isAiEvaluatingAnswers ? (
         <div className="fixed inset-0 z-[95] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
           <div className="w-full max-w-md bg-surface-container-lowest border border-outline-variant/40 shadow-2xl">
-            <div className="rounded-xl h-1 bg-primary"></div>
+            <div className="h-1 bg-primary"></div>
             <div className="p-8 text-center">
-              <div className="rounded-xl mx-auto mb-6 flex h-16 w-16 items-center justify-center bg-primary/10 text-primary">
+              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center bg-primary/10 text-primary">
                 <span className="material-symbols-outlined text-4xl animate-pulse">
                   psychology
                 </span>
               </div>
-              <p className="font-label text-[10px] tracking-normal text-primary font-bold">
+              <p className="font-label text-[10px] uppercase tracking-[0.25em] text-primary font-bold">
                 AI Evaluation
               </p>
-              <h2 className="mt-3 font-headline text-2xl font-black tracking-tight text-on-background">
+              <h2 className="mt-3 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
                 Reviewing Your Answers
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-on-surface-variant">
                 AI is checking your required answers, optional interview bonus, grammar, and improvement areas.
               </p>
-              <div className="rounded-xl mt-6 h-1.5 overflow-hidden bg-surface-container-high">
+              <div className="mt-6 h-1.5 overflow-hidden bg-surface-container-high">
                 <div className="h-full w-2/3 bg-primary animate-pulse"></div>
               </div>
-              <p className="mt-4 font-headline text-[10px] tracking-normal text-on-surface-variant">
+              <p className="mt-4 font-headline text-[10px] uppercase tracking-widest text-on-surface-variant">
                 Please keep this room open
               </p>
             </div>
@@ -900,15 +900,15 @@ function CoursePage() {
             <div className="p-8 overflow-y-auto">
               <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
-                  <span className="font-label text-[10px] tracking-normal text-primary font-bold">
+                  <span className="font-label text-[10px] uppercase tracking-[0.25em] text-primary font-bold">
                     Evaluation Result
                   </span>
-                  <h2 className="font-headline text-3xl font-black tracking-tight mt-2 text-on-background">
+                  <h2 className="font-headline text-3xl font-black uppercase tracking-tight mt-2 text-on-background">
                     {resultModal.passed ? 'Passed' : 'Not Passed'}
                   </h2>
                 </div>
                 <button
-                  className="rounded-xl inline-flex items-center justify-center h-10 w-10 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
+                  className="inline-flex items-center justify-center h-10 w-10 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
                   onClick={() => setResultModal(null)}
                   type="button"
                   aria-label="Close result"
@@ -919,40 +919,40 @@ function CoursePage() {
 
               {resultModal.mode === 'theoretical' || resultModal.mode === 'hybrid' ? (
                 <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="rounded-2xl bg-surface-container-low p-5">
-                    <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold mb-2">
+                  <div className="bg-surface-container-low p-5">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-2">
                       Technical
                     </p>
-                    <p className="font-headline text-4xl font-black text-primary">
+                    <p className="font-space text-4xl font-black text-primary">
                       {resultModal.technicalScore}
                     </p>
                     <p className="text-xs text-on-surface-variant mt-2">Required: 100</p>
                   </div>
-                  <div className="rounded-2xl bg-surface-container-low p-5">
-                    <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold mb-2">
+                  <div className="bg-surface-container-low p-5">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-2">
                       Grammar
                     </p>
-                    <p className="font-headline text-4xl font-black text-secondary">
+                    <p className="font-space text-4xl font-black text-secondary">
                       {resultModal.grammarScore}
                     </p>
                     <p className="text-xs text-on-surface-variant mt-2">Writing quality</p>
                   </div>
-                  <div className="rounded-2xl col-span-2 bg-surface-container-low p-4">
-                    <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold mb-1">
+                  <div className="col-span-2 bg-surface-container-low p-4">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-1">
                       Interview Bonus
                     </p>
-                    <p className="font-headline text-2xl font-black text-secondary">
+                    <p className="font-space text-2xl font-black text-secondary">
                       +{resultModal.bonusScore || 0}
                     </p>
                     <p className="text-xs text-on-surface-variant mt-1">Optional margin, up to 10</p>
                   </div>
                 </div>
               ) : (
-                <div className="rounded-2xl bg-surface-container-low p-5 mb-6">
-                  <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold mb-2">
+                <div className="bg-surface-container-low p-5 mb-6">
+                  <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-2">
                     Correct Answers
                   </p>
-                  <p className="font-headline text-4xl font-black text-primary">
+                  <p className="font-space text-4xl font-black text-primary">
                     {resultModal.correct}/{resultModal.total}
                   </p>
                 </div>
@@ -968,7 +968,7 @@ function CoursePage() {
               </p>
 
               <button
-                className="rounded-xl w-full py-3 bg-primary text-on-primary font-headline text-[10px] font-bold tracking-normal hover:bg-primary-container transition-colors"
+                className="w-full py-3 bg-primary text-on-primary font-headline text-[10px] font-bold tracking-widest uppercase hover:bg-primary-container transition-colors"
                 onClick={() => setResultModal(null)}
                 type="button"
               >
@@ -984,13 +984,13 @@ function CoursePage() {
             {roomTags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-primary-container text-on-primary-container px-3 py-1 font-label text-[10px] font-bold tracking-normal"
+                className="bg-primary-container text-on-primary-container px-3 py-1 font-label text-[10px] font-bold tracking-widest uppercase"
               >
                 {tag}
               </span>
             ))}
           </div>
-          <h1 className="text-5xl lg:text-6xl font-black tracking-tighter mb-4 text-on-background font-headline">
+          <h1 className="text-5xl lg:text-6xl font-black tracking-tighter mb-4 text-on-background uppercase font-headline">
             {room.title}
           </h1>
           <p className="text-on-surface-variant max-w-2xl text-lg font-body leading-relaxed">
@@ -1000,13 +1000,13 @@ function CoursePage() {
 
         <div className={`grid grid-cols-1 ${isTerminalSplitLayout ? 'xl:grid-cols-[minmax(0,1fr)_minmax(34rem,0.9fr)] gap-8 items-start' : 'lg:grid-cols-12 gap-12'}`}>
           <div className={`${isTerminalSplitLayout ? 'min-w-0 space-y-12' : 'lg:col-span-8 space-y-12'}`}>
-            <section className="rounded-2xl bg-surface-container-lowest p-8 relative overflow-hidden">
-              <div className="rounded-xl absolute top-0 right-0 w-32 h-32 bg-primary/5 -rotate-45 translate-x-16 -translate-y-16"></div>
+            <section className="bg-surface-container-lowest p-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 -rotate-45 translate-x-16 -translate-y-16"></div>
               <h2 className="font-headline text-2xl font-bold mb-6 flex items-center gap-3">
-                <span className="text-primary">01</span> Overview
+                <span className="text-primary">01</span> MISSION_OVERVIEW
               </h2>
               <div
-                className="space-y-4 text-on-surface font-body leading-relaxed [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:tracking-tight [&_h1]:mt-8 [&_h1]:mb-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:tracking-tight [&_h2]:mt-7 [&_h2]:mb-3 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mt-6 [&_h3]:mb-2 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4 [&_li]:mb-1.5 [&_pre]:bg-surface-container-high [&_pre]:border [&_pre]:border-outline-variant/30 [&_pre]:p-5 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:my-5 [&_code]:font-mono [&_code]:text-[0.9em] [&_code]:bg-surface-container-highest [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_a]:text-primary [&_a]:underline [&_hr]:my-6 [&_hr]:border-outline-variant/40 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:bg-surface-container-low [&_blockquote]:px-4 [&_blockquote]:py-3 [&_blockquote]:my-4 [&_table]:w-full [&_table]:border-collapse [&_table]:my-5 [&_th]:text-left [&_th]:text-xs [&_th]:tracking-normal [&_th]:font-headline [&_th]:bg-surface-container-high [&_th]:p-3 [&_th]:border [&_th]:border-outline-variant/30 [&_td]:p-3 [&_td]:border [&_td]:border-outline-variant/30"
+                className="space-y-4 text-on-surface font-body leading-relaxed [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:tracking-tight [&_h1]:mt-8 [&_h1]:mb-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:tracking-tight [&_h2]:mt-7 [&_h2]:mb-3 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mt-6 [&_h3]:mb-2 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4 [&_li]:mb-1.5 [&_pre]:bg-surface-container-high [&_pre]:border [&_pre]:border-outline-variant/30 [&_pre]:p-5 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:my-5 [&_code]:font-mono [&_code]:text-[0.9em] [&_code]:bg-surface-container-highest [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_a]:text-primary [&_a]:underline [&_hr]:my-6 [&_hr]:border-outline-variant/40 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:bg-surface-container-low [&_blockquote]:px-4 [&_blockquote]:py-3 [&_blockquote]:my-4 [&_table]:w-full [&_table]:border-collapse [&_table]:my-5 [&_th]:text-left [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-widest [&_th]:font-headline [&_th]:bg-surface-container-high [&_th]:p-3 [&_th]:border [&_th]:border-outline-variant/30 [&_td]:p-3 [&_td]:border [&_td]:border-outline-variant/30"
                 dangerouslySetInnerHTML={{ __html: missionOverviewMarkup }}
               >
               </div>
@@ -1015,11 +1015,11 @@ function CoursePage() {
             <section className="p-2 border-l border-outline-variant/30">
               <h2 className="font-headline text-2xl font-bold mb-6 flex items-center gap-3 pl-6">
                 <span className="text-primary">02</span>
-                Topic briefing
+                VULNERABILITY_BRIEFING
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pl-6">
-                <div className="rounded-2xl bg-surface-container-low p-6">
-                  <h3 className="font-headline text-xs font-bold tracking-normal text-primary mb-3">
+                <div className="bg-surface-container-low p-6">
+                  <h3 className="font-headline text-xs font-bold tracking-widest uppercase text-primary mb-3">
                     Definition
                   </h3>
                   <div
@@ -1027,8 +1027,8 @@ function CoursePage() {
                     dangerouslySetInnerHTML={{ __html: vulnerabilityDefinitionMarkup }}
                   ></div>
                 </div>
-                <div className="rounded-2xl bg-surface-container-low p-6">
-                  <h3 className="font-headline text-xs font-bold tracking-normal text-primary mb-3">
+                <div className="bg-surface-container-low p-6">
+                  <h3 className="font-headline text-xs font-bold tracking-widest uppercase text-primary mb-3">
                     Impact
                   </h3>
                   <div
@@ -1039,9 +1039,9 @@ function CoursePage() {
               </div>
             </section>
 
-            <section className="rounded-2xl bg-surface-container-lowest p-8">
+            <section className="bg-surface-container-lowest p-8">
               <h2 className="font-headline text-2xl font-bold mb-6 flex items-center gap-3">
-                <span className="text-primary">03</span> Deep dive
+                <span className="text-primary">03</span> TECHNICAL_DEEP_DIVE
               </h2>
               <div className="space-y-6">
                 <div
@@ -1056,7 +1056,7 @@ function CoursePage() {
                       className="absolute inset-0 h-full w-full"
                       referrerPolicy="strict-origin-when-cross-origin"
                       src={youtubeEmbedUrl}
-                      title="Course walkthrough video"
+                      title="Room walkthrough video"
                     ></iframe>
                   ) : (
                     <>
@@ -1065,11 +1065,11 @@ function CoursePage() {
                         className="absolute inset-0 w-full h-full object-cover opacity-20 grayscale"
                         src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvAt-0JW07N76LyAzfo2fdJ5rClw4KqFDM3mwsBWdDTmv-2_e8-lwHPSpO1fMUKIPqvqaiE5UU8MJ5g57pCHOwIXd2a3Jqj1ZQ7y7SD3fAOMpWfNsBZCnJUuhu2bTK2qOEveqZmBe2HclDQj5B1X16u5FjdKT9f15K5LaeyHgREIXf-UBum34rsfFp_T_tYzqry6b0EpxoPZh_GE-51Dm_XL_NpcSZ_8Z_s_-OZlc0b4HgAPUmCoLPJM7hR4GaFqzV5q5Af_aY27o"
                       />
-                      <div className="rounded-2xl z-10 text-center p-8 bg-surface/90 backdrop-blur-md border border-primary/20">
+                      <div className="z-10 text-center p-8 bg-surface/90 backdrop-blur-md border border-primary/20">
                         <span className="material-symbols-outlined text-4xl text-primary mb-2">
                           schema
                         </span>
-                        <p className="font-headline font-bold text-xs tracking-normal">
+                        <p className="font-headline font-bold text-xs tracking-widest uppercase">
                           Logic Alteration Visualization
                         </p>
                         <p className="text-[10px] text-on-surface-variant mt-1">
@@ -1087,16 +1087,16 @@ function CoursePage() {
             {isTerminalSplit ? (
               <div className={`${isTerminalMinimized ? 'fixed -left-[10000px] top-0 h-[640px] w-[640px] overflow-hidden opacity-0 pointer-events-none' : 'min-h-[560px] xl:min-h-[640px]'}`}>
                 <div className="flex h-[min(72vh,48rem)] min-h-[560px] flex-col border border-outline-variant bg-surface-container-lowest text-on-surface shadow-2xl xl:h-[calc(100vh-7rem)]">
-                  <div className="rounded-xl flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-4 py-3 dark:border-[#24313a] dark:bg-[#10161a]">
+                  <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-4 py-3 dark:border-[#24313a] dark:bg-[#10161a]">
                     <div className="flex items-center gap-3">
                       <span className="h-3 w-3 rounded-full bg-primary"></span>
                       <span className="h-3 w-3 rounded-full bg-secondary"></span>
                       <span className="h-3 w-3 rounded-full bg-outline-variant"></span>
                       <div>
-                        <p className="font-headline text-[9px] font-bold tracking-normal text-primary">
+                        <p className="font-headline text-[9px] font-bold uppercase tracking-[0.25em] text-primary">
                           Split Terminal
                         </p>
-                        <h3 className="font-headline text-lg font-black tracking-tight text-on-background">
+                        <h3 className="font-headline text-lg font-black uppercase tracking-tight text-on-background">
                           Sandbox Shell
                         </h3>
                       </div>
@@ -1122,18 +1122,18 @@ function CoursePage() {
                   </div>
 
                   <div className="flex min-h-0 flex-1 flex-col p-4">
-                    <div className="rounded-xl mb-3 flex flex-wrap items-center justify-between gap-3 border border-outline-variant bg-surface-container-lowest px-4 py-3 dark:border-[#233039] dark:bg-[#0b0f12]">
-                      <p className="font-headline text-xs text-on-surface-variant dark:text-[#9ed8e8]">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border border-outline-variant bg-surface-container-lowest px-4 py-3 dark:border-[#233039] dark:bg-[#0b0f12]">
+                      <p className="font-space text-xs text-on-surface-variant dark:text-[#9ed8e8]">
                         Commands run inside your personal challenge sandbox.
                       </p>
                       {dockerStatus.access?.url && isDockerServiceActive ? (
-                        <p className="font-headline text-xs text-secondary break-all">
+                        <p className="font-space text-xs text-secondary break-all">
                           target: proxied through platform
                         </p>
                       ) : null}
                     </div>
 
-                    <div className="rounded-xl min-h-0 flex-1 overflow-hidden border border-outline-variant bg-surface-container-lowest p-3 shadow-[inset_0_0_28px_rgba(25,28,30,0.08)] dark:border-[#26343d] dark:bg-[#020405]">
+                    <div className="min-h-0 flex-1 overflow-hidden border border-outline-variant bg-surface-container-lowest p-3 shadow-[inset_0_0_28px_rgba(25,28,30,0.08)] dark:border-[#26343d] dark:bg-[#020405]">
                       {isDockerServiceActive ? (
                         <div
                           className="h-full w-full pb-6 [&_.xterm]:h-full [&_.xterm-screen]:!h-full [&_.xterm-viewport]:!bg-[#fbfcfd] dark:[&_.xterm-viewport]:!bg-[#020405]"
@@ -1141,9 +1141,9 @@ function CoursePage() {
                           ref={xtermHostRef}
                         ></div>
                       ) : (
-                        <div className="space-y-3 p-5 font-headline text-sm text-on-surface-variant dark:text-[#9ed8e8]">
+                        <div className="space-y-3 p-5 font-space text-sm text-on-surface-variant dark:text-[#9ed8e8]">
                           <pre className="whitespace-pre-wrap text-secondary">
-{`Welcome to Minerva Academy
+{`Welcome to Incognitrix Academy
 Interactive sandbox terminal waiting for Docker spawn.`}
                           </pre>
                           <p>Spawn the Docker service, then open terminal access for a real interactive shell.</p>
@@ -1155,8 +1155,8 @@ Interactive sandbox terminal waiting for Docker spawn.`}
               </div>
             ) : null}
 
-            <div className="rounded-2xl bg-secondary text-on-secondary p-8">
-              <h2 className="font-headline text-xl font-bold mb-6 flex items-center gap-3 tracking-tight">
+            <div className="bg-secondary text-on-secondary p-8">
+              <h2 className="font-headline text-xl font-bold mb-6 flex items-center gap-3 uppercase tracking-tight">
                 <span className="material-symbols-outlined">shield_with_heart</span>{' '}
                 Remediation_Protocols
               </h2>
@@ -1166,10 +1166,10 @@ Interactive sandbox terminal waiting for Docker spawn.`}
               ></div>
             </div>
 
-            <div className="rounded-2xl bg-surface-container-low p-8 border-t-2 border-primary">
+            <div className="bg-surface-container-low p-8 border-t-2 border-primary">
               <div className="grid grid-cols-2 gap-6 mb-8">
                 <div>
-                  <p className="font-headline text-[10px] tracking-normal text-on-surface-variant mb-1">
+                  <p className="font-headline text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">
                     Difficulty
                   </p>
                   <p className="font-headline font-bold text-lg">
@@ -1177,25 +1177,25 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                   </p>
                 </div>
                 <div>
-                  <p className="font-headline text-[10px] tracking-normal text-on-surface-variant mb-1">
+                  <p className="font-headline text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">
                     Estimated Time
                   </p>
                   <p className="font-headline font-bold text-lg">{(room.estimateTime || 'N/A').toUpperCase()}</p>
                 </div>
                 <div>
-                  <p className="font-headline text-[10px] tracking-normal text-on-surface-variant mb-1">
+                  <p className="font-headline text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">
                     Environment
                   </p>
                   <p className="font-headline font-bold text-lg">{(room.environment || 'N/A').toUpperCase()}</p>
                 </div>
                 <div>
-                  <p className="font-headline text-[10px] tracking-normal text-on-surface-variant mb-1">
+                  <p className="font-headline text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">
                     XP Reward
                   </p>
                   <p className="font-headline font-bold text-lg">{(room.xp || 'N/A').toUpperCase()}</p>
                 </div>
                 <div>
-                  <p className="font-headline text-[10px] tracking-normal text-on-surface-variant mb-1">
+                  <p className="font-headline text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">
                     Room Type
                   </p>
                   <p className="font-headline font-bold text-lg">{roomType.toUpperCase()}</p>
@@ -1203,12 +1203,12 @@ Interactive sandbox terminal waiting for Docker spawn.`}
               </div>
               {roomAttachment?.dataUrl ? (
                 <a
-                  className="rounded-2xl mb-8 flex items-center justify-between gap-4 bg-surface-container-high p-4 border-l-2 border-l-secondary hover:bg-surface-container-highest transition-colors"
+                  className="mb-8 flex items-center justify-between gap-4 bg-surface-container-high p-4 border-l-2 border-l-secondary hover:bg-surface-container-highest transition-colors"
                   download={roomAttachment.name || 'lab-file'}
                   href={roomAttachment.dataUrl}
                 >
                   <span>
-                    <span className="block font-headline text-[10px] font-bold tracking-normal text-secondary">
+                    <span className="block font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
                       Lab File
                     </span>
                     <span className="mt-1 block text-sm text-on-surface">
@@ -1222,7 +1222,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                 </a>
               ) : null}
               <div className="space-y-4">
-                <h3 className="font-headline text-xs font-black tracking-normal text-primary border-b border-primary/20 pb-2">
+                <h3 className="font-headline text-xs font-black tracking-[0.2em] uppercase text-primary border-b border-primary/20 pb-2">
                   Required Keywords
                 </h3>
                 <div className="flex flex-wrap gap-2">
@@ -1230,7 +1230,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                     keywordTags.map((keyword) => (
                       <span
                         key={keyword}
-                        className="rounded-full text-[10px] font-headline border border-outline-variant px-2 py-1"
+                        className="text-[10px] font-headline border border-outline-variant px-2 py-1"
                       >
                         {keyword}
                       </span>
@@ -1246,7 +1246,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
 
             <div className="space-y-4">
               <button
-                className="rounded-2xl w-full group relative bg-primary hover:bg-primary-container text-on-primary p-6 transition-all disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full group relative bg-primary hover:bg-primary-container text-on-primary p-6 transition-all disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={!dockerAvailable}
                 onClick={() => {
                   setTerminalLayout('overlay')
@@ -1256,19 +1256,19 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                 type="button"
               >
                 <div className="flex justify-between items-center">
-                  <span className="font-headline text-xl font-bold tracking-tighter italic">
+                  <span className="font-headline text-xl font-bold uppercase tracking-tighter italic">
                     Access Terminal
                   </span>
                   <span className="material-symbols-outlined group-hover:translate-x-2 transition-transform">
                     open_in_full
                   </span>
                 </div>
-                <div className="rounded-xl absolute bottom-0 left-0 h-1 bg-white/20 w-full"></div>
+                <div className="absolute bottom-0 left-0 h-1 bg-white/20 w-full"></div>
               </button>
               {dockerAvailable ? (
                 <div className="grid grid-cols-2 gap-3">
                   <button
-                    className="rounded-xl bg-surface-container-high px-4 py-3 font-headline text-[10px] font-bold tracking-normal text-on-surface hover:text-secondary disabled:opacity-60"
+                    className="bg-surface-container-high px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface hover:text-secondary disabled:opacity-60"
                     disabled={!dockerAvailable}
                     onClick={() => {
                       setTerminalLayout('split')
@@ -1280,7 +1280,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                     Split Screen
                   </button>
                   <button
-                    className="rounded-xl bg-surface-container-high px-4 py-3 font-headline text-[10px] font-bold tracking-normal text-on-surface hover:text-primary disabled:opacity-60"
+                    className="bg-surface-container-high px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface hover:text-primary disabled:opacity-60"
                     disabled={!isTerminalOpen}
                     onClick={() => setIsTerminalMinimized(true)}
                     type="button"
@@ -1291,7 +1291,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
               ) : null}
               {isTerminalOpen && isTerminalMinimized ? (
                 <button
-                  className="rounded-xl w-full border border-outline-variant bg-surface-container-high px-4 py-3 text-left font-headline text-[10px] font-bold tracking-normal text-secondary hover:border-secondary"
+                  className="w-full border border-outline-variant bg-surface-container-high px-4 py-3 text-left font-headline text-[10px] font-bold uppercase tracking-widest text-secondary hover:border-secondary"
                   onClick={() => {
                     setIsTerminalMinimized(false)
                     setTerminalLayout(terminalLayout || 'overlay')
@@ -1304,7 +1304,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                   </span>
                 </button>
               ) : null}
-              <p className="text-[10px] font-headline text-on-surface-variant text-center tracking-normal">
+              <p className="text-[10px] font-headline text-on-surface-variant text-center tracking-[0.15em] uppercase">
                 Ready for deployment? Ensure secure connection protocols are
                 active.
               </p>
@@ -1315,22 +1315,22 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                   : 'fixed inset-0 z-[120] bg-surface text-on-surface'}
                 >
                   <div className="flex h-full flex-col">
-                    <div className="rounded-xl flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-5 py-3 dark:border-[#24313a] dark:bg-[#10161a]">
+                    <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-5 py-3 dark:border-[#24313a] dark:bg-[#10161a]">
                       <div className="flex items-center gap-3">
                         <span className="h-3 w-3 rounded-full bg-primary"></span>
                         <span className="h-3 w-3 rounded-full bg-secondary"></span>
                         <span className="h-3 w-3 rounded-full bg-outline-variant"></span>
                         <div className="ml-3">
-                          <p className="font-headline text-[10px] font-bold tracking-normal text-primary">
+                          <p className="font-headline text-[10px] font-bold uppercase tracking-[0.35em] text-primary">
                             Browser Terminal
                           </p>
-                          <h3 className="font-headline text-xl font-black tracking-tight text-on-background">
+                          <h3 className="font-headline text-xl font-black uppercase tracking-tight text-on-background">
                             Sandbox Shell
                           </h3>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
-                        <span className={`font-headline text-[10px] font-bold tracking-normal ${isDockerServiceActive ? 'text-secondary' : 'text-primary'}`}>
+                        <span className={`font-headline text-[10px] font-bold uppercase tracking-widest ${isDockerServiceActive ? 'text-secondary' : 'text-primary'}`}>
                           {isDockerServiceActive ? 'Ready' : 'Spawn Required'}
                         </span>
                         <button
@@ -1363,21 +1363,21 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                     </div>
 
                     <div className="flex min-h-0 flex-1 flex-col px-5 py-4">
-                      <div className="rounded-xl mb-3 flex flex-wrap items-center justify-between gap-3 border border-outline-variant bg-surface-container-lowest px-4 py-3 dark:border-[#233039] dark:bg-[#0b0f12]">
-                        <p className="font-headline text-xs text-on-surface-variant dark:text-[#9ed8e8]">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border border-outline-variant bg-surface-container-lowest px-4 py-3 dark:border-[#233039] dark:bg-[#0b0f12]">
+                        <p className="font-space text-xs text-on-surface-variant dark:text-[#9ed8e8]">
                           Commands run inside your personal challenge sandbox. Uploaded files appear in /challenge only when enabled by admin.
                         </p>
                         {dockerStatus.access?.url && isDockerServiceActive ? (
-                          <p className="font-headline text-xs text-secondary">
+                          <p className="font-space text-xs text-secondary">
                             target: proxied through platform
                           </p>
                         ) : null}
-                        <p className="font-headline text-xs text-on-surface-variant dark:text-[#9ed8e8]">
+                        <p className="font-space text-xs text-on-surface-variant dark:text-[#9ed8e8]">
                           mode: interactive shell
                         </p>
                       </div>
 
-                      <div className="rounded-xl min-h-0 flex-1 overflow-hidden border border-outline-variant bg-surface-container-lowest p-3 shadow-[inset_0_0_28px_rgba(25,28,30,0.08)] dark:border-[#26343d] dark:bg-[#020405] dark:shadow-[inset_0_0_40px_rgba(0,0,0,0.7)]">
+                      <div className="min-h-0 flex-1 overflow-hidden border border-outline-variant bg-surface-container-lowest p-3 shadow-[inset_0_0_28px_rgba(25,28,30,0.08)] dark:border-[#26343d] dark:bg-[#020405] dark:shadow-[inset_0_0_40px_rgba(0,0,0,0.7)]">
                         {isDockerServiceActive ? (
                           <div
                             className="h-full w-full pb-6 [&_.xterm]:h-full [&_.xterm-screen]:!h-full [&_.xterm-viewport]:!bg-[#fbfcfd] dark:[&_.xterm-viewport]:!bg-[#020405]"
@@ -1385,9 +1385,9 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                             ref={xtermHostRef}
                           ></div>
                         ) : (
-                          <div className="space-y-3 p-5 font-headline text-sm text-on-surface-variant dark:text-[#9ed8e8]">
+                          <div className="space-y-3 p-5 font-space text-sm text-on-surface-variant dark:text-[#9ed8e8]">
                             <pre className="whitespace-pre-wrap text-secondary">
-{`Welcome to Minerva Academy
+{`Welcome to Incognitrix Academy
 Interactive sandbox terminal waiting for Docker spawn.`}
                             </pre>
                             <p>Spawn the Docker service, then open terminal access for a real interactive shell.</p>
@@ -1401,15 +1401,15 @@ Interactive sandbox terminal waiting for Docker spawn.`}
               ) : null}
 
               {dockerAvailable ? (
-                <div className="rounded-2xl relative overflow-hidden bg-surface-container-low p-5 border-l-2 border-l-secondary">
+                <div className="relative overflow-hidden bg-surface-container-low p-5 border-l-2 border-l-secondary">
                   {isDockerWorking ? (
                     <div className="absolute inset-0 z-10 flex items-center justify-center bg-surface-container-low/90 backdrop-blur-sm">
-                      <div className="rounded-2xl border border-outline-variant bg-surface-container-high px-6 py-5 text-center shadow-xl">
+                      <div className="border border-outline-variant bg-surface-container-high px-6 py-5 text-center shadow-xl">
                         <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-secondary border-t-transparent"></div>
-                        <p className="font-headline text-[10px] font-bold tracking-normal text-secondary">
+                        <p className="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-secondary">
                           Docker Runtime
                         </p>
-                        <h4 className="mt-2 font-headline text-lg font-black tracking-tight text-on-surface">
+                        <h4 className="mt-2 font-headline text-lg font-black uppercase tracking-tight text-on-surface">
                           {dockerAction || 'Updating sandbox'}
                         </h4>
                         <p className="mt-2 text-xs text-on-surface-variant">
@@ -1420,10 +1420,10 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                   ) : null}
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="font-headline text-[10px] font-bold tracking-normal text-secondary">
+                      <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-secondary">
                         Docker Service
                       </p>
-                      <h3 className="mt-2 font-headline text-lg font-black tracking-tight">
+                      <h3 className="mt-2 font-headline text-lg font-black uppercase tracking-tight">
                         {isDockerServiceActive ? 'Service Running' : 'Spawn Target'}
                       </h3>
                       <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">
@@ -1448,14 +1448,14 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                       {isDockerServiceActive && dockerStatus.expiresAt ? (
                         <div className="mt-3 max-w-xs">
                           <div className="flex items-center justify-between gap-3">
-                            <p className="font-headline text-[9px] font-bold tracking-normal text-on-surface-variant">
+                            <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">
                               Time Remaining
                             </p>
-                            <p className="font-headline text-sm font-bold text-secondary">
+                            <p className="font-space text-sm font-bold text-secondary">
                               {formatDuration(dockerRemainingMs)}
                             </p>
                           </div>
-                          <div className="rounded-xl mt-2 h-1.5 bg-surface-container-high overflow-hidden">
+                          <div className="mt-2 h-1.5 bg-surface-container-high overflow-hidden">
                             <div
                               className="h-full bg-secondary transition-all duration-500"
                               style={{ width: `${dockerRemainingPercent}%` }}
@@ -1464,7 +1464,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                         </div>
                       ) : null}
                     </div>
-                    <span className={`px-2 py-1 font-headline text-[9px] font-bold tracking-normal ${isDockerServiceActive ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'}`}>
+                    <span className={`px-2 py-1 font-headline text-[9px] font-bold uppercase tracking-widest ${isDockerServiceActive ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'}`}>
                       {isDockerServiceActive ? 'Online' : 'Offline'}
                     </span>
                   </div>
@@ -1477,7 +1477,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
 
                   {isDockerServiceActive && dockerStatus.access?.url ? (
                     <a
-                      className="rounded-xl mt-4 flex items-center justify-between gap-3 bg-surface-container-high p-3 text-sm font-bold text-on-surface hover:text-primary transition-colors"
+                      className="mt-4 flex items-center justify-between gap-3 bg-surface-container-high p-3 text-sm font-bold text-on-surface hover:text-primary transition-colors"
                       href={dockerStatus.access.url.startsWith('http') ? dockerStatus.access.url : undefined}
                       rel="noreferrer"
                       target="_blank"
@@ -1495,7 +1495,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
 
                   <div className="mt-4 flex gap-3">
                     <button
-                      className="rounded-xl flex-1 bg-secondary text-on-secondary px-4 py-3 font-headline text-[10px] font-bold tracking-normal disabled:opacity-60"
+                      className="flex-1 bg-secondary text-on-secondary px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-60"
                       disabled={isDockerWorking || isDockerServiceActive}
                       onClick={handleSpawnDocker}
                       type="button"
@@ -1503,7 +1503,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                       Spawn Docker
                     </button>
                     <button
-                      className="rounded-xl flex-1 bg-surface-container-high text-on-surface px-4 py-3 font-headline text-[10px] font-bold tracking-normal disabled:opacity-60"
+                      className="flex-1 bg-surface-container-high text-on-surface px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-60"
                       disabled={isDockerWorking || !isDockerServiceActive}
                       onClick={handleStopDocker}
                       type="button"
@@ -1511,7 +1511,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                       Stop
                     </button>
                     <button
-                      className="rounded-xl flex-1 bg-primary text-on-primary px-4 py-3 font-headline text-[10px] font-bold tracking-normal disabled:opacity-60"
+                      className="flex-1 bg-primary text-on-primary px-4 py-3 font-headline text-[10px] font-bold uppercase tracking-widest disabled:opacity-60"
                       disabled={isDockerWorking}
                       onClick={handleRevertDocker}
                       type="button"
@@ -1523,16 +1523,16 @@ Interactive sandbox terminal waiting for Docker spawn.`}
               ) : null}
 
               {isPreparingTheoreticalQuestions ? (
-                <div className="rounded-2xl bg-surface-container-low p-5 border-l-2 border-l-primary">
+                <div className="bg-surface-container-low p-5 border-l-2 border-l-primary">
                   <div className="flex items-start gap-4">
                     <span className="material-symbols-outlined text-primary animate-pulse">
                       psychology
                     </span>
                     <div>
-                      <p className="font-headline text-[10px] font-bold tracking-normal text-primary">
+                      <p className="font-headline text-[10px] font-bold uppercase tracking-widest text-primary">
                         AI Assessment
                       </p>
-                      <h3 className="mt-2 font-headline text-lg font-black tracking-tight">
+                      <h3 className="mt-2 font-headline text-lg font-black uppercase tracking-tight">
                         AI is preparing questions for you
                       </h3>
                       <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">
@@ -1540,25 +1540,25 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                       </p>
                     </div>
                   </div>
-                  <div className="rounded-xl mt-4 h-1.5 bg-surface-container-high overflow-hidden">
+                  <div className="mt-4 h-1.5 bg-surface-container-high overflow-hidden">
                     <div className="h-full w-1/2 bg-primary animate-pulse"></div>
                   </div>
                 </div>
               ) : null}
 
               {questionStatus.enabled ? (
-                <div className="rounded-2xl bg-surface-container-low p-4 border-l-2 border-l-secondary space-y-4">
+                <div className="bg-surface-container-low p-4 border-l-2 border-l-secondary space-y-4">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">
+                    <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                       Question Challenge
                     </span>
                     <div className="flex flex-wrap items-center justify-end gap-2">
                       {isPracticalRoom && remainingPracticalQuestions > 0 ? (
-                        <span className="rounded-full text-[10px] font-headline font-bold tracking-normal px-2 py-1 bg-primary/10 text-primary">
+                        <span className="text-[10px] font-headline font-bold uppercase tracking-widest px-2 py-1 bg-primary/10 text-primary">
                           {remainingPracticalQuestions} Remaining
                         </span>
                       ) : null}
-                      <span className="rounded-full text-[10px] font-headline font-bold tracking-normal px-2 py-1 bg-secondary/15 text-secondary">
+                      <span className="text-[10px] font-headline font-bold uppercase tracking-widest px-2 py-1 bg-secondary/15 text-secondary">
                         {isAiQuestionMode
                           ? `Tech ${questionStatus.technicalScore}/100`
                           : `${questionStatus.correct}/${questionStatus.total} Correct`}
@@ -1568,19 +1568,19 @@ Interactive sandbox terminal waiting for Docker spawn.`}
 
                   {isAiQuestionMode ? (
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-xl bg-surface-container-high p-3">
-                        <p className="font-headline text-[9px] tracking-normal text-on-surface-variant">
+                      <div className="bg-surface-container-high p-3">
+                        <p className="font-headline text-[9px] uppercase tracking-widest text-on-surface-variant">
                           Technical
                         </p>
-                        <p className="font-headline text-2xl font-bold text-primary">
+                        <p className="font-space text-2xl font-bold text-primary">
                           {questionStatus.technicalScore}
                         </p>
                       </div>
-                      <div className="rounded-xl bg-surface-container-high p-3">
-                        <p className="font-headline text-[9px] tracking-normal text-on-surface-variant">
+                      <div className="bg-surface-container-high p-3">
+                        <p className="font-headline text-[9px] uppercase tracking-widest text-on-surface-variant">
                           Grammar
                         </p>
-                        <p className="font-headline text-2xl font-bold text-secondary">
+                        <p className="font-space text-2xl font-bold text-secondary">
                           {questionStatus.grammarScore}
                         </p>
                       </div>
@@ -1606,11 +1606,11 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                         ) : null}
                         <div className="relative">
                           <div className="mb-2 flex items-start justify-between gap-3">
-                            <p className="text-[11px] font-headline font-bold text-on-surface tracking-wide">
+                            <p className="text-[11px] font-headline font-bold text-on-surface uppercase tracking-wide">
                               Q{index + 1}. {question.prompt}
                             </p>
                             {isManualSolved ? (
-                              <span className="rounded-full shrink-0 inline-flex items-center gap-1 bg-secondary/20 px-2 py-1 font-headline text-[9px] font-bold tracking-normal text-secondary">
+                              <span className="shrink-0 inline-flex items-center gap-1 bg-secondary/20 px-2 py-1 font-headline text-[9px] font-bold uppercase tracking-widest text-secondary">
                                 <span className="material-symbols-outlined text-sm">check_circle</span>
                                 Permanent
                               </span>
@@ -1620,8 +1620,8 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                           <p className="text-[10px] text-on-surface-variant mb-2">Hint: {question.hint}</p>
                         ) : null}
                         {question.sourceType === 'interview' ? (
-                          <div className="rounded-lg mb-3 border-l-2 border-primary/60 bg-primary/10 px-3 py-2">
-                            <p className="font-headline text-[9px] font-bold tracking-normal text-primary">
+                          <div className="mb-3 border-l-2 border-primary/60 bg-primary/10 px-3 py-2">
+                            <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-primary">
                               Interview Source
                             </p>
                             {question.company ? (
@@ -1631,7 +1631,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                             ) : null}
                             <p className="mt-1 text-[10px] text-on-surface-variant">
                               {[question.company, question.interview].filter(Boolean).join(' • ') ||
-                                'Interview-style question'}
+                                'Interview-style cybersecurity question'}
                             </p>
                             {question.sourceInfo ? (
                               <p className="mt-1 text-[10px] text-on-surface-variant">{question.sourceInfo}</p>
@@ -1640,7 +1640,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                         ) : null}
                         {questionStatus.mode === 'theoretical' || question.questionType === 'ai' ? (
                           <textarea
-                            className="rounded-lg w-full bg-surface-container-lowest border border-outline-variant/40 text-sm py-2 px-3 outline-none"
+                            className="w-full bg-surface-container-lowest border border-outline-variant/40 text-sm py-2 px-3 outline-none"
                             onChange={(e) => handleQuestionAnswerChange(question.id, e.target.value)}
                             onDrop={assessmentClipboardBlocker}
                             onPaste={assessmentClipboardBlocker}
@@ -1650,7 +1650,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                           ></textarea>
                         ) : (
                           <input
-                            className={`rounded-lg w-full border text-sm py-2 px-3 outline-none ${
+                            className={`w-full border text-sm py-2 px-3 outline-none ${
                               isManualSolved
                                 ? 'bg-secondary/10 border-secondary/30 text-secondary font-bold cursor-not-allowed'
                                 : 'bg-surface-container-lowest border-outline-variant/40'
@@ -1665,7 +1665,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                           />
                         )}
                         {isManualSolved ? (
-                          <p className="mt-2 text-[10px] font-headline font-bold tracking-normal text-secondary">
+                          <p className="mt-2 text-[10px] font-headline font-bold uppercase tracking-widest text-secondary">
                             Correct answer saved. Continue with the remaining questions.
                           </p>
                         ) : null}
@@ -1674,39 +1674,39 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                       )
                     })}
                     {bonusAssessmentQuestions.map((question) => (
-                      <div key={question.id || 'bonus-interview'} className="rounded-xl bg-primary/10 border border-primary/30 p-3">
+                      <div key={question.id || 'bonus-interview'} className="bg-primary/10 border border-primary/30 p-3">
                         <div className="mb-3 flex items-start justify-between gap-3">
                           <div>
-                            <p className="font-headline text-[9px] font-bold tracking-normal text-primary">
+                            <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-primary">
                               Optional Interview Bonus
                             </p>
                             <p className="mt-1 text-[10px] text-on-surface-variant">
                               Answering this can add up to 10 bonus points.
                             </p>
                           </div>
-                          <span className="rounded-full font-headline text-[9px] font-bold tracking-normal bg-primary text-on-primary px-2 py-1">
+                          <span className="font-headline text-[9px] font-bold uppercase tracking-widest bg-primary text-on-primary px-2 py-1">
                             +10 max
                           </span>
                         </div>
-                        <p className="text-[11px] font-headline font-bold text-on-surface tracking-wide mb-2">
+                        <p className="text-[11px] font-headline font-bold text-on-surface uppercase tracking-wide mb-2">
                           {question.prompt}
                         </p>
-                        <div className="rounded-lg mb-3 border-l-2 border-primary/60 bg-surface-container-lowest/60 px-3 py-2">
-                          <p className="font-headline text-[9px] font-bold tracking-normal text-primary">
+                        <div className="mb-3 border-l-2 border-primary/60 bg-surface-container-lowest/60 px-3 py-2">
+                          <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-primary">
                             Interview Source
                           </p>
                           <p className="mt-1 text-[10px] font-bold text-on-surface">
-                            Company: {question.company || 'General interview practice'}
+                            Company: {question.company || 'General cybersecurity interview practice'}
                           </p>
                           <p className="mt-1 text-[10px] text-on-surface-variant">
-                            {question.interview || 'Interview-style question'}
+                            {question.interview || 'Interview-style cybersecurity question'}
                           </p>
                           {question.sourceInfo ? (
                             <p className="mt-1 text-[10px] text-on-surface-variant">{question.sourceInfo}</p>
                           ) : null}
                         </div>
                         <textarea
-                          className="rounded-lg w-full bg-surface-container-lowest border border-outline-variant/40 text-sm py-2 px-3 outline-none"
+                          className="w-full bg-surface-container-lowest border border-outline-variant/40 text-sm py-2 px-3 outline-none"
                           onChange={(e) => handleQuestionAnswerChange(question.id, e.target.value)}
                           onDrop={assessmentClipboardBlocker}
                           onPaste={assessmentClipboardBlocker}
@@ -1719,7 +1719,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                   </div>
 
                   <button
-                    className="rounded-xl w-full py-3 bg-secondary text-on-secondary font-headline text-[10px] font-bold tracking-normal hover:opacity-90 transition-opacity disabled:opacity-60"
+                    className="w-full py-3 bg-secondary text-on-secondary font-headline text-[10px] font-bold tracking-widest uppercase hover:opacity-90 transition-opacity disabled:opacity-60"
                     disabled={isSubmittingQuestions}
                     onClick={handleSubmitQuestions}
                     type="button"
@@ -1739,12 +1739,12 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                 </div>
               ) : null}
 
-              <div className="rounded-2xl bg-surface-container-low p-4 border-l-2 border-l-primary">
+              <div className="bg-surface-container-low p-4 border-l-2 border-l-primary">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">
+                  <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                     Lab Status
                   </span>
-                  <span className={`text-[10px] font-headline font-bold tracking-normal px-2 py-1 ${labStatus === 'completed' ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'}`}>
+                  <span className={`text-[10px] font-headline font-bold uppercase tracking-widest px-2 py-1 ${labStatus === 'completed' ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'}`}>
                     {labStatus === 'completed' ? 'Completed' : 'In Progress'}
                   </span>
                 </div>
@@ -1752,7 +1752,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                 <div className="mt-3 flex gap-2">
                   {labStatus !== 'completed' ? (
                     <button
-                      className="rounded-xl w-full py-3 bg-secondary text-on-secondary font-headline text-[10px] font-bold tracking-normal hover:opacity-90 transition-opacity disabled:opacity-60"
+                      className="w-full py-3 bg-secondary text-on-secondary font-headline text-[10px] font-bold tracking-widest uppercase hover:opacity-90 transition-opacity disabled:opacity-60"
                       disabled={isPreparingTheoreticalQuestions || (questionStatus.enabled && !questionStatus.allCorrect)}
                       onClick={handleMarkComplete}
                       type="button"
@@ -1761,7 +1761,7 @@ Interactive sandbox terminal waiting for Docker spawn.`}
                     </button>
                   ) : (
                     <button
-                      className="rounded-xl w-full py-3 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold tracking-normal"
+                      className="w-full py-3 bg-surface-container-high text-on-surface font-headline text-[10px] font-bold tracking-widest uppercase"
                       onClick={handleMarkIncomplete}
                       type="button"
                     >
@@ -1782,4 +1782,4 @@ Interactive sandbox terminal waiting for Docker spawn.`}
   )
 }
 
-export default CoursePage
+export default LabRoomPage

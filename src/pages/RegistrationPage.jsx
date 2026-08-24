@@ -76,32 +76,32 @@ function RegistrationPage({ onRegisterSuccess }) {
   }
 
   return (
-    <main className="rounded-xl min-h-screen bg-surface flex items-center justify-center px-6">
-      <section className="rounded-2xl w-full max-w-md bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 shadow-sm">
-        <p className="font-headline text-[10px] tracking-normal text-primary font-bold">
+    <main className="min-h-screen bg-surface flex items-center justify-center px-6">
+      <section className="w-full max-w-md bg-surface-container-lowest border-l-4 border-primary p-8 md:p-10 shadow-sm">
+        <p className="font-headline text-[10px] tracking-[0.2em] uppercase text-primary font-bold">
           Operator Registration
         </p>
-        <h1 className="font-headline text-4xl font-bold tracking-tight mt-3 text-on-background">
-          Join Minerva
+        <h1 className="font-headline text-4xl font-bold tracking-tight mt-3 text-on-background uppercase">
+          Join Incognitrix
         </h1>
         <p className="text-on-surface-variant mt-3 text-sm leading-relaxed">
           Create your operator account with your registration number and email.
         </p>
 
         {!registrationEnabled ? (
-          <div className="rounded-2xl mt-8 bg-error/10 border-l-4 border-error p-4">
-            <p className="text-xs font-label tracking-normal text-error">
+          <div className="mt-8 bg-error/10 border-l-4 border-error p-4">
+            <p className="text-xs font-label tracking-wider uppercase text-error">
               Registration is currently disabled by admin.
             </p>
           </div>
         ) : (
           <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
             <label className="block">
-              <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+              <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                 Registration Number
               </span>
               <input
-                className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                 onChange={(e) => setRegistrationNumber(e.target.value)}
                 placeholder="Registration number"
                 type="text"
@@ -110,24 +110,24 @@ function RegistrationPage({ onRegisterSuccess }) {
             </label>
 
             <label className="block">
-              <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+              <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                 Email
               </span>
               <input
-                className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="student@domain.com"
+                placeholder="operator@domain.com"
                 type="email"
                 value={email}
               />
             </label>
 
             <label className="block">
-              <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+              <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                 Password
               </span>
               <input
-                className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 8 characters"
                 type="password"
@@ -136,11 +136,11 @@ function RegistrationPage({ onRegisterSuccess }) {
             </label>
 
             <label className="block">
-              <span className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+              <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                 Confirm Password
               </span>
               <input
-                className="rounded-xl mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
+                className="mt-2 w-full bg-surface-container-highest border-l-2 border-l-primary border-t-0 border-r-0 border-b-0 focus:ring-0 font-body text-sm py-3 px-4 outline-none"
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Repeat password"
                 type="password"
@@ -149,11 +149,11 @@ function RegistrationPage({ onRegisterSuccess }) {
             </label>
 
             {error ? (
-              <p className="text-xs font-label tracking-normal text-error">{error}</p>
+              <p className="text-xs font-label tracking-wider uppercase text-error">{error}</p>
             ) : null}
 
             <button
-              className="rounded-xl w-full bg-primary text-on-primary py-3 font-headline text-xs font-bold tracking-normal hover:bg-primary-container transition-colors disabled:opacity-60"
+              className="w-full bg-primary text-on-primary py-3 font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary-container transition-colors disabled:opacity-60"
               disabled={loading}
               type="submit"
             >

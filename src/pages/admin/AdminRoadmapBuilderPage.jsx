@@ -18,11 +18,11 @@ function sortPathsByRoadmapOrder(paths) {
   )
 }
 
-const INTRO_PATH_PATTERN = /(?:introduction|intro|getting[-_\s]+started)[-_\s]*(?:to)?[-_\s]*(?:programming|coding|development|design|data)?|foundations?[-_\s]+101/
+const INTRO_TO_CYBERSECURITY_PATTERN = /(?:introduction|intro)[-_\s]+to[-_\s]+cyber[-_\s]*security|cyber[-_\s]*security[-_\s]+(?:introduction|intro)|cyber[-_\s]*security[-_\s]+101/
 
-function isIntroPath(path) {
+function isCybersecurityIntroPath(path) {
   const text = `${path?.title || ''} ${path?.slug || ''} ${path?.id || ''}`.toLowerCase()
-  return INTRO_PATH_PATTERN.test(text)
+  return INTRO_TO_CYBERSECURITY_PATTERN.test(text)
 }
 
 function normalizePhase(index) {
@@ -114,7 +114,7 @@ function AdminRoadmapBuilderPage() {
     [paths, removedModules],
   )
 
-  const foundationPath = useMemo(() => paths.find(isIntroPath) || null, [paths])
+  const foundationPath = useMemo(() => paths.find(isCybersecurityIntroPath) || null, [paths])
   const branchPaths = useMemo(
     () => (foundationPath ? paths.filter((path) => path.id !== foundationPath.id) : paths),
     [foundationPath, paths],
@@ -336,23 +336,23 @@ function AdminRoadmapBuilderPage() {
   }
 
   return (
-    <main className="rounded-2xl min-h-screen bg-surface px-6 py-10 text-on-surface md:px-10">
+    <main className="min-h-screen bg-surface px-6 py-10 text-on-surface md:px-10">
       <section className="mx-auto max-w-[104rem]">
         <button
-          className="rounded-xl mb-8 bg-surface-container-high px-5 py-3 font-headline text-xs font-bold tracking-normal text-on-surface hover:bg-surface-container-highest"
+          className="mb-8 bg-surface-container-high px-5 py-3 font-headline text-xs font-bold uppercase tracking-widest text-on-surface hover:bg-surface-container-highest"
           onClick={() => navigate('/admin')}
           type="button"
         >
           Back
         </button>
 
-        <header className="rounded-2xl border-l-4 border-secondary bg-surface-container-lowest p-8 md:p-10">
-          <p className="font-headline text-[10px] font-bold tracking-normal text-secondary">
+        <header className="border-l-4 border-secondary bg-surface-container-lowest p-8 md:p-10">
+          <p className="font-headline text-[10px] font-bold uppercase tracking-[0.32em] text-secondary">
             Roadmap Control
           </p>
           <div className="mt-3 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="font-headline text-4xl font-black tracking-tight text-on-background md:text-5xl">
+              <h1 className="font-headline text-4xl font-black uppercase tracking-tight text-on-background md:text-5xl">
                 Roadmap Wireframe Builder
               </h1>
               <p className="mt-4 max-w-3xl text-sm leading-relaxed text-on-surface-variant">
@@ -361,7 +361,7 @@ function AdminRoadmapBuilderPage() {
               </p>
             </div>
             <button
-              className="rounded-xl bg-primary px-6 py-3 font-headline text-xs font-black tracking-normal text-on-primary disabled:opacity-60"
+              className="bg-primary px-6 py-3 font-headline text-xs font-black uppercase tracking-widest text-on-primary disabled:opacity-60"
               disabled={isSaving || isLoading}
               onClick={saveRoadmap}
               type="button"
@@ -372,36 +372,36 @@ function AdminRoadmapBuilderPage() {
         </header>
 
         {message ? (
-          <div className="rounded-2xl mt-6 border-l-4 border-secondary bg-secondary/10 p-4 font-headline text-xs font-bold tracking-normal text-secondary">
+          <div className="mt-6 border-l-4 border-secondary bg-secondary/10 p-4 font-headline text-xs font-bold uppercase tracking-widest text-secondary">
             {message}
           </div>
         ) : null}
         {errorMessage ? (
-          <div className="rounded-2xl mt-6 border-l-4 border-error bg-error/10 p-4 font-headline text-xs font-bold tracking-normal text-error">
+          <div className="mt-6 border-l-4 border-error bg-error/10 p-4 font-headline text-xs font-bold uppercase tracking-widest text-error">
             {errorMessage}
           </div>
         ) : null}
 
-        <section className="rounded-2xl mt-8 border border-outline-variant/50 bg-surface-container-lowest p-5 md:p-8">
+        <section className="mt-8 border border-outline-variant/50 bg-surface-container-lowest p-5 md:p-8">
           <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-2xl">
-              <p className="font-headline text-[10px] font-bold tracking-normal text-primary">
+              <p className="font-headline text-[10px] font-bold uppercase tracking-[0.28em] text-primary">
                 Add Main Branch
               </p>
-              <h2 className="mt-2 font-headline text-2xl font-black tracking-tight text-on-background">
+              <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
                 Create Separate Roadmap Path
               </h2>
               <p className="mt-2 text-sm text-on-surface-variant">
-                Create a new branch from Getting Started, then drag modules under it or reorder them inside the branch.
+                Create a new branch from Intro to Cybersecurity, then drag modules under it or reorder them inside the branch.
               </p>
             </div>
             <div className="grid flex-1 gap-4 md:grid-cols-[1fr_1fr_12rem_auto]">
               <label className="block">
-                <span className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">
+                <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                   Path Name
                 </span>
                 <input
-                  className="rounded-xl mt-2 w-full border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
+                  className="mt-2 w-full border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
                   onChange={(event) => setNewBranchForm((current) => ({ ...current, title: event.target.value }))}
                   placeholder="Cloud Security"
                   type="text"
@@ -409,11 +409,11 @@ function AdminRoadmapBuilderPage() {
                 />
               </label>
               <label className="block">
-                <span className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">
+                <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                   Description
                 </span>
                 <input
-                  className="rounded-xl mt-2 w-full border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
+                  className="mt-2 w-full border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
                   onChange={(event) => setNewBranchForm((current) => ({ ...current, description: event.target.value }))}
                   placeholder="Branch objective"
                   type="text"
@@ -421,11 +421,11 @@ function AdminRoadmapBuilderPage() {
                 />
               </label>
               <label className="block">
-                <span className="font-headline text-[10px] font-bold tracking-normal text-on-surface-variant">
+                <span className="font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                   Level
                 </span>
                 <select
-                  className="rounded-xl mt-2 w-full border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
+                  className="mt-2 w-full border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
                   onChange={(event) => setNewBranchForm((current) => ({ ...current, learningPathLevel: event.target.value }))}
                   value={newBranchForm.learningPathLevel}
                 >
@@ -436,7 +436,7 @@ function AdminRoadmapBuilderPage() {
                 </select>
               </label>
               <button
-                className="rounded-xl self-end bg-secondary px-5 py-3 font-headline text-xs font-black tracking-normal text-on-secondary"
+                className="self-end bg-secondary px-5 py-3 font-headline text-xs font-black uppercase tracking-widest text-on-secondary"
                 onClick={addBranch}
                 type="button"
               >
@@ -446,17 +446,17 @@ function AdminRoadmapBuilderPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl mt-8 border border-outline-variant/50 bg-surface-container-lowest p-5 md:p-8">
+        <section className="mt-8 border border-outline-variant/50 bg-surface-container-lowest p-5 md:p-8">
           <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="font-headline text-[10px] font-bold tracking-normal text-primary">
+              <p className="font-headline text-[10px] font-bold uppercase tracking-[0.28em] text-primary">
                 Wireframe Area
               </p>
-              <h2 className="mt-2 font-headline text-2xl font-black tracking-tight text-on-background">
-                Getting Started Branch Map
+              <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                Intro to Cybersecurity Branch Map
               </h2>
             </div>
-            <p className="font-headline text-xs font-bold tracking-normal text-on-surface-variant">
+            <p className="font-headline text-xs font-bold uppercase tracking-widest text-on-surface-variant">
               {paths.length} branches / {totalModules} modules
             </p>
           </div>
@@ -465,7 +465,7 @@ function AdminRoadmapBuilderPage() {
             <div className="min-w-[1100px]" style={{ minWidth: `${Math.max(branchPaths.length, 4) * 18}rem` }}>
               {foundationPath ? (
                 <section
-                  className={`rounded-2xl mx-auto max-w-3xl border bg-surface p-5 shadow-[0_0_24px_rgba(102,217,239,0.10)] ${
+                  className={`mx-auto max-w-3xl border bg-surface p-5 shadow-[0_0_24px_rgba(102,217,239,0.10)] ${
                     activeBranchId === foundationPath.id ? 'border-secondary bg-secondary/10' : 'border-secondary/70'
                   }`}
                   onDragLeave={() => setActiveBranchId('')}
@@ -476,10 +476,10 @@ function AdminRoadmapBuilderPage() {
                   onDrop={(event) => moveModuleToBranch(foundationPath.id, event)}
                 >
                   <div className="text-center">
-                    <p className="font-headline text-[10px] font-bold tracking-normal text-secondary">
+                    <p className="font-headline text-[10px] font-bold uppercase tracking-[0.28em] text-secondary">
                       Foundation Entry
                     </p>
-                    <h3 className="mt-2 font-headline text-2xl font-black tracking-tight text-on-background">
+                    <h3 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
                       {foundationPath.title}
                     </h3>
                     <p className="mx-auto mt-2 max-w-xl text-sm text-on-surface-variant">
@@ -489,7 +489,7 @@ function AdminRoadmapBuilderPage() {
                   <div className="mt-5 grid gap-3 md:grid-cols-2">
                     {(foundationPath.modules || []).length ? foundationPath.modules.map((module, index) => (
                       <article
-                        className="rounded-2xl cursor-grab border border-outline-variant/50 bg-surface-container-lowest p-4 shadow-sm active:cursor-grabbing"
+                        className="cursor-grab border border-outline-variant/50 bg-surface-container-lowest p-4 shadow-sm active:cursor-grabbing"
                         draggable
                         key={`${foundationPath.id}-${module.id}`}
                         onDragStart={(event) => handleDragStart(event, { ...module, sourcePathId: foundationPath.id })}
@@ -499,21 +499,21 @@ function AdminRoadmapBuilderPage() {
                             drag_indicator
                           </span>
                           <div className="min-w-0 flex-1">
-                            <p className="font-headline text-[9px] font-bold tracking-normal text-on-surface-variant">
+                            <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">
                               {module.phase || normalizePhase(index)} / {(module.rooms || []).length} rooms
                             </p>
-                            <h4 className="mt-1 line-clamp-2 font-headline text-sm font-black text-on-background">
+                            <h4 className="mt-1 line-clamp-2 font-headline text-sm font-black uppercase text-on-background">
                               {module.title}
                             </h4>
                             <p className="mt-1 line-clamp-2 text-xs text-on-surface-variant">
                               {module.description || 'No description supplied.'}
                             </p>
                             <label className="mt-3 block" onMouseDown={(event) => event.stopPropagation()}>
-                              <span className="font-headline text-[9px] font-bold tracking-normal text-secondary">
+                              <span className="font-headline text-[9px] font-bold uppercase tracking-widest text-secondary">
                                 Linked sub-path
                               </span>
                               <select
-                                className="rounded-lg mt-1 w-full border border-outline-variant bg-surface px-3 py-2 text-xs text-on-surface outline-none focus:border-secondary"
+                                className="mt-1 w-full border border-outline-variant bg-surface px-3 py-2 text-xs text-on-surface outline-none focus:border-secondary"
                                 onChange={(event) => updateModuleLinkedPath(foundationPath.id, module.id, event.target.value)}
                                 onClick={(event) => event.stopPropagation()}
                                 value={module.linkedPathId || ''}
@@ -532,7 +532,7 @@ function AdminRoadmapBuilderPage() {
                           <div className="flex shrink-0 flex-col gap-2">
                             <button
                               aria-label={`Move ${module.title} up`}
-                              className="rounded-xl grid h-8 w-8 place-items-center border border-outline-variant bg-surface text-on-surface disabled:cursor-not-allowed disabled:opacity-35"
+                              className="grid h-8 w-8 place-items-center border border-outline-variant bg-surface text-on-surface disabled:cursor-not-allowed disabled:opacity-35"
                               disabled={index === 0}
                               onClick={() => moveModuleWithinBranch(foundationPath.id, module.id, -1)}
                               type="button"
@@ -541,7 +541,7 @@ function AdminRoadmapBuilderPage() {
                             </button>
                             <button
                               aria-label={`Move ${module.title} down`}
-                              className="rounded-xl grid h-8 w-8 place-items-center border border-outline-variant bg-surface text-on-surface disabled:cursor-not-allowed disabled:opacity-35"
+                              className="grid h-8 w-8 place-items-center border border-outline-variant bg-surface text-on-surface disabled:cursor-not-allowed disabled:opacity-35"
                               disabled={index === (foundationPath.modules || []).length - 1}
                               onClick={() => moveModuleWithinBranch(foundationPath.id, module.id, 1)}
                               type="button"
@@ -550,7 +550,7 @@ function AdminRoadmapBuilderPage() {
                             </button>
                             <button
                               aria-label={`Remove ${module.title} from roadmap path`}
-                              className="rounded-xl grid h-8 w-8 place-items-center border border-error/50 bg-error/10 text-error hover:bg-error/20"
+                              className="grid h-8 w-8 place-items-center border border-error/50 bg-error/10 text-error hover:bg-error/20"
                               onClick={() => removeModuleFromBranch(foundationPath.id, module)}
                               title="Remove from this roadmap path only"
                               type="button"
@@ -568,15 +568,15 @@ function AdminRoadmapBuilderPage() {
                   </div>
                 </section>
               ) : (
-                <div className="rounded-2xl mx-auto max-w-2xl border border-secondary/70 bg-surface p-5 text-center shadow-[0_0_24px_rgba(102,217,239,0.10)]">
-                  <p className="font-headline text-[10px] font-bold tracking-normal text-secondary">
+                <div className="mx-auto max-w-2xl border border-secondary/70 bg-surface p-5 text-center shadow-[0_0_24px_rgba(102,217,239,0.10)]">
+                  <p className="font-headline text-[10px] font-bold uppercase tracking-[0.28em] text-secondary">
                     Foundation Entry
                   </p>
-                  <h3 className="mt-2 font-headline text-2xl font-black tracking-tight text-on-background">
-                    Getting Started
+                  <h3 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
+                    Intro to Cybersecurity
                   </h3>
                   <p className="mt-2 text-sm text-on-surface-variant">
-                    Create an Getting Started branch to make this node dynamic.
+                    Create an Introduction to Cybersecurity branch to make this node dynamic.
                   </p>
                 </div>
               )}
@@ -588,7 +588,7 @@ function AdminRoadmapBuilderPage() {
               <div className="grid gap-6" style={{ gridTemplateColumns: branchGridColumns }}>
                 {branchPaths.map((path) => (
                   <section
-                    className={`rounded-2xl relative min-h-[28rem] border bg-surface p-4 transition-colors ${
+                    className={`relative min-h-[28rem] border bg-surface p-4 transition-colors ${
                       activeBranchId === path.id
                         ? 'border-secondary bg-secondary/10'
                         : 'border-outline-variant/60'
@@ -601,15 +601,15 @@ function AdminRoadmapBuilderPage() {
                     }}
                     onDrop={(event) => moveModuleToBranch(path.id, event)}
                   >
-                    <div className="rounded-xl absolute left-1/2 top-0 h-8 w-[3px] -translate-x-1/2 -translate-y-full bg-secondary/60"></div>
-                    <div className="rounded-2xl flex min-h-32 flex-col items-center justify-center border border-outline-variant/50 bg-surface-container-lowest p-4 text-center">
+                    <div className="absolute left-1/2 top-0 h-8 w-[3px] -translate-x-1/2 -translate-y-full bg-secondary/60"></div>
+                    <div className="flex min-h-32 flex-col items-center justify-center border border-outline-variant/50 bg-surface-container-lowest p-4 text-center">
                       <span className="material-symbols-outlined text-3xl text-secondary">
                         {getBranchIcon(path)}
                       </span>
-                      <p className="mt-3 font-headline text-[10px] font-bold tracking-normal text-primary">
+                      <p className="mt-3 font-headline text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
                         Main Branch
                       </p>
-                      <h3 className="mt-2 line-clamp-2 font-headline text-lg font-black text-on-background">
+                      <h3 className="mt-2 line-clamp-2 font-headline text-lg font-black uppercase text-on-background">
                         {path.title}
                       </h3>
                     </div>
@@ -617,7 +617,7 @@ function AdminRoadmapBuilderPage() {
                     <div className="mt-5 space-y-3">
                       {(path.modules || []).length ? path.modules.map((module, index) => (
                         <article
-                          className="rounded-2xl cursor-grab border border-outline-variant/50 bg-surface-container-lowest p-4 shadow-sm active:cursor-grabbing"
+                          className="cursor-grab border border-outline-variant/50 bg-surface-container-lowest p-4 shadow-sm active:cursor-grabbing"
                           draggable
                           key={`${path.id}-${module.id}`}
                           onDragStart={(event) => handleDragStart(event, { ...module, sourcePathId: path.id })}
@@ -627,21 +627,21 @@ function AdminRoadmapBuilderPage() {
                               drag_indicator
                             </span>
                             <div className="min-w-0 flex-1">
-                              <p className="font-headline text-[9px] font-bold tracking-normal text-on-surface-variant">
+                              <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">
                                 {module.phase || normalizePhase(index)} / {(module.rooms || []).length} rooms
                               </p>
-                              <h4 className="mt-1 line-clamp-2 font-headline text-sm font-black text-on-background">
+                              <h4 className="mt-1 line-clamp-2 font-headline text-sm font-black uppercase text-on-background">
                                 {module.title}
                               </h4>
                               <p className="mt-1 line-clamp-2 text-xs text-on-surface-variant">
                                 {module.description || 'No description supplied.'}
                               </p>
                               <label className="mt-3 block" onMouseDown={(event) => event.stopPropagation()}>
-                                <span className="font-headline text-[9px] font-bold tracking-normal text-secondary">
+                                <span className="font-headline text-[9px] font-bold uppercase tracking-widest text-secondary">
                                   Linked sub-path
                                 </span>
                                 <select
-                                  className="rounded-lg mt-1 w-full border border-outline-variant bg-surface px-3 py-2 text-xs text-on-surface outline-none focus:border-secondary"
+                                  className="mt-1 w-full border border-outline-variant bg-surface px-3 py-2 text-xs text-on-surface outline-none focus:border-secondary"
                                   onChange={(event) => updateModuleLinkedPath(path.id, module.id, event.target.value)}
                                   onClick={(event) => event.stopPropagation()}
                                   value={module.linkedPathId || ''}
@@ -660,7 +660,7 @@ function AdminRoadmapBuilderPage() {
                             <div className="flex shrink-0 flex-col gap-2">
                               <button
                                 aria-label={`Move ${module.title} up`}
-                                className="rounded-xl grid h-8 w-8 place-items-center border border-outline-variant bg-surface text-on-surface disabled:cursor-not-allowed disabled:opacity-35"
+                                className="grid h-8 w-8 place-items-center border border-outline-variant bg-surface text-on-surface disabled:cursor-not-allowed disabled:opacity-35"
                                 disabled={index === 0}
                                 onClick={() => moveModuleWithinBranch(path.id, module.id, -1)}
                                 type="button"
@@ -669,7 +669,7 @@ function AdminRoadmapBuilderPage() {
                               </button>
                               <button
                                 aria-label={`Move ${module.title} down`}
-                                className="rounded-xl grid h-8 w-8 place-items-center border border-outline-variant bg-surface text-on-surface disabled:cursor-not-allowed disabled:opacity-35"
+                                className="grid h-8 w-8 place-items-center border border-outline-variant bg-surface text-on-surface disabled:cursor-not-allowed disabled:opacity-35"
                                 disabled={index === (path.modules || []).length - 1}
                                 onClick={() => moveModuleWithinBranch(path.id, module.id, 1)}
                                 type="button"
@@ -678,7 +678,7 @@ function AdminRoadmapBuilderPage() {
                               </button>
                               <button
                                 aria-label={`Remove ${module.title} from roadmap path`}
-                                className="rounded-xl grid h-8 w-8 place-items-center border border-error/50 bg-error/10 text-error hover:bg-error/20"
+                                className="grid h-8 w-8 place-items-center border border-error/50 bg-error/10 text-error hover:bg-error/20"
                                 onClick={() => removeModuleFromBranch(path.id, module)}
                                 type="button"
                                 title="Remove from this roadmap path only"
@@ -701,18 +701,18 @@ function AdminRoadmapBuilderPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl mt-8 border border-outline-variant/50 bg-surface-container-lowest p-5 md:p-8">
+        <section className="mt-8 border border-outline-variant/50 bg-surface-container-lowest p-5 md:p-8">
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="font-headline text-[10px] font-bold tracking-normal text-primary">
+              <p className="font-headline text-[10px] font-bold uppercase tracking-[0.28em] text-primary">
                 Module Pool
               </p>
-              <h2 className="mt-2 font-headline text-2xl font-black tracking-tight text-on-background">
+              <h2 className="mt-2 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
                 All Modules
               </h2>
             </div>
             <Link
-              className="font-headline text-xs font-bold tracking-normal text-secondary underline-offset-4 hover:underline"
+              className="font-headline text-xs font-bold uppercase tracking-widest text-secondary underline-offset-4 hover:underline"
               to="/admin/career-paths"
             >
               Manage branches
@@ -722,15 +722,15 @@ function AdminRoadmapBuilderPage() {
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {modulePool.map((module) => (
               <article
-                className="rounded-2xl cursor-grab border border-outline-variant/50 bg-surface p-4 active:cursor-grabbing"
+                className="cursor-grab border border-outline-variant/50 bg-surface p-4 active:cursor-grabbing"
                 draggable
                 key={`pool-${module.sourcePathId}-${module.id}`}
                 onDragStart={(event) => handleDragStart(event, module)}
               >
-                <p className="font-headline text-[9px] font-bold tracking-normal text-primary">
+                <p className="font-headline text-[9px] font-bold uppercase tracking-widest text-primary">
                   {module.sourcePathTitle}
                 </p>
-                <h3 className="mt-2 font-headline text-base font-black text-on-background">
+                <h3 className="mt-2 font-headline text-base font-black uppercase text-on-background">
                   {module.title}
                 </h3>
                 <p className="mt-2 line-clamp-2 text-xs text-on-surface-variant">

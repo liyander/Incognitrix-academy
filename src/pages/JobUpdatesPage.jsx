@@ -37,7 +37,7 @@ function jobIdentity(item) {
   return primary || String(item.jobId || item.id)
 }
 
-function OpportunitiesPage() {
+function JobUpdatesPage() {
   const [recommendations, setRecommendations] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -144,15 +144,15 @@ function OpportunitiesPage() {
   }
 
   return (
-    <main className="rounded-xl min-h-screen bg-surface pt-24 px-6 lg:px-10 pb-12">
+    <main className="min-h-screen bg-surface pt-24 px-6 lg:px-10 pb-12">
       <section className="max-w-7xl mx-auto space-y-8">
-        <header className="rounded-2xl bg-surface-container-lowest border-l-4 border-secondary p-8 md:p-10">
-          <p className="font-headline text-[10px] tracking-normal text-secondary font-bold">
+        <header className="bg-surface-container-lowest border-l-4 border-secondary p-8 md:p-10">
+          <p className="font-headline text-[10px] tracking-[0.28em] uppercase text-secondary font-bold">
             Career Signal Engine
           </p>
           <div className="mt-3 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight">
+              <h1 className="font-headline text-4xl md:text-5xl font-black tracking-tight uppercase">
                 Job Updates
               </h1>
               <p className="mt-4 max-w-3xl text-sm leading-relaxed text-on-surface-variant">
@@ -160,14 +160,14 @@ function OpportunitiesPage() {
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:min-w-80">
-              <div className="rounded-2xl bg-surface-container-high p-4">
-                <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+              <div className="bg-surface-container-high p-4">
+                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                   High Matches
                 </p>
                 <p className="mt-1 font-headline text-3xl font-black text-secondary">{highMatches}</p>
               </div>
-              <div className="rounded-2xl bg-surface-container-high p-4">
-                <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+              <div className="bg-surface-container-high p-4">
+                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                   Avg Fit
                 </p>
                 <p className="mt-1 font-headline text-3xl font-black text-primary">{averageScore}%</p>
@@ -176,13 +176,13 @@ function OpportunitiesPage() {
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              className="rounded-xl bg-primary px-5 py-3 font-headline text-[10px] font-bold tracking-normal text-on-primary"
+              className="bg-primary px-5 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-primary"
               to="/settings"
             >
               Update Student Settings
             </Link>
             <button
-              className="rounded-xl bg-surface-container-high px-5 py-3 font-headline text-[10px] font-bold tracking-normal text-on-surface disabled:opacity-60"
+              className="bg-surface-container-high px-5 py-3 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface disabled:opacity-60"
               disabled={isRefreshing}
               onClick={refreshRecommendations}
               type="button"
@@ -193,19 +193,19 @@ function OpportunitiesPage() {
         </header>
 
         {message ? (
-          <p className="rounded-xl border-l-4 border-secondary bg-secondary/10 px-4 py-3 text-sm text-secondary">
+          <p className="border-l-4 border-secondary bg-secondary/10 px-4 py-3 text-sm text-secondary">
             {message}
           </p>
         ) : null}
         {error ? (
-          <p className="rounded-xl border-l-4 border-error bg-error/10 px-4 py-3 text-sm text-error">
+          <p className="border-l-4 border-error bg-error/10 px-4 py-3 text-sm text-error">
             {error}
           </p>
         ) : null}
 
         <section className="space-y-5">
           {isLoading ? (
-            <div className="rounded-2xl bg-surface-container-lowest p-8 text-sm text-on-surface-variant">
+            <div className="bg-surface-container-lowest p-8 text-sm text-on-surface-variant">
               Analyzing jobs against your current evidence...
             </div>
           ) : uniqueRecommendations.length ? (
@@ -213,28 +213,28 @@ function OpportunitiesPage() {
               const expanded = expandedJobId === item.id
               return (
                 <article
-                  className="rounded-2xl bg-surface-container-lowest border border-outline-variant/40 border-l-4 border-l-secondary p-5 md:p-6"
+                  className="bg-surface-container-lowest border border-outline-variant/40 border-l-4 border-l-secondary p-5 md:p-6"
                   key={item.id}
                 >
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className={`rounded-full border px-2 py-1 font-label text-[10px] font-bold tracking-normal ${probabilityClass(item.probabilityLabel)}`}>
+                        <span className={`border px-2 py-1 font-label text-[10px] font-bold uppercase tracking-widest ${probabilityClass(item.probabilityLabel)}`}>
                           {item.probabilityLabel} Fit
                         </span>
-                        <span className="rounded-full bg-surface-container-high px-2 py-1 font-label text-[10px] font-bold tracking-normal text-on-surface-variant">
+                        <span className="bg-surface-container-high px-2 py-1 font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                           {item.job?.category}
                         </span>
-                        <span className="text-[10px] tracking-normal text-on-surface-variant">
+                        <span className="text-[10px] uppercase tracking-widest text-on-surface-variant">
                           {formatDate(item.updatedAt)}
                         </span>
                         {item.application ? (
-                          <span className="rounded-full border border-secondary bg-secondary/10 px-2 py-1 font-label text-[10px] font-bold tracking-normal text-secondary">
+                          <span className="border border-secondary bg-secondary/10 px-2 py-1 font-label text-[10px] font-bold uppercase tracking-widest text-secondary">
                             {item.application.status}
                           </span>
                         ) : null}
                       </div>
-                      <h2 className="mt-3 font-headline text-2xl font-black tracking-tight text-on-background">
+                      <h2 className="mt-3 font-headline text-2xl font-black uppercase tracking-tight text-on-background">
                         {item.job?.title}
                       </h2>
                       <p className="mt-1 text-sm text-on-surface-variant">
@@ -243,7 +243,7 @@ function OpportunitiesPage() {
                     </div>
                     <div className="shrink-0 text-left lg:text-right">
                       <p className="font-headline text-4xl font-black text-secondary">{item.matchScore}%</p>
-                      <p className="font-label text-[10px] tracking-normal text-on-surface-variant">
+                      <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
                         Match Probability
                       </p>
                     </div>
@@ -254,14 +254,14 @@ function OpportunitiesPage() {
                   </p>
 
                   <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="rounded-2xl bg-surface-container-high p-4">
-                      <p className="font-label text-[10px] tracking-normal text-secondary font-bold">
+                    <div className="bg-surface-container-high p-4">
+                      <p className="font-label text-[10px] uppercase tracking-widest text-secondary font-bold">
                         Skills You Match
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {(item.matchedSkills || []).length ? (
                           item.matchedSkills.map((skill) => (
-                            <span className="rounded-full bg-secondary/10 px-2 py-1 text-xs text-secondary" key={skill}>
+                            <span className="bg-secondary/10 px-2 py-1 text-xs text-secondary" key={skill}>
                               {skill}
                             </span>
                           ))
@@ -270,13 +270,13 @@ function OpportunitiesPage() {
                         )}
                       </div>
                     </div>
-                    <div className="rounded-2xl bg-surface-container-high p-4">
-                      <p className="font-label text-[10px] tracking-normal text-primary font-bold">
+                    <div className="bg-surface-container-high p-4">
+                      <p className="font-label text-[10px] uppercase tracking-widest text-primary font-bold">
                         Skills To Improve
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {(item.missingSkills || []).slice(0, 8).map((skill) => (
-                          <span className="rounded-full bg-primary/10 px-2 py-1 text-xs text-primary" key={skill}>
+                          <span className="bg-primary/10 px-2 py-1 text-xs text-primary" key={skill}>
                             {skill}
                           </span>
                         ))}
@@ -287,7 +287,7 @@ function OpportunitiesPage() {
                   {expanded ? (
                     <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4 border-t border-outline-variant/40 pt-5">
                       <div>
-                        <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                        <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                           Requirements
                         </p>
                         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-on-surface-variant">
@@ -297,7 +297,7 @@ function OpportunitiesPage() {
                         </ul>
                       </div>
                       <div>
-                        <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                        <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                           Responsibilities
                         </p>
                         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-on-surface-variant">
@@ -306,8 +306,8 @@ function OpportunitiesPage() {
                           ))}
                         </ul>
                       </div>
-                      <div className="rounded-2xl lg:col-span-2 bg-surface-container-high p-4">
-                        <p className="font-label text-[10px] tracking-normal text-on-surface-variant font-bold">
+                      <div className="lg:col-span-2 bg-surface-container-high p-4">
+                        <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
                           Role Detail
                         </p>
                         <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">
@@ -319,7 +319,7 @@ function OpportunitiesPage() {
 
                   <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
                     <button
-                      className="rounded-lg bg-surface-container-high px-4 py-2 font-headline text-[10px] font-bold tracking-normal text-on-surface hover:bg-surface-container-highest"
+                      className="bg-surface-container-high px-4 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-on-surface hover:bg-surface-container-highest"
                       onClick={() => setExpandedJobId(expanded ? null : item.id)}
                       type="button"
                     >
@@ -327,7 +327,7 @@ function OpportunitiesPage() {
                     </button>
                     {item.job?.applyUrl ? (
                       <button
-                        className="rounded-lg bg-secondary px-4 py-2 font-headline text-[10px] font-bold tracking-normal text-on-secondary disabled:opacity-60"
+                        className="bg-secondary px-4 py-2 font-headline text-[10px] font-bold uppercase tracking-widest text-on-secondary disabled:opacity-60"
                         disabled={applyingRecommendationId === item.id}
                         onClick={() => applyForJob(item)}
                         type="button"
@@ -344,7 +344,7 @@ function OpportunitiesPage() {
               )
             })
           ) : (
-            <div className="rounded-2xl bg-surface-container-lowest p-8 text-sm text-on-surface-variant">
+            <div className="bg-surface-container-lowest p-8 text-sm text-on-surface-variant">
               No high-probability jobs yet. Update your student settings with skills, stack, internships, projects, and certifications, then refresh matches.
             </div>
           )}
@@ -354,4 +354,4 @@ function OpportunitiesPage() {
   )
 }
 
-export default OpportunitiesPage
+export default JobUpdatesPage
